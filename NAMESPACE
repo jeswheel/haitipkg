@@ -3,5 +3,6 @@
 export(covars)
 export(haiti1_data)
 export(haiti1_fit)
+export(haiti2)
 importFrom(magrittr,"%>%")
 importFrom(pomp,Csnippet)
