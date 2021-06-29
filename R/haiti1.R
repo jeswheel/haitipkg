@@ -3,16 +3,12 @@
 #' Generate a class \sQuote{pomp} object for fitting to epidemic/endemic Haiti cholera data.
 #'
 #' @importFrom pomp Csnippet
-#' @param period An integer to select the fitting period for the pomp model.
-#' (0 = full (weeks 1-426, from October 2010 through January 2019),
-#' 1 = epidemic (weeks 1-232, from October 2010 through March 2015),
-#' 2 = endemic (weeks 233-426, from April 2015 through January 2019))
 #' @return An object of class \sQuote{pomp}.
 #' @examples
-#' m1 <- haiti1_fit(period = 1)
+#' m1 <- haiti1()
 #' @export
 
-haiti1_fit <- function(period) {
+haiti1 <- function() {
   ## make components pomp object building
   rinit <- Csnippet("
     double pop = pop_0;
@@ -22,7 +18,7 @@ haiti1_fit <- function(period) {
     I = nearbyint(frac * I_0);
     A = nearbyint(frac * A_0);
     R = nearbyint(frac * R_0);
-    incid = incid_0;
+    incid = 0;
   ")
 
   rproc <- Csnippet("
@@ -102,29 +98,17 @@ haiti1_fit <- function(period) {
   param_names <- c("rho", "tau", "beta1", "beta2", "beta3",
                    "beta4", "beta5", "beta6", "gamma", "sigma",
                    "theta0", "alpha", "mu", "delta", "nu",
-                   "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0", "incid_0")
+                   "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0")
 
   param_trans <- pomp::parameter_trans(
     log = c("beta1", "beta2", "beta3", "beta4", "beta5", "beta6",
             "tau", "sigma", "gamma", "mu", "delta", "alpha"),
     logit = c("rho", "nu", "theta0"),
-    log_barycentric = c("S_0", "E_0", "I_0", "A_0", "R_0")
+    barycentric = c("S_0", "E_0", "I_0", "A_0", "R_0")
   )
 
-  ## subset data
-  all_dat <- haiti1_data()
-  if (period == 0) {
-    dat <- all_dat
-  } else if (period == 1) {
-    dat <- all_dat %>%
-      dplyr::filter(week <= 232)
-  } else {
-    dat <- all_dat %>%
-      dplyr::filter(week > 232)
-  }
-  dat <- dat %>%
-    dplyr::mutate(week_end = seq_along(week)) %>%
-    dplyr::select(-week)
+  ## get data
+  dat <- haiti1_data()
 
   ## make covariate table
   covar <- covars(tmin = 0,
@@ -137,7 +121,7 @@ haiti1_fit <- function(period) {
   ## build pomp model
   model1 <- pomp::pomp(
       data = dat,
-      times = "week_end",
+      times = "week",
       t0 = 0,
       dmeasure = dmeas,
       rmeasure = rmeas,
