@@ -11,9 +11,6 @@
 
 haiti3 <- function() {
 
-  library(magrittr)
-  library(foreach)
-
   # First Define some helper functions:
   dateToYears <- function(date, origin = as.Date("2014-01-01"), yr_offset = 2014) {
     julian(date, origin = origin) / 365.25 + yr_offset
