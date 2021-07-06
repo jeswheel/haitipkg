@@ -6,7 +6,36 @@
 \usage{
 haiti3()
 }
+\value{
+\code{\link[pomp]{pomp}} representation of model 3 described in \href{https://www.sciencedirect.com/science/article/pii/S2214109X20303107}{Lee, Elizabeth et. al.} and it's accompanying \href{https://ars.els-cdn.com/content/image/1-s2.0-S2214109X20303107-mmc3.pdf}{Supplemental Material}.
+}
 \description{
-Generate a \sQuote(pomp) object for fitting to Haiti cholera data. Based on
-model 3. TODO: update this.
+Generate a \sQuote(pomp) object for fitting to Haiti cholera data.
+This model is a stochastic compartmental model applied at the
+level of the ten Haitian departments. It is the stochastic
+translation of a deterministic SIRB model based on Ordinary
+Differential Equations (ODEs), and has been implemented as a
+discrete-state model based on a Partially-Observed Markov Process
+(POMP), simulating the stochastic transitions between compartments
+as discrete events.
+}
+\details{
+The model subdivides the population of each department into
+compartments counting the number of individuals at the different
+stages of the disease: Susceptible individuals (S),
+Infected symptomatic (I), infected Asymptomatic (A), and
+Recoverd (R). The main feature of this model is that it contains
+an environmental compartment describing the bacterial concentration (B)
+in the local environment, which is used to estimate the force of
+infection.
+
+This model was developed by Lemaitre, Joseph, et. al at the Laboratory
+of Ecohydrology, Ecole Polytechnique Federale de Lausanne (CH).
+}
+\examples{
+mod3 <- haiti3()
+}
+\seealso{
+\code{\link{haiti2}} and \code{\link{haiti1}} for other models used
+to fit the cholera epidemic in Haiti.
 }

@@ -1,11 +1,37 @@
 #' Build pomp object for model 3.
 #'
-#' Generate a \sQuote(pomp) object for fitting to Haiti cholera data. Based on
-#' model 3. TODO: update this.
+#' Generate a \sQuote(pomp) object for fitting to Haiti cholera data.
+#'    This model is a stochastic compartmental model applied at the
+#'    level of the ten Haitian departments. It is the stochastic
+#'    translation of a deterministic SIRB model based on Ordinary
+#'    Differential Equations (ODEs), and has been implemented as a
+#'    discrete-state model based on a Partially-Observed Markov Process
+#'    (POMP), simulating the stochastic transitions between compartments
+#'    as discrete events.
+#'
+#'    The model subdivides the population of each department into
+#'    compartments counting the number of individuals at the different
+#'    stages of the disease: Susceptible individuals (S),
+#'    Infected symptomatic (I), infected Asymptomatic (A), and
+#'    Recoverd (R). The main feature of this model is that it contains
+#'    an environmental compartment describing the bacterial concentration (B)
+#'    in the local environment, which is used to estimate the force of
+#'    infection.
+#'
+#'    This model was developed by Lemaitre, Joseph, et. al at the Laboratory
+#'    of Ecohydrology, Ecole Polytechnique Federale de Lausanne (CH).
+#'
+#'
 #'
 #' @importFrom magrittr %>%
 #' @importFrom foreach %do%
 #' @importFrom foreach foreach
+#' @seealso \code{\link{haiti2}} and \code{\link{haiti1}} for other models used
+#' to fit the cholera epidemic in Haiti.
+#' @return \code{\link[pomp]{pomp}} representation of model 3 described in \href{https://www.sciencedirect.com/science/article/pii/S2214109X20303107}{Lee, Elizabeth et. al.} and it's accompanying \href{https://ars.els-cdn.com/content/image/1-s2.0-S2214109X20303107-mmc3.pdf}{Supplemental Material}.
+#'
+#' @examples
+#' mod3 <- haiti3()
 #' @export
 
 
@@ -13,14 +39,27 @@ haiti3 <- function() {
 
   # First Define some helper functions:
   dateToYears <- function(date, origin = as.Date("2014-01-01"), yr_offset = 2014) {
+    # This function converts a date to a decimal representation
+    #
+    # ex: "1976-03-01" -> 1976.163
+
     julian(date, origin = origin) / 365.25 + yr_offset
   }
 
   yearsToDate <- function(year_frac, origin = as.Date("2014-01-01"), yr_offset = 2014.0) {
+    # This function is the inverse function of dateToYears; it takes
+    # a decimal representation of a date and converts it into a Date.
+    #
+    # ex: 1976.163 -> "1976-03-01"
+
     as.Date((year_frac - yr_offset) * 365.25, origin = origin)
   }
 
   yearsToDateTime <- function(year_frac, origin = as.Date("2014-01-01"), yr_offset = 2014.0) {
+    # Same as the function above, but a DateTime object rather than a Date
+    # object.
+    #
+    # ex: 1976.163 -> "1976-03-01"
     as.POSIXct((year_frac - yr_offset) * 365.25 * 3600 * 24, origin = origin)
   }
 
@@ -50,7 +89,7 @@ haiti3 <- function() {
   )
 
   # Loads the input parameters
-  load('R/sysdata.rda')
+  # load('R/sysdata.rda')  # These are loaded by the package automatically
   t_start <- dateToYears(as.Date(input_parameters$t_start))
   t_end   <- dateToYears(as.Date(input_parameters$t_end))
 
@@ -60,12 +99,14 @@ haiti3 <- function() {
   all_matrix_cases_at_t_start.string <- ""
   all_matrix_cases_other.string <- ""
 
+  # ALL_CASES is imported from the internal data: R/sysdata.rda
   all_cases <- ALL_CASES %>%
     dplyr::mutate(
       date = as.Date(date, format = '%Y-%m-%d'),
       time = dateToYears(date)
     )
 
+  # ALL_RAIN is imported from the internal data: R/sysdata.rda
   all_rain <- ALL_RAIN %>%
     dplyr::mutate(
       date = as.Date(date, format = "%Y-%m-%d"),
@@ -73,6 +114,9 @@ haiti3 <- function() {
     ) %>%
     dplyr::filter(time > t_start - 0.01 & time < (t_end + 0.01))
 
+  # Loop through each of the departements and:
+  # (1) Create a dataset with each departement case count
+  # (2) Create a dataset with each departement rain history
   for (dp in departements) {
 
     cases <- ALL_CASES %>%
@@ -165,9 +209,6 @@ haiti3 <- function() {
     all_params <- purrr::set_names(seq_along(all_param_names) * 0, all_param_names)
 
   }
-
-
-  # TODO: Continue starting with line 286 in pomp_all_dept.R
 
   for (dp in departements) {
     populations <- unlist(purrr::flatten(input_parameters["population"]))
@@ -816,18 +857,13 @@ return(dB);
   sirb_cholera <- pomp::pomp(
     # set data
     data = all_cases %>%
-      dplyr::filter(time > t_start & time < (t_end + 0.01)) %>% dplyr::select(time,
-                                                                casesArtibonite,
-                                                                casesCentre,
-                                                                casesGrande_Anse,
-                                                                casesNippes,
-                                                                casesNord,
-                                                                casesNord_Est,
-                                                                casesOuest,
-                                                                casesSud,
-                                                                casesSud_Est,
-                                                                casesNord_Ouest)
-    ,
+      dplyr::filter(time > t_start & time < (t_end + 0.01)) %>%
+      dplyr::select(
+        time, casesArtibonite, casesCentre,
+        casesGrande_Anse, casesNippes,
+        casesNord, casesNord_Est, casesOuest,
+        casesSud, casesSud_Est, casesNord_Ouest
+      ),
     # time column
     times = "time",
     # initialization time
@@ -852,11 +888,7 @@ return(dB);
     paramnames = all_param_names,
     # names of covariates
     rinit = initalizeStates,
-    # TODO: The issue is coming from here. I can create model without this.
     partrans = pt,
-    # partrans = parameter_trans(toEstimationScale, fromEstimationScale),
-    # toEstimationScale = toEstimationScale,
-    # fromEstimationScale = fromEstimationScale,
     # global C definitions
     globals = stringr::str_c(
       sprintf("int n_cases_start = %i;",  nrow(cases_at_t_start)),
