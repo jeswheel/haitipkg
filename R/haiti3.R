@@ -212,7 +212,7 @@ haiti3 <- function() {
 
   for (dp in departements) {
     populations <- unlist(purrr::flatten(input_parameters["population"]))
-    densities <- unlist(purrr:::flatten(input_parameters["density"]))
+    densities <- unlist(purrr::flatten(input_parameters["density"]))
     all_params[paste0('H', gsub('-', '_', dp))] <- populations[dp]
     all_params[paste0('D', gsub('-', '_', dp))] <- densities[dp]
     p1d_alt_year <- unlist(purrr::flatten(input_parameters['p1d_alt_year']))
