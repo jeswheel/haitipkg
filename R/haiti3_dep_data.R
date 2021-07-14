@@ -18,7 +18,7 @@ haiti3_dep_data <- function(departement = 'Artibonite') {
     as.POSIXct((year_frac - yr_offset) * 365.25 * 3600 * 24, origin = origin)
   }
 
-  input_parameters <- yaml::read_yaml("https://raw.githubusercontent.com/ionides/haiti/main/model3/input/haiti-data/input_parameters.yaml?token=AQ356PMPCSG54WKPJDZZ6I3A64K2C")
+  # input_parameters <- yaml::read_yaml("https://raw.githubusercontent.com/ionides/haiti/main/model3/input/haiti-data/input_parameters.yaml?token=AQ356PMPCSG54WKPJDZZ6I3A64K2C")
 
   # Start and end dates of epidemic
   if (departement == 'Ouest') {
@@ -29,7 +29,7 @@ haiti3_dep_data <- function(departement = 'Artibonite') {
   t_end <- dateToYears(as.Date(input_parameters$t_end))
 
 
-  CASES_TEMP <- readr::read_csv("https://raw.githubusercontent.com/ionides/haiti/main/model3/input/haiti-data/fromAzman/cases_corrected.csv?token=AQ356PNOJAOF4MGB2BIWCK3A64K7A")
+  # CASES_TEMP <- readr::read_csv("https://raw.githubusercontent.com/ionides/haiti/main/model3/input/haiti-data/fromAzman/cases_corrected.csv?token=AQ356PNOJAOF4MGB2BIWCK3A64K7A")
 
   cases <- CASES_TEMP %>%
     tidyr::gather(dep, cases, -date) %>%
@@ -45,7 +45,9 @@ haiti3_dep_data <- function(departement = 'Artibonite') {
 
   missing_dates <- setdiff(case_dates, cases$date) %>% as.Date(origin = as.Date("1970-01-01"))
 
-  rain <- readr::read_csv("https://raw.githubusercontent.com/ionides/haiti/main/model3/input/haiti-data/fromAzman/rainfall.csv?token=AQ356PM3DCWJXDUWFXGA5ETA64LLM")  %>%
+
+  # RAIN <- readr::read_csv("https://raw.githubusercontent.com/ionides/haiti/main/model3/input/haiti-data/fromAzman/rainfall.csv?token=AQ356PM3DCWJXDUWFXGA5ETA64LLM")
+  rain <- RAIN  %>%
     tidyr::gather(dep, rain, -date) %>%
     dplyr::group_by(dep) %>%
     dplyr::ungroup() %>%
@@ -68,7 +70,7 @@ haiti3_dep_data <- function(departement = 'Artibonite') {
 
   cases_covar <- cases_other_dept
 
-  params <- read.csv('https://raw.githubusercontent.com/ionides/haiti/main/model3/output/best_artibonite_params.csv?token=AQ356PMHAND3J5L5OSGYLR3A64QJA')
+  # PARAMS <- read.csv('https://raw.githubusercontent.com/ionides/haiti/main/model3/output/best_artibonite_params.csv?token=AQ356PMHAND3J5L5OSGYLR3A64QJA')
 
   ret <- list()
   ret$cases_covar <- cases_covar
@@ -76,7 +78,7 @@ haiti3_dep_data <- function(departement = 'Artibonite') {
   ret$cases <- cases
   ret$input_parameters <- input_parameters
   ret$cases_other_dept <- cases_other_dept
-  ret$params <- params
+  ret$params <- PARAMS
 
   ret
 }
