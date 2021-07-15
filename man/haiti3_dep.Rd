@@ -6,7 +6,13 @@
 \usage{
 haiti3_dep(departement = "Artibonite")
 }
+\arguments{
+\item{departement}{String indicating which departement to fit the
+pomp model to.}
+}
 \value{
+\code{\link[pomp]{pomp}} object.
+
 \code{\link[pomp]{pomp}} representation of model 3 described in \href{https://www.sciencedirect.com/science/article/pii/S2214109X20303107}{Lee, Elizabeth et. al.} and it's accompanying \href{https://ars.els-cdn.com/content/image/1-s2.0-S2214109X20303107-mmc3.pdf}{Supplemental Material}.
 }
 \description{

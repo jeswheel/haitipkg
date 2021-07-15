@@ -1,5 +1,10 @@
 #' Build pomp object for individual departments following model 3
 #'
+#' @param departement String indicating which departement to fit the
+#'   pomp model to.
+#'
+#' @return \code{\link[pomp]{pomp}} object.
+#'
 #' @importFrom magrittr %>%
 #' @importFrom foreach %do%
 #' @importFrom foreach foreach
