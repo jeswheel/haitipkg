@@ -4,11 +4,21 @@
 \alias{haiti3_dep}
 \title{Build pomp object for individual departments following model 3}
 \usage{
-haiti3_dep(departement = "Artibonite")
+haiti3_dep(departement = "Artibonite", start_time = "2014-03-01")
 }
 \arguments{
 \item{departement}{String indicating which departement to fit the
 pomp model to.}
+
+\item{start_time}{Time of which to start the time series. In the
+original paper, the authors used a start time of 2014-03-01 for all
+departements except for Ouest, which started with a time of 2017-06-10.
+This means that there wasn't a national-coupled model fit to the
+data until 2017-06-01, which means that there was less than 2 years
+of data to fit the model. Still, the authors fit the remaining departemental
+models to data from 2014-03-01. This added argument allows us to
+fit the Ouest model earlier, or fit the remaining departement models
+at 2017-06-01}
 }
 \value{
 \code{\link[pomp]{pomp}} object.

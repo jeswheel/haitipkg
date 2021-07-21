@@ -2,6 +2,15 @@
 #'
 #' @param departement String indicating which departement to fit the
 #'   pomp model to.
+#' @param start_time Time of which to start the time series. In the
+#'    original paper, the authors used a start time of 2014-03-01 for all
+#'    departements except for Ouest, which started with a time of 2017-06-10.
+#'    This means that there wasn't a national-coupled model fit to the
+#'    data until 2017-06-01, which means that there was less than 2 years
+#'    of data to fit the model. Still, the authors fit the remaining departemental
+#'    models to data from 2014-03-01. This added argument allows us to
+#'    fit the Ouest model earlier, or fit the remaining departement models
+#'    at 2017-06-01
 #'
 #' @return \code{\link[pomp]{pomp}} object.
 #'
@@ -11,7 +20,7 @@
 #' @return \code{\link[pomp]{pomp}} representation of model 3 described in \href{https://www.sciencedirect.com/science/article/pii/S2214109X20303107}{Lee, Elizabeth et. al.} and it's accompanying \href{https://ars.els-cdn.com/content/image/1-s2.0-S2214109X20303107-mmc3.pdf}{Supplemental Material}.
 #' @export
 
-haiti3_dep <- function(departement = 'Artibonite') {
+haiti3_dep <- function(departement = 'Artibonite', start_time = "2014-03-01") {
 
   # function to convert dates to fractions of years for model
   dateToYears <- function(date, origin = as.Date("2014-01-01"), yr_offset = 2014) {
@@ -26,7 +35,7 @@ haiti3_dep <- function(departement = 'Artibonite') {
     as.POSIXct((year_frac - yr_offset) * 365.25 * 3600 * 24, origin = origin)
   }
 
-  DATA <- haiti3_dep_data(departement = departement)
+  DATA <- haiti3_dep_data(departement = departement, start_time = start_time)
 
   cases <- DATA$cases
   rain <- DATA$rain
@@ -34,11 +43,13 @@ haiti3_dep <- function(departement = 'Artibonite') {
   input_parameters <- DATA$input_parameters
   cases_other_dept <- DATA$cases_other_dept
 
-  if (departement == 'Ouest') {
-    t_start <- dateToYears(as.Date('2017-06-10'))
-  } else {
-    t_start <- dateToYears(as.Date(input_parameters$t_start))
-  }
+  t_start <- dateToYears(as.Date(start_time))
+
+  # if (departement == 'Ouest' && start_time != '2014-03-01') {
+  #   t_start <- dateToYears(as.Date('2017-06-10'))
+  # } else {
+  #   t_start <- dateToYears(as.Date(input_parameters$t_start))
+  # }
   t_end <- dateToYears(as.Date(input_parameters$t_end))
 
   state_names <- c("S", "I", "A", "RI1", "RI2", "RI3", "RA1", "RA2", "RA3",
