@@ -4,7 +4,11 @@
 \alias{haiti3_dep}
 \title{Build pomp object for individual departments following model 3}
 \usage{
-haiti3_dep(departement = "Artibonite", start_time = "2014-03-01")
+haiti3_dep(
+  departement = "Artibonite",
+  start_time = "2014-03-01",
+  delta.t = 1/365.25 * 0.2
+)
 }
 \arguments{
 \item{departement}{String indicating which departement to fit the
@@ -19,6 +23,8 @@ of data to fit the model. Still, the authors fit the remaining departemental
 models to data from 2014-03-01. This added argument allows us to
 fit the Ouest model earlier, or fit the remaining departement models
 at 2017-06-01}
+
+\item{delta.t}{Delta time step used in Euler's approximation}
 }
 \value{
 \code{\link[pomp]{pomp}} object.

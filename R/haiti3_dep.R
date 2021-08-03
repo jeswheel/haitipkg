@@ -11,6 +11,7 @@
 #'    models to data from 2014-03-01. This added argument allows us to
 #'    fit the Ouest model earlier, or fit the remaining departement models
 #'    at 2017-06-01
+#' @param delta.t Delta time step used in Euler's approximation
 #'
 #' @return \code{\link[pomp]{pomp}} object.
 #'
@@ -20,7 +21,9 @@
 #' @return \code{\link[pomp]{pomp}} representation of model 3 described in \href{https://www.sciencedirect.com/science/article/pii/S2214109X20303107}{Lee, Elizabeth et. al.} and it's accompanying \href{https://ars.els-cdn.com/content/image/1-s2.0-S2214109X20303107-mmc3.pdf}{Supplemental Material}.
 #' @export
 
-haiti3_dep <- function(departement = 'Artibonite', start_time = "2014-03-01") {
+haiti3_dep <- function(departement = 'Artibonite',
+                       start_time = "2014-03-01",
+                       delta.t = 1/365.25 * .2) {
 
   # function to convert dates to fractions of years for model
   dateToYears <- function(date, origin = as.Date("2014-01-01"), yr_offset = 2014) {
@@ -653,7 +656,7 @@ S = nearbyint(H - I - A - RI1 - RI2 - RI3 - RA1 - RA2 - RA3 -
   cases_ext_mean <- mean(cases_ext_mean$cases)
 
   # rate of simulation in fractions of years
-  dt_yrs <- 1/365.25 * .2
+  dt_yrs <- delta.t
 
   # TODO: Put actual parameter values here.
   params <- DATA$params
