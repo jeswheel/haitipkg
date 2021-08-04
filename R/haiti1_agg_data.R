@@ -6,17 +6,17 @@
 #' Code adapted from Model 1 Team at JHU Bloomberg School of Public Health
 #'
 #' @importFrom magrittr %>%
-#' @return A data frame with
+#' @return A data frame
 #' @examples
-#' haiti1_data()
+#' haiti1_agg_data()
 #' @export
 
-haiti1_data <- function(){
-  allDat <- haiti_case_data
+haiti1_agg_data <- function(){
+  allDat <- haitipkg::haiti_case_data
 
   splitDate <- strsplit(allDat$date_sat_orig, "-")
   data.table::setattr(splitDate[[1]], 'names', c("year", "month", "day"))
-  dateDf <- dplyr::tbl_df(as.data.frame(do.call(rbind, splitDate))) %>%
+  dateDf <- tibble::as_tibble(as.data.frame(do.call(rbind, splitDate))) %>%
     dplyr::mutate(month = as.character(month)) %>%
     dplyr::mutate(day = as.character(day)) %>%
     dplyr::mutate(year = as.character(year)) %>%
