@@ -23,7 +23,7 @@ covars(tmin, tmax, byt = 1, nbasis = 6, degree = 6, per = 52.14)
 A data frame with tmax rows and nbasis + 1 columns
 }
 \description{
-Generate a data frame containing weekly values for periodic basis splines for the seasonal transmission term, \beta.
+Generate a data frame containing weekly values for periodic basis splines for the seasonal transmission term beta.
 }
 \examples{
 covar <- covars(tmin = 0, tmax = 100, nbasis = 6, degree = 6, per = 52.14)

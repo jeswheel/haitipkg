@@ -31,6 +31,6 @@ data(haiti_case_data)
 Dataset containing the number of cases of cholera reported weekly by each department in Haiti from October 2010 to January of 2019.
 }
 \references{
-\dalziel2016
+
 }
 \keyword{datasets}

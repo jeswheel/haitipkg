@@ -17,5 +17,4 @@
 ##' @source \url{https://zenodo.org/record/3360991#.YNC2Iy1h0ow}
 ##' @references
 ##'
-##' \dalziel2016
 NULL

@@ -1,6 +1,6 @@
 #' Make covariate table for Model 1
 #'
-#' Generate a data frame containing weekly values for periodic basis splines for the seasonal transmission term, \beta.
+#' Generate a data frame containing weekly values for periodic basis splines for the seasonal transmission term beta.
 #'
 #' @param tmin first observation time
 #' @param tmax last observation time

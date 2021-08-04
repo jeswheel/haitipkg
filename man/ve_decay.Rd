@@ -19,6 +19,6 @@ A data frame with 61 rows and 41 variables.
 Dataset containing monthly waning vaccine effectiveness for three vaccine effectiveness assumptions.
 }
 \references{
-\dalziel2016
+
 }
 \concept{datasets}
