@@ -1,6 +1,6 @@
 #' Build pomp object for model 3.
 #'
-#' Generate a \sQuote(pomp) object for fitting to Haiti cholera data.
+#' Generate a \sQuote{pomp} object for fitting to Haiti cholera data.
 #'    This model is a stochastic compartmental model applied at the
 #'    level of the ten Haitian departments. It is the stochastic
 #'    translation of a deterministic SIRB model based on Ordinary

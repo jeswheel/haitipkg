@@ -1,6 +1,6 @@
 #' Build SpatPomp object for Model 2
 #'
-#' Generate a \sQuote(spatPomp) object for fitting to Haiti cholera data. Based on
+#' Generate a \sQuote{spatPomp} object for fitting to Haiti cholera data. Based on
 #' the model developed by Laura Matrajt et al. at the University of Florida.
 #'
 #' @importFrom pomp Csnippet
