@@ -12,7 +12,7 @@
 #' @export
 
 haiti1_agg_data <- function(){
-  allDat <- haitipkg::haiti_case_data
+  allDat <- haiti_case_data
 
   splitDate <- strsplit(allDat$date_sat_orig, "-")
   data.table::setattr(splitDate[[1]], 'names', c("year", "month", "day"))
