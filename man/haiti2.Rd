@@ -16,7 +16,7 @@ or after the cutoff time}
 An object of class \sQuote{spatPomp}.
 }
 \description{
-Generate a \sQuote(spatPomp) object for fitting to Haiti cholera data. Based on
+Generate a \sQuote{spatPomp} object for fitting to Haiti cholera data. Based on
 the model developed by Laura Matrajt et al. at the University of Florida.
 }
 \examples{

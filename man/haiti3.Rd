@@ -10,7 +10,7 @@ haiti3()
 \code{\link[pomp]{pomp}} representation of model 3 described in \href{https://www.sciencedirect.com/science/article/pii/S2214109X20303107}{Lee, Elizabeth et. al.} and it's accompanying \href{https://ars.els-cdn.com/content/image/1-s2.0-S2214109X20303107-mmc3.pdf}{Supplemental Material}.
 }
 \description{
-Generate a \sQuote(pomp) object for fitting to Haiti cholera data.
+Generate a \sQuote{pomp} object for fitting to Haiti cholera data.
 This model is a stochastic compartmental model applied at the
 level of the ten Haitian departments. It is the stochastic
 translation of a deterministic SIRB model based on Ordinary
