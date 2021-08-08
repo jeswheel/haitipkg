@@ -193,7 +193,7 @@ haiti1 <- function() {
       dmeasure = dmeas,
       rmeasure = rmeas,
       rprocess = pomp::euler(step.fun = rproc, delta.t = 1/7),
-      skeleton = vectorfield(skel),
+      skeleton = pomp::vectorfield(skel),
       covar = pomp::covariate_table(covar, times = "time"),
       partrans = param_trans,
       statenames = state_names,
