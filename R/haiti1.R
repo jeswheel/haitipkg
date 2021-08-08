@@ -108,7 +108,7 @@ haiti1 <- function() {
   )
 
   ## get data
-  dat <- haiti1_data()
+  dat <- haiti1_agg_data()
 
   ## make covariate table
   covar <- covars(tmin = 0,
