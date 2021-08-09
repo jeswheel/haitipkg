@@ -326,62 +326,27 @@ haiti2 <- function(cutoff=2020, region=c("before","after")){
   cholera_dmeasure <- Csnippet("
     const double *C = &C1;
     const double *cases = &cases1;
-    double m,v;
-    double tol = 1e-300;
-    double mytol = 1e-5;
+    double m;
+    double v=100;
     int u;
     lik = 0;
     for (u = 0; u < U; u++) {
-      m = Rho*(C[u]+mytol);
-      v = m*(1.0-Rho+Psi*Psi*m);
-      // C < 0 can happen in bootstrap methods such as bootgirf
-      if (C < 0) {lik += log(tol);} else {
-        if (cases[u] > tol) {
-          lik += log(pnorm(cases[u]+0.5,m,sqrt(v)+tol,1,0)-
-            pnorm(cases[u]-0.5,m,sqrt(v)+tol,1,0)+tol);
-        } else {
-            lik += log(pnorm(cases[u]+0.5,m,sqrt(v)+tol,1,0)+tol);
-        }
-      }
+      m = Rho*C[u];
+      lik += log(pnorm(cases[u]+0.5,m,v,1,0)-
+        pnorm(cases[u]-0.5,m,v,1,0));
     }
-    if(!give_log) lik = (lik > log(tol)) ? exp(lik) : tol;
+    if(!give_log) lik = exp(lik);
   ")
 
   cholera_dunit_measure <- Csnippet("
-    double mytol = 1e-5;
-    double m = Rho*(C+mytol);
-    double v = m*(1.0-Rho+Psi*Psi*m);
-    double tol = 1e-300;
-    // C < 0 can happen in bootstrap methods such as bootgirf
-    if (C < 0) {lik = 0;} else {
-      if (cases > tol) {
-        lik = pnorm(cases+0.5,m,sqrt(v)+tol,1,0)-
-          pnorm(cases-0.5,m,sqrt(v)+tol,1,0)+tol;
-      } else {
-        lik = pnorm(cases+0.5,m,sqrt(v)+tol,1,0)+tol;
-      }
-    }
-    if(give_log) lik = log(lik);
+    double m = Rho*C;
+    double v = 100;
+    lik = log(pnorm(cases+0.5,m,v,1,0) - pnorm(cases-0.5,m,v,1,0));
+    if(!give_log) lik = exp(lik);
   ")
 
   cholera_eunit_measure <- Csnippet("
     ey = Rho*C;
-  ")
-
-  cholera_vunit_measure <- Csnippet("
-    double m = Rho*C;
-    vc = m*(1.0-Rho + Psi*Psi*m);
-  ")
-
-  cholera_munit_measure <- Csnippet("
-    double binomial_var;
-    double m;
-    double mytol = 1e-5;
-    m = Rho*(C+mytol);
-    binomial_var = Rho*(1-Rho)*C;
-    if(vc > binomial_var) {
-      M_Psi = sqrt(vc - binomial_var)/m;
-    }
   ")
 
   cholera_skel <- Csnippet('
@@ -478,35 +443,38 @@ haiti2 <- function(cutoff=2020, region=c("before","after")){
       trans[28] = WR*(inflow(Wmat,u,W) - outflow(Wmat,u,W)); // water movement
 
       // make transitions
-      DS[u] += trans[4] + trans[5] + trans[6] + trans[7] + trans[22] - trans[0];
-      DE[u] += trans[0] + trans[23] - trans[1];
-      DI[u] += k*trans[1] + trans[24] - trans[2];
-      DA[u] += (1-k)*trans[1] + trans[25] - trans[3];
-      DR[u] += trans[2] + trans[26] - trans[4];
-      DRA[u] += trans[3] + trans[27] - trans[5];
+      DS[u] = trans[4] + trans[5] + trans[6] + trans[7] + trans[22] - trans[0];
+      DE[u] = trans[0] + trans[23] - trans[1];
+      DI[u] = k*trans[1] + trans[24] - trans[2];
+      DA[u] = (1-k)*trans[1] + trans[25] - trans[3];
+      DR[u] = trans[2] + trans[26] - trans[4];
+      DRA[u] = trans[3] + trans[27] - trans[5];
 
-      DVOD[u] += trans[12] + trans[13] - trans[6] - trans[8];
-      DEOD[u] += trans[8] - trans[9];
-      DIOD[u] += k*trans[9] - trans[10];
-      DAOD[u] += (1-k)*trans[9] - trans[11];
-      DROD[u] += trans[10] - trans[12];
-      DRAOD[u] += trans[11] - trans[13];
+      DVOD[u] = trans[12] + trans[13] - trans[6] - trans[8];
+      DEOD[u] = trans[8] - trans[9];
+      DIOD[u] = k*trans[9] - trans[10];
+      DAOD[u] = (1-k)*trans[9] - trans[11];
+      DROD[u] = trans[10] - trans[12];
+      DRAOD[u] = trans[11] - trans[13];
 
-      DVTD[u] += trans[18] + trans[19] - trans[7] - trans[14];
-      DETD[u] += trans[14] - trans[15];
-      DITD[u] += k*trans[15] - trans[16];
-      DATD[u] += (1-k)*trans[15] - trans[17];
-      DRTD[u] += trans[16] - trans[18];
-      DRATD[u] += trans[17] - trans[19];
+      DVTD[u] = trans[18] + trans[19] - trans[7] - trans[14];
+      DETD[u] = trans[14] - trans[15];
+      DITD[u] = k*trans[15] - trans[16];
+      DATD[u] = (1-k)*trans[15] - trans[17];
+      DRTD[u] = trans[16] - trans[18];
+      DRATD[u] = trans[17] - trans[19];
 
-      DC[u] += trans[2] + trans[10] + trans[16];
+      DC[u] = trans[2] + trans[10] + trans[16];
 
-      DW[u] += trans[20] + trans[28] - trans[21];
+      DW[u] = trans[20] + trans[28] - trans[21];
     }
   ')
 
   cholera_partrans <- pomp::parameter_trans(
-    log=c("Mu","Beta","BetaW")
+    log=c("sigma","gammaE","gamma","Omega1","Omega2",
+          "Delta","ps","Sat","sigmaSE","VR","WR","Psi",
+          "Mu","Beta","BetaW"),
+    logit=c("k","VE1","VE2","AlphaS","Rho")
   )
 
   haiti <- haiti2_data()
@@ -533,8 +501,6 @@ haiti2 <- function(cutoff=2020, region=c("before","after")){
     rinit=cholera_rinit,
     dmeasure=cholera_dmeasure,
     eunit_measure=cholera_eunit_measure,
-    munit_measure=cholera_munit_measure,
-    vunit_measure=cholera_vunit_measure,
     rmeasure=cholera_rmeasure,
     dunit_measure=cholera_dunit_measure
   )
