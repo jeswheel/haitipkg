@@ -79,6 +79,73 @@ haiti1 <- function() {
     incid += E_trans[0];
   ")
 
+  skel <- Csnippet('
+    // transition rates
+    double Srate[2];
+    double Erate[3];
+    double Irate[2];
+    double Arate[2];
+    double Rrate[2];
+
+    // transition terms
+    double Strans[2];
+    double Etrans[3];
+    double Itrans[2];
+    double Atrans[2];
+    double Rtrans[2];
+
+    // some population demonitors
+    int pop = S + E + I + A + R;
+    double births = mu*pop;
+
+    // make seasonal beta term for current time
+    double mybeta = beta1*seas1 + beta2*seas2 + beta3*seas3 +
+                    beta4*seas4 + beta5*seas5 + beta6*seas6;
+    double foi = pow(I, nu) * mybeta / pop;
+
+    //compute the rates for all the transitions
+    Srate[0]= foi;  // S -> E
+    Srate[1]= delta;
+
+    Erate[0]= sigma*(1-theta0); // E -> I
+    Erate[1]= sigma*theta0; // E -> A
+    Erate[2]= delta;
+
+    Irate[0]= gamma; // I -> R
+    Irate[1]= delta;
+
+    Arate[0]= gamma; // A -> R
+    Arate[1]= delta;
+
+    Rrate[0]= alpha; // R -> S exponential waning immunity from natural infection
+    Rrate[1]= delta;
+
+    // compute the transition terms
+    for (int i = 0; i < 2; i++) {
+      Strans[i] = Srate[i] * S;
+    }
+    for (int i = 0; i < 3; i++) {
+      Etrans[i] = Erate[i] * E;
+    }
+    for (int i = 0; i < 2; i++) {
+      Itrans[i] = Irate[i] * I;
+    }
+    for (int i = 0; i < 2; i++) {
+      Atrans[i] = Arate[i] * A;
+    }
+    for (int i = 0; i < 2; i++) {
+      Rtrans[i] = Rrate[i] * R;
+    }
+
+    // balance the equations
+    DS = -Strans[0] - Strans[1] + Rtrans[0] + births;
+    DE = -Etrans[0] - Etrans[1] - Etrans[2] + Strans[0];
+    DI = -Itrans[0] - Itrans[1] + Etrans[0];
+    DA = -Atrans[0] - Atrans[1] + Etrans[1];
+    DR = -Rtrans[0] - Rtrans[1] + Itrans[0] + Atrans[0];
+    Dincid = Etrans[0]; // incidence is cumulative entries into I state
+  ')
+
   rmeas <- Csnippet("
     cases = rnbinom_mu(tau, rho*incid);
     if (cases > 0.0) {
@@ -108,11 +175,11 @@ haiti1 <- function() {
   )
 
   ## get data
-  dat <- haiti1_data()
+  dat <- haiti1_agg_data()
 
   ## make covariate table
   covar <- covars(tmin = 0,
-                  tmax = nrow(dat) + 1,
+                  tmax = nrow(dat) + 573, ## for 11 year forecast
                   byt = 1,
                   degree = 6,
                   nbasis = 6,
@@ -126,6 +193,7 @@ haiti1 <- function() {
       dmeasure = dmeas,
       rmeasure = rmeas,
       rprocess = pomp::euler(step.fun = rproc, delta.t = 1/7),
+      skeleton = pomp::vectorfield(skel),
       covar = pomp::covariate_table(covar, times = "time"),
       partrans = param_trans,
       statenames = state_names,

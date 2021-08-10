@@ -6,7 +6,10 @@ export(haiti1_agg_data)
 export(haiti2)
 export(haiti3)
 export(haiti3_dep)
+<<<<<<< HEAD
 export(haiti3_panel)
+=======
+>>>>>>> 5161af83ba1d42f47f727210f76750a240803e1a
 importFrom(foreach,"%do%")
 importFrom(foreach,foreach)
 importFrom(magrittr,"%>%")

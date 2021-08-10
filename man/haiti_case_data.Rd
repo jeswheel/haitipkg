@@ -25,12 +25,9 @@ A data frame with 426 rows and 11 variables.
 \url{https://zenodo.org/record/3360991#.YNC2Iy1h0ow}
 }
 \usage{
-data(haiti_case_data)
+haiti_case_data
 }
 \description{
 Dataset containing the number of cases of cholera reported weekly by each department in Haiti from October 2010 to January of 2019.
-}
-\references{
-
 }
 \keyword{datasets}

@@ -18,11 +18,6 @@
 ##'     \item{Sud.Est}{reported cases for department Sud Est}
 ##' }
 ##'
-##' @docType data
-##'
-##' @usage data(haiti_case_data)
-##'
 ##' @source \url{https://zenodo.org/record/3360991#.YNC2Iy1h0ow}
-##' @references
 ##'
 "haiti_case_data"
