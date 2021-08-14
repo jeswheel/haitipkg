@@ -130,7 +130,8 @@ else
 }
 
 // force of infection
-foi = betaB * (B / (1 + B)) + foi_add*mobility;
+// foi = betaB * (B / (1 + B)) + foi_add*mobility;
+foi = (betaB + betaB_trend * (t - 2016.579)) * (B / (1 + B)) + foi_add*mobility;
 if(std_W > 0.0)
 {
     dw = rgammawn(std_W, dt);   // white noise (extra-demographic stochasticity)
@@ -662,6 +663,7 @@ S = nearbyint(H - I - A - RI1 - RI2 - RI3 - RA1 - RA2 - RA3 -
   params <- DATA$params
   params['H'] <- populations[departement]
   params['D'] <- densities[departement]
+  params['betaB_trend'] <- 0
 
 
   rain <- rain %>%
