@@ -7,7 +7,8 @@
 haiti3_dep(
   departement = "Artibonite",
   start_time = "2014-03-01",
-  delta.t = 1/365.25 * 0.2
+  delta.t = 1/365.25 * 0.2,
+  betaB_trend = FALSE
 )
 }
 \arguments{
@@ -25,6 +26,9 @@ fit the Ouest model earlier, or fit the remaining departement models
 at 2017-06-01}
 
 \item{delta.t}{Delta time step used in Euler's approximation}
+
+\item{betaB_trend}{Whether or not to include a trend parameter for
+betaB.}
 }
 \value{
 \code{\link[pomp]{pomp}} object.

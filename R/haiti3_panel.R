@@ -6,12 +6,15 @@
 #' @param delta.t delta time step used in the model
 #' @param departements vector of departements to include in the panelPomp.
 #'    The default is all departements.
+#' @param BetaB_trend Boolean indicator of whether or not a trend parameter
+#'    should be added to the betaB parameter.
 #' @importFrom panelPomp panelPomp
 #' @export
 
 haiti3_panel <- function(delta.t = 1/365, departements = c(
   'Artibonite', 'Centre', 'Grande_Anse', 'Nippes',
-  'Nord', 'Nord-Est', 'Nord-Ouest', 'Ouest', 'Sud', 'Sud-Est')
+  'Nord', 'Nord-Est', 'Nord-Ouest', 'Ouest', 'Sud', 'Sud-Est'),
+  betaB_trend = FALSE
 ) {
 
   # Create a list of pomp objects

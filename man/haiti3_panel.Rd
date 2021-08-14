@@ -10,7 +10,8 @@ fit in Artibonite.}
 haiti3_panel(
   delta.t = 1/365,
   departements = c("Artibonite", "Centre", "Grande_Anse", "Nippes", "Nord", "Nord-Est",
-    "Nord-Ouest", "Ouest", "Sud", "Sud-Est")
+    "Nord-Ouest", "Ouest", "Sud", "Sud-Est"),
+  betaB_trend = FALSE
 )
 }
 \arguments{
@@ -18,6 +19,9 @@ haiti3_panel(
 
 \item{departements}{vector of departements to include in the panelPomp.
 The default is all departements.}
+
+\item{BetaB_trend}{Boolean indicator of whether or not a trend parameter
+should be added to the betaB parameter.}
 }
 \description{
 Build PanelPomp representation of model 3. The shared parameters are
