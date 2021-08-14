@@ -60,7 +60,8 @@ haiti3_panel <- function(delta.t = 1/365, departements = c(
   for (dep in departements) {
 
     # Using haitipkg, create and save pomp object for each departement
-    pomps[[dep]] <- haiti3_dep(departement = dep, delta.t = delta.t)
+    pomps[[dep]] <- haiti3_dep(departement = dep, delta.t = delta.t,
+                               betaB_trend = betaB_trend)
   }
 
   SPECIFIC <- SPECIFIC[, departements]
