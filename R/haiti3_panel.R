@@ -52,9 +52,14 @@ haiti3_panel <- function(delta.t = 1/365, departements = c(
     c(353, 214, 245, 270, 505, 243, 347, 809, 292, 311)
   )
 
-  colnames(SPECIFIC) <- all_deps
-  rownames(SPECIFIC) <- specific_param_names
-
+  if (betaB_trend) {
+    SPECIFIC <- rbind(SPECIFIC, rep(0, 10))
+    colnames(SPECIFIC) <- all_deps
+    rownames(SPECIFIC) <- c(specific_param_names, "betaB_trend")
+  } else {
+    colnames(SPECIFIC) <- all_deps
+    rownames(SPECIFIC) <- specific_param_names
+  }
 
   # Loop through each departement
   for (dep in departements) {

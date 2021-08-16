@@ -67,6 +67,8 @@ haiti3_dep <- function(departement = 'Artibonite',
 
   dmeas <- pomp::Csnippet("
   double mean_cases = epsilon * C;
+  // Rprintf(\"%f\\n\", (betaB + betaB_trend * (t - 2016.579)) * (B / (1 + B)));
+  Rprintf(\"%f\\n\", betaB * exp(betaB_trend * (t - 2016.579)) * (B / (1 + B)));
   if (t > 2018)
     mean_cases = mean_cases * cas_def;
   if (ISNA(cases)) {
@@ -75,6 +77,7 @@ haiti3_dep <- function(departement = 'Artibonite',
         if (S < 10000) {
           lik = (give_log) ? -99999 : 1.0e-18;
           } else {
+              // Rprintf(\"cases=%f, mean_cases=%f\\n\",cases,mean_cases);
               lik = dnbinom_mu(cases, k, mean_cases, give_log) ;
           }
       }
@@ -136,7 +139,8 @@ else
 
 // force of infection
 // foi = betaB * (B / (1 + B)) + foi_add*mobility;
-foi = (betaB + betaB_trend * (t - 2016.579)) * (B / (1 + B)) + foi_add*mobility;
+// foi = (betaB + betaB_trend * (t - 2016.579)) * (B / (1 + B)) + foi_add*mobility;
+foi = betaB * exp(betaB_trend * (t - 2016.579)) * (B / (1 + B)) + foi_add*mobility;
 if(std_W > 0.0)
 {
     dw = rgammawn(std_W, dt);   // white noise (extra-demographic stochasticity)
