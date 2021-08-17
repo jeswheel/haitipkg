@@ -68,7 +68,7 @@ haiti3_dep <- function(departement = 'Artibonite',
   dmeas <- pomp::Csnippet("
   double mean_cases = epsilon * C;
   // Rprintf(\"%f\\n\", (betaB + betaB_trend * (t - 2016.579)) * (B / (1 + B)));
-  Rprintf(\"%f\\n\", betaB * exp(betaB_trend * (t - 2016.579)) * (B / (1 + B)));
+  // Rprintf(\"%f\\n\", betaB * exp(betaB_trend * (t - 2016.579)) * (B / (1 + B)));
   if (t > 2018)
     mean_cases = mean_cases * cas_def;
   if (ISNA(cases)) {
