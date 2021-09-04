@@ -26,6 +26,7 @@ haiti1 <- function() {
     double S_rate[2], E_rate[3], I_rate[2], A_rate[2], R_rate[2];
     // transition numbers
     double S_trans[2], E_trans[3], I_trans[2], A_trans[2], R_trans[2];
+    double dgamma;
 
     // seasonality
     double beta = beta1*seas1 + beta2*seas2 +
@@ -38,6 +39,9 @@ haiti1 <- function() {
 
     // force of infection
     double foi = pow(I, nu) * (beta / pop);
+    // add overdispersion
+    dgamma = rgammawn(sig_sq, dt);
+    foi = foi * dgamma/dt;
 
     // transition rate calculations
     S_rate[0] = foi;  // S -> E
@@ -86,6 +90,7 @@ haiti1 <- function() {
     double Irate[2];
     double Arate[2];
     double Rrate[2];
+    double dgamma;
 
     // transition terms
     double Strans[2];
@@ -102,6 +107,9 @@ haiti1 <- function() {
     double mybeta = beta1*seas1 + beta2*seas2 + beta3*seas3 +
                     beta4*seas4 + beta5*seas5 + beta6*seas6;
     double foi = pow(I, nu) * mybeta / pop;
+    // add overdispersion
+    dgamma = rgammawn(sig_sq, dt);
+    foi = foi * dgamma/dt;
 
     //compute the rates for all the transitions
     Srate[0]= foi;  // S -> E
@@ -164,12 +172,12 @@ haiti1 <- function() {
 
   param_names <- c("rho", "tau", "beta1", "beta2", "beta3",
                    "beta4", "beta5", "beta6", "gamma", "sigma",
-                   "theta0", "alpha", "mu", "delta", "nu",
+                   "theta0", "alpha", "mu", "delta", "nu", "sig_sq",
                    "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0")
 
   param_trans <- pomp::parameter_trans(
     log = c("beta1", "beta2", "beta3", "beta4", "beta5", "beta6",
-            "tau", "sigma", "gamma", "mu", "delta", "alpha"),
+            "tau", "sigma", "gamma", "mu", "delta", "alpha", "sig_sq"),
     logit = c("rho", "nu", "theta0"),
     barycentric = c("S_0", "E_0", "I_0", "A_0", "R_0")
   )
@@ -193,7 +201,7 @@ haiti1 <- function() {
       dmeasure = dmeas,
       rmeasure = rmeas,
       rprocess = pomp::euler(step.fun = rproc, delta.t = 1/7),
-      skeleton = pomp::vectorfield(skel),
+      #skeleton = pomp::vectorfield(skel),
       covar = pomp::covariate_table(covar, times = "time"),
       partrans = param_trans,
       statenames = state_names,
