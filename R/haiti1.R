@@ -208,7 +208,7 @@ haiti1 <- function(depts = 1, vacscen = 'id0') {
   last <- c(last, incids, sout) %>%
     paste(collapse = "")
 
-  if (depts > 1) {
+  if (vacscen != "id0") {
     rproc_paste <- c(trans_rates, trans_numbers, vac_rates, demons, tchecks, beta,
                      foi, thetas, rates, numbers, coh, last) %>%
       paste(collapse = "")
