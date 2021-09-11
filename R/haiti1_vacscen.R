@@ -28,7 +28,7 @@ vac_scen <- function(scen_code) {
   } else if (scencode %in% paste0("id", seq(1, 33, by = 4))){ ## fast national
     fc_nd = 10; fc_nw = 10
   } else {
-    fc_nd = 0; fc_nw = 26
+    fc_nd = 1; fc_nw = 26
   }
 
   ## grouped by coverage level
