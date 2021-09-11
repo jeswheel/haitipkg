@@ -4,7 +4,7 @@
 \alias{covars}
 \title{Make covariate table for Model 1}
 \usage{
-covars(tmin, tmax, byt = 1, nbasis = 6, degree = 6, per = 52.14)
+covars(tmin, tmax, byt = 1, nbasis = 6, degree = 6, per = 52.14, settings)
 }
 \arguments{
 \item{tmin}{first observation time}
@@ -17,14 +17,8 @@ covars(tmin, tmax, byt = 1, nbasis = 6, degree = 6, per = 52.14)
 
 \item{degree}{degrees of freedom for the basis splines}
 
-\item{per}{period for the basis splines}
-}
-\value{
-A data frame with tmax rows and nbasis + 1 columns
+\item{settings}{settings for the vaccination campaign scenario}
 }
 \description{
 Generate a data frame containing weekly values for periodic basis splines for the seasonal transmission term beta.
-}
-\examples{
-covar <- covars(tmin = 0, tmax = 100, nbasis = 6, degree = 6, per = 52.14)
 }
