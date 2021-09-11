@@ -22,7 +22,7 @@ haiti1 <- function(vacscen = 'id0') {
                   nbasis = 6,
                   per = 52.14,
                   settings = fc_set)
-  depts <- fc_set$fc_nd
+  depts <- fc_set$nd
 
   ## make components pomp object building
   ## rinit
