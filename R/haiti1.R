@@ -1,16 +1,16 @@
 #' Build pomp object for Model 1
 #'
-#' Generate a class \sQuote{pomp} object for fitting to epidemic/endemic Haiti cholera data
+#' Generate a class \sQuote{pomp} object for fitting to epidemic/endemic Haiti cholera data.
 #'
 #' @param depts Number of departements in model
 #' @param vacscen ID code for vaccination scenario
 #' @importFrom pomp Csnippet
 #' @return An object of class \sQuote{pomp}
 #' @examples
-#' m1 <- haiti1()
+#' m1 <- haiti1(depts = 1, vacscen = "id0")
 #' @export
 
-haiti1 <- function(depts = 1, vacscen = "id0") {
+haiti1 <- function(depts = 1, vacscen = 'id0') {
   ## make components pomp object building
   ## rinit
   state_names_base <- c("S", "E", "I", "A", "R")
@@ -69,12 +69,12 @@ haiti1 <- function(depts = 1, vacscen = "id0") {
   trans_numbers <- paste0(trans_numbers, "\n double dgamma; \n ")
 
   # vaccination rates
-  if (depts > 1) {
+  if (vacscen != "id0") {
     vac_rates <- paste0("double eta", 1:depts, " = 0.0; \n ")
   }
 
   # demonitors and time checks
-  if (depts > 1) {
+  if (vacscen != "id0") {
     demons <- c("int pop_nv = S + E + I + A + R; \n ",
                 paste0("int pop_", 1:depts, " = S", 1:depts, " + E",
                        1:depts, " + I", 1:depts, " + A", 1:depts,
@@ -93,7 +93,7 @@ haiti1 <- function(depts = 1, vacscen = "id0") {
 
   # seasonal beta and foi
   beta <- "double mybeta = beta1*seas1 + beta2*seas2 + beta3*seas3 + beta4*seas4 + beta5*seas5 + beta6*seas6; \n "
-  if (depts > 1) {
+  if (vacscen != "id0") {
     foi_i <- c("I", paste0("+I", 1:depts)) %>%
       paste(collapse = "")
     foi_a <- c("A", paste0("+A", 1:depts)) %>%
@@ -107,7 +107,7 @@ haiti1 <- function(depts = 1, vacscen = "id0") {
   foi <- paste0(foi, "\n dgamma = rgammawn(sig_sq, dt); \n foi = foi * dgamma/dt; \n ")
 
   # theta_k
-  if (depts > 1) {
+  if (vacscen != "id0") {
     thetas <- paste0("double theta", 1:depts, " = ve_d", 1:depts, "; \n ")
   }
 
@@ -190,7 +190,7 @@ haiti1 <- function(depts = 1, vacscen = "id0") {
   sout <- c("Sout += Strans[0] + Strans[1]; \n ")
   last <- c(foi_val, str0, sin)
 
-  if (depts > 1) {
+  if (vacscen != "id0") {
     incids <- c("incid += Etrans[0]", paste0(" + E", 1:depts, "trans[0]"), "; \n ")
     incid_u <- "incidU += Etrans[0]; \n "
     incid_v <- c("incidV += E1trans[0]", paste0(" + E", 2:depts, "trans[0]"), "; \n ")
