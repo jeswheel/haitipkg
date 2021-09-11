@@ -13,8 +13,8 @@
 #### construct vaccination covariate table
 covars <- function(tmin, tmax, byt = 1, nbasis = 6, degree = 6, per = 52.14, settings) {
   haiti_dat <- haiti1_agg_data()
-  nd <- settings$nd
-  nw <- settings$nw
+  ndept <- settings$nd
+  nweeks <- settings$nw
   coverage_2dose <- settings$c2
   coverage_1dose <- settings$c1
   first_vac_t <- nrow(haiti_dat) + 4
