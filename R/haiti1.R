@@ -2,17 +2,28 @@
 #'
 #' Generate a class \sQuote{pomp} object for fitting to epidemic/endemic Haiti cholera data.
 #'
-#' @param depts Number of departements in model
 #' @param vacscen ID code for vaccination scenario
 #' @importFrom pomp Csnippet
 #' @return An object of class \sQuote{pomp}
 #' @examples
-#' m1 <- haiti1(depts = 1, vacscen = "id0")
+#' m1 <- haiti1(vacscen = "id0")
 #' @export
 
-haiti1 <- function(depts = 1, vacscen = 'id0') {
-  depts <- depts
+haiti1 <- function(vacscen = 'id0') {
   vacscen <- vacscen
+  ## get data
+  dat <- haiti1_agg_data()
+  fc_set <- vac_scen(vacscen)
+  ## make covariate table
+  covar <- covars(tmin = 0,
+                  tmax = nrow(dat) + 573, ## for 11 year forecast
+                  byt = 1,
+                  degree = 6,
+                  nbasis = 6,
+                  per = 52.14,
+                  settings = fc_set)
+  depts <- fc_set$fc_nd
+
   ## make components pomp object building
   ## rinit
   state_names_base <- c("S", "E", "I", "A", "R")
@@ -71,12 +82,12 @@ haiti1 <- function(depts = 1, vacscen = 'id0') {
   trans_numbers <- paste0(trans_numbers, "\n double dgamma; \n ")
 
   # vaccination rates
-  if (vacscen != "id0") {
+  if (depts > 1) {
     vac_rates <- paste0("double eta", 1:depts, " = 0.0; \n ")
   }
 
   # demonitors and time checks
-  if (vacscen != "id0") {
+  if (depts > 1) {
     demons <- c("int pop_nv = S + E + I + A + R; \n ",
                 paste0("int pop_", 1:depts, " = S", 1:depts, " + E",
                        1:depts, " + I", 1:depts, " + A", 1:depts,
@@ -95,7 +106,7 @@ haiti1 <- function(depts = 1, vacscen = 'id0') {
 
   # seasonal beta and foi
   beta <- "double mybeta = beta1*seas1 + beta2*seas2 + beta3*seas3 + beta4*seas4 + beta5*seas5 + beta6*seas6; \n "
-  if (vacscen != "id0") {
+  if (depts > 1) {
     foi_i <- c("I", paste0("+I", 1:depts)) %>%
       paste(collapse = "")
     foi_a <- c("A", paste0("+A", 1:depts)) %>%
@@ -192,7 +203,7 @@ haiti1 <- function(depts = 1, vacscen = 'id0') {
   sout <- c("Sout += Strans[0] + Strans[1]; \n ")
   last <- c(foi_val, str0, sin)
 
-  if (vacscen != "id0") {
+  if (depts > 1) {
     incids <- c("incid += Etrans[0]", paste0(" + E", 1:depts, "trans[0]"), "; \n ")
     incid_u <- "incidU += Etrans[0]; \n "
     incid_v <- c("incidV += E1trans[0]", paste0(" + E", 2:depts, "trans[0]"), "; \n ")
@@ -208,7 +219,7 @@ haiti1 <- function(depts = 1, vacscen = 'id0') {
   last <- c(last, incids, sout) %>%
     paste(collapse = "")
 
-  if (vacscen != "id0") {
+  if (depts > 1) {
     rproc_paste <- c(trans_rates, trans_numbers, vac_rates, demons, tchecks, beta,
                      foi, thetas, rates, numbers, coh, last) %>%
       paste(collapse = "")
@@ -283,20 +294,6 @@ haiti1 <- function(depts = 1, vacscen = 'id0') {
     logit = c("rho", "nu", "theta0"),
     barycentric = c("S_0", "E_0", "I_0", "A_0", "R_0")
   )
-
-  ## get data
-  dat <- haiti1_agg_data()
-
-  fc_set <- vac_scen(vacscen)
-
-  ## make covariate table
-  covar <- covars(tmin = 0,
-                  tmax = nrow(dat) + 573, ## for 11 year forecast
-                  byt = 1,
-                  degree = 6,
-                  nbasis = 6,
-                  per = 52.14,
-                  settings = fc_set)
 
   ## build pomp model
   model1 <- pomp::pomp(
