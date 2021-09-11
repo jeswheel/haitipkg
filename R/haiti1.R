@@ -302,12 +302,13 @@ haiti1 <- function(depts = 1, vacscen = "id0") {
       times = "week",
       t0 = 0,
       rmeasure = rmeas,
+      dmeasure = dmeas,
       rprocess = pomp::euler(step.fun = rproc, delta.t = 1/7),
       covar = pomp::covariate_table(covar, times = "time"),
       partrans = param_trans,
       statenames = state_names,
       paramnames = param_names,
-      accumvars = c("incid"),
+      accumvars = accum_names,
       rinit = rinit
     )
 
