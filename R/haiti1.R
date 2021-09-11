@@ -11,6 +11,8 @@
 #' @export
 
 haiti1 <- function(depts = 1, vacscen = 'id0') {
+  depts <- depts
+  vacscen <- vacscen
   ## make components pomp object building
   ## rinit
   state_names_base <- c("S", "E", "I", "A", "R")
