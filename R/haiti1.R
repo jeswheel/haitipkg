@@ -21,9 +21,9 @@ haiti1 <- function(vacscen = 'id0') {
                   degree = 6,
                   nbasis = 6,
                   per = 52.14,
+                  data = dat,
                   settings = fc_set)
   depts <- fc_set$nd
-
   ## make components pomp object building
   ## rinit
   state_names_base <- c("S", "E", "I", "A", "R")

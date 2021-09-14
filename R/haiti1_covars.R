@@ -11,8 +11,8 @@
 #' @export
 
 #### construct vaccination covariate table
-covars <- function(tmin, tmax, byt = 1, nbasis = 6, degree = 6, per = 52.14, settings) {
-  haiti_dat <- haiti1_agg_data()
+covars <- function(tmin, tmax, byt = 1, nbasis = 6, degree = 6, per = 52.14, data, settings) {
+  haiti_dat <- data
   ndept <- settings$nd
   nweeks <- settings$nw
   coverage_2dose <- settings$c2
@@ -43,9 +43,9 @@ covars <- function(tmin, tmax, byt = 1, nbasis = 6, degree = 6, per = 52.14, set
 
   ## number of vaccines per week by department
   pop_dept <- data.frame(ocv_order = 1:10,
-                         dept = c("Centre", "Artibonite", "Ouest", "Nord Ouest",
-                                  "Nord", "Sud", "Nippes", "Nord Est", "Sud Est",
-                                  "Grand'Anse"),
+                         dept = c("Centre", "Artibonite", "Ouest", "Nord_Ouest",
+                                  "Nord", "Sud", "Nippes", "Nord_Est", "Sud_Est",
+                                  "Grand_Anse"),
                          pop = c(746236, 1727524, 4029705, 728807, 1067177,
                                  774976, 342525, 393967, 632601, 468301)) %>%
     dplyr::mutate(num_vacc = (coverage_2dose+coverage_1dose)*pop/1) ## pulse vaccinees in last 1 week of campaign
