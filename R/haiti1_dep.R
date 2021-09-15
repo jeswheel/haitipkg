@@ -74,9 +74,9 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
 
     ## rprocess
     # transition rates and numbers
-    rates_base <- c(2, 3, 2, 2, 2) ## for SEIAR
+    rates_base <- c((2 + depts), (3 + depts), (2 + depts), (2 + depts), (2 + depts)) ## for SEIAR
     if (vac) {
-      rates_other <- c(2, 3, 2, 2, 2)
+      rates_other <- rep(c(2, 3, 2, 2, 2), depts)
       rates <- c(rates_base, rates_other)
     } else {
       rates <- rates_base
