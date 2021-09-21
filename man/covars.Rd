@@ -4,7 +4,16 @@
 \alias{covars}
 \title{Make covariate table for Model 1}
 \usage{
-covars(tmin, tmax, byt = 1, nbasis = 6, degree = 6, per = 52.14, settings)
+covars(
+  tmin,
+  tmax,
+  byt = 1,
+  nbasis = 6,
+  degree = 6,
+  per = 52.14,
+  data,
+  settings
+)
 }
 \arguments{
 \item{tmin}{first observation time}

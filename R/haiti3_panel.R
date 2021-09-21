@@ -8,13 +8,19 @@
 #'    The default is all departements.
 #' @param BetaB_trend Boolean indicator of whether or not a trend parameter
 #'    should be added to the betaB parameter.
+#' @param start_time Time of which to start the panel. In the
+#'    original paper, the authors used a start time of 2014-03-01 for all
+#'    departements except for Ouest, which started with a time of 2017-06-10.
+#'    This means that there wasn't a national-coupled model fit to the
+#'    data until 2017-06-01, which means that there was less than 2 years
+#'    of data to fit the model.
 #' @importFrom panelPomp panelPomp
 #' @export
 
 haiti3_panel <- function(delta.t = 1/365, departements = c(
   'Artibonite', 'Centre', 'Grande_Anse', 'Nippes',
   'Nord', 'Nord-Est', 'Nord-Ouest', 'Ouest', 'Sud', 'Sud-Est'),
-  betaB_trend = FALSE
+  betaB_trend = FALSE, start_time = "2014-03-01"
 ) {
 
   # Create a list of pomp objects
@@ -66,7 +72,8 @@ haiti3_panel <- function(delta.t = 1/365, departements = c(
 
     # Using haitipkg, create and save pomp object for each departement
     pomps[[dep]] <- haiti3_dep(departement = dep, delta.t = delta.t,
-                               betaB_trend = betaB_trend)
+                               betaB_trend = betaB_trend,
+                               start_time = start_time)
   }
 
   SPECIFIC <- SPECIFIC[, departements]
