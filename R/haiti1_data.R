@@ -37,7 +37,5 @@ haiti1_data <- function(){
     dplyr::group_by(week) %>% ## "day" or "week"
     dplyr::select(-1)
 
-  aggDat[is.na(aggDat)] <- 0
-
   return(aggDat)
 }
