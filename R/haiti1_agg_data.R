@@ -36,7 +36,7 @@ haiti1_agg_data <- function(){
 
   aggDat <- cleanDat %>%
     dplyr::group_by(week) %>% ## "day" or "week"
-    dplyr::summarise(cases = sum(cases, na.rm = TRUE))
+    dplyr::summarise(cases = sum(cases))
 
   return(aggDat)
 }
