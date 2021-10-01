@@ -235,7 +235,11 @@ haiti1 <- function(vacscen = 'id0') {
 
   ## dmeasure
   dmeas <- Csnippet("
-    lik = dnbinom_mu(cases, tau, rho*incid, give_log);
+    if (ISNA(cases)) {
+      lik = (give_log) ? 0 : 1;
+    } else {
+      lik = dnbinom_mu(cases, tau, rho*incid, give_log);
+    }
   ")
 
   ## rmeasure

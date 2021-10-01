@@ -115,12 +115,12 @@ haiti1_joint <- function(vacscen = 'id0') {
     "beta5 = beta5_epi; \n ",
     "beta6 = beta6_epi; \n ",
     "} else { \n ",
-    "beta1 = beta1_end; \n ",
-    "beta2 = beta2_end; \n ",
-    "beta3 = beta3_end; \n ",
-    "beta4 = beta4_end; \n ",
-    "beta5 = beta5_end; \n ",
-    "beta6 = beta6_end; \n ",
+    "beta1 = beta1; \n ",
+    "beta2 = beta2; \n ",
+    "beta3 = beta3; \n ",
+    "beta4 = beta4; \n ",
+    "beta5 = beta5; \n ",
+    "beta6 = beta6; \n ",
     "} \n ",
     "double mybeta = beta1*seas1 + beta2*seas2 + beta3*seas3 + beta4*seas4 + beta5*seas5 + beta6*seas6; \n "
   )
