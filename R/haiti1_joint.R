@@ -107,21 +107,27 @@ haiti1_joint <- function(vacscen = 'id0') {
   # seasonal beta and foi
   time_check <- c(
     "double beta1, beta2, beta3, beta4, beta5, beta6; \n ",
-    "if (t < 233) { \n ",
-    "beta1 = beta1_epi; \n ",
-    "beta2 = beta2_epi; \n ",
-    "beta3 = beta3_epi; \n ",
-    "beta4 = beta4_epi; \n ",
-    "beta5 = beta5_epi; \n ",
-    "beta6 = beta6_epi; \n ",
-    "} else { \n ",
-    "beta1 = beta1; \n ",
-    "beta2 = beta2; \n ",
-    "beta3 = beta3; \n ",
-    "beta4 = beta4; \n ",
-    "beta5 = beta5; \n ",
-    "beta6 = beta6; \n ",
-    "} \n ",
+    "beta1 = beta1_joint; \n ",
+    "beta2 = beta2_joint; \n ",
+    "beta3 = beta3_joint; \n ",
+    "beta4 = beta4_joint; \n ",
+    "beta5 = beta5_joint; \n ",
+    "beta6 = beta6_joint; \n ",
+    #"if (t < 233) { \n ",
+    # "beta1 = beta1_epi; \n ",
+    # "beta2 = beta2_epi; \n ",
+    # "beta3 = beta3_epi; \n ",
+    # "beta4 = beta4_epi; \n ",
+    # "beta5 = beta5_epi; \n ",
+    # "beta6 = beta6_epi; \n ",
+    #"} else { \n ",
+    # "beta1 = beta1; \n ",
+    # "beta2 = beta2; \n ",
+    # "beta3 = beta3; \n ",
+    # "beta4 = beta4; \n ",
+    # "beta5 = beta5; \n ",
+    # "beta6 = beta6; \n ",
+    # "} \n ",
     "double mybeta = beta1*seas1 + beta2*seas2 + beta3*seas3 + beta4*seas4 + beta5*seas5 + beta6*seas6; \n "
   )
   beta <- paste0(time_check, collapse = "")
@@ -136,7 +142,14 @@ haiti1_joint <- function(vacscen = 'id0') {
     foi <- "double foi = pow(I, nu) * mybeta / pop; \n "
   }
 
-  foi <- paste0(foi, "\n dgamma = rgammawn(sig_sq, dt); \n foi = foi * dgamma/dt; \n ")
+  foi <- paste0(foi,
+                "double sig_sq; \n ",
+                "if (t < 233) { \n ",
+                "sig_sq = sig_sq_epi; \n ",
+                "} else { \n ",
+                "sig_sq = sig_sq_end; \n ",
+                "} \n ",
+                "\n dgamma = rgammawn(sig_sq, dt); \n foi = foi * dgamma/dt; \n ")
 
   # theta_k
   if (vacscen != "id0") {
@@ -258,8 +271,10 @@ haiti1_joint <- function(vacscen = 'id0') {
       lik = (give_log) ? 0 : 1;
     } else {
       double rho = rho_epi;
+      double tau = tau_epi;
       if (t > 232) {
         rho = rho_end;
+        tau = tau_end;
       }
       lik = dnbinom_mu(cases, tau, rho*incid, give_log);
     }
@@ -268,8 +283,10 @@ haiti1_joint <- function(vacscen = 'id0') {
   ## rmeasure
   rmeas <- Csnippet("
     double rho = rho_epi;
+    double tau = tau_epi;
     if (t > 232) {
       rho = rho_end;
+      tau = tau_end;
     }
     cases = rnbinom_mu(tau, rho*incid);
     if (cases > 0.0) {
@@ -291,13 +308,23 @@ haiti1_joint <- function(vacscen = 'id0') {
                      "foival", "Str0", "Sout", "Sin")
 
     ## parameter names
-    param_names <- c("rho_epi", "beta1_epi", "beta2_epi", "beta3_epi",  # epidemic
-                     "beta4_epi", "beta5_epi", "beta6_epi", # epidemic
+    # param_names <- c("rho_epi", "beta1_epi", "beta2_epi", "beta3_epi",  # epidemic
+    #                  "beta4_epi", "beta5_epi", "beta6_epi", # epidemic
+    #                  "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0", # epidemic
+    #                  "rho_end", "beta1_end", "beta2_end", "beta3_end", # endemic
+    #                  "beta4_end", "beta5_end", "beta6_end", # endemic
+    #                  "mu", "gamma", "sigma", "theta0", "alpha", "delta", "kappa", # shared
+    #                  "tau", "nu", "sig_sq", # unsure
+    #                  paste0("S", 1:depts, "_0"),
+    #                  paste0("E", 1:depts, "_0"),
+    #                  paste0("I", 1:depts, "_0"),
+    #                  paste0("A", 1:depts, "_0"),
+    #                  paste0("R", 1:depts, "_0"))
+    param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", #epidemic
                      "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0", # epidemic
-                     "rho_end", "beta1_end", "beta2_end", "beta3_end", # endemic
-                     "beta4_end", "beta5_end", "beta6_end", # endemic
-                     "mu", "gamma", "sigma", "theta0", "alpha", "delta", "kappa", # shared
-                     "tau", "nu", "sig_sq", # unsure
+                     "rho_end", "sig_sq_end", "tau_end", # endemic
+                     "beta1_joint", "beta2_joint", "beta3_joint", "beta4_joint", "beta5_joint", "beta6_joint", # shared
+                     "mu", "gamma", "sigma", "theta0", "alpha", "delta", "kappa", "nu",# shared
                      paste0("S", 1:depts, "_0"),
                      paste0("E", 1:depts, "_0"),
                      paste0("I", 1:depts, "_0"),
@@ -312,25 +339,37 @@ haiti1_joint <- function(vacscen = 'id0') {
     state_names <- c("S", "E", "I", "A", "R", "incid", "foival", "Str0", "Sout", "Sin")
 
     ## parameter names
-    param_names <- c("rho_epi", "beta1_epi", "beta2_epi", "beta3_epi",  # epidemic
-                     "beta4_epi", "beta5_epi", "beta6_epi", # epidemic
+    # param_names <- c("rho_epi", "beta1_epi", "beta2_epi", "beta3_epi",  # epidemic
+    #                  "beta4_epi", "beta5_epi", "beta6_epi", # epidemic
+    #                  "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0", # epidemic
+    #                  "rho_end", "beta1_end", "beta2_end", "beta3_end", # endemic
+    #                  "beta4_end", "beta5_end", "beta6_end", # endemic
+    #                  "mu", "gamma", "sigma", "theta0", "alpha", "delta", "kappa", # shared
+    #                  "tau", "nu", "sig_sq") # unsure
+    param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", #epidemic
                      "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0", # epidemic
-                     "rho_end", "beta1_end", "beta2_end", "beta3_end", # endemic
-                     "beta4_end", "beta5_end", "beta6_end", # endemic
-                     "mu", "gamma", "sigma", "theta0", "alpha", "delta", "kappa", # shared
-                     "tau", "nu", "sig_sq") # unsure
+                     "rho_end", "sig_sq_end", "tau_end", # endemic
+                     "beta1_joint", "beta2_joint", "beta3_joint", "beta4_joint", "beta5_joint", "beta6_joint", # shared
+                     "mu", "gamma", "sigma", "theta0", "alpha", "delta", "kappa", "nu") # shared
 
     ## accum vars
     accum_names <- c("incid", "foival","Str0","Sout","Sin")
   }
 
   ## partrans
+  # param_trans <- pomp::parameter_trans(
+  #   log = c("beta1_epi", "beta2_epi", "beta3_epi", # epidemic
+  #           "beta4_epi", "beta5_epi", "beta6_epi", # epidemic
+  #           "beta1_end", "beta2_end", "beta3_end", # endemic
+  #           "beta4_end", "beta5_end", "beta6_end", # endemic
+  #           "tau", "sigma", "gamma", "mu", "delta", "alpha", "sig_sq"),
+  #   logit = c("rho_epi", "rho_end", "nu", "theta0"),
+  #   barycentric = c("S_0", "E_0", "I_0", "A_0", "R_0")
+  # )
   param_trans <- pomp::parameter_trans(
-    log = c("beta1_epi", "beta2_epi", "beta3_epi", # epidemic
-            "beta4_epi", "beta5_epi", "beta6_epi", # epidemic
-            "beta1_end", "beta2_end", "beta3_end", # endemic
-            "beta4_end", "beta5_end", "beta6_end", # endemic
-            "tau", "sigma", "gamma", "mu", "delta", "alpha", "sig_sq"),
+    log = c("beta1_joint", "beta2_joint", "beta3_joint", "beta4_joint", "beta5_joint", "beta6_joint", # shared
+            "sigma", "gamma", "mu", "delta", "alpha",
+            "sig_sq_end", "sig_sq_epi", "tau_end", "tau_epi"),
     logit = c("rho_epi", "rho_end", "nu", "theta0"),
     barycentric = c("S_0", "E_0", "I_0", "A_0", "R_0")
   )
