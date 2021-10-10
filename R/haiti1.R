@@ -252,6 +252,9 @@ haiti1 <- function(vacscen = 'id0') {
     }
   ")
 
+  base_pars <- haiti1_adj_params
+  pars <- base_pars[, "epi"] ## default is epidemic period, no vac
+
   ## names
   if (depts > 1) {
     ## state names
@@ -273,6 +276,9 @@ haiti1 <- function(vacscen = 'id0') {
                      paste0("I", 1:depts, "_0"),
                      paste0("A", 1:depts, "_0"),
                      paste0("R", 1:depts, "_0"))
+
+    ## initial parameter values
+    pars <- c(pars, rep(0, 5*depts))
 
     ## accum vars
     accum_names <- c("incid","incidU","incidV","asymV","newV",
@@ -308,6 +314,7 @@ haiti1 <- function(vacscen = 'id0') {
       dmeasure = dmeas,
       rprocess = pomp::euler(step.fun = rproc, delta.t = 1/7),
       covar = pomp::covariate_table(covar, times = "time"),
+      params = pars,
       partrans = param_trans,
       statenames = state_names,
       paramnames = param_names,
