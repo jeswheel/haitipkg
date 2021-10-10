@@ -11,10 +11,21 @@
 haiti2_data <- function(){
   haiti <- haiti_case_data
   haiti <- haiti %>% dplyr::select(-report)
-  haiti <- reshape2::melt(haiti, id.vars="date_sat_orig")
+
+  dates <- c("2017-04-22","2018-01-27","2018-09-22","2018-12-01")
+  r <- rbind(rep(NA,10),rep(NA,10),rep(NA,10),rep(NA,10))
+
+  final <- cbind(dates,r) %>% as.data.frame()
+  colnames(final) <- colnames(haiti)
+
+  final <- rbind(haiti, final)
+  final <- dplyr::arrange(final, date_sat_orig)
+
+  haiti <- reshape2::melt(final, id.vars="date_sat_orig")
   colnames(haiti) <- c("year","department","cases")
   haiti$year <- lubridate::decimal_date(lubridate::ymd(haiti$year))
   haiti$department <- as.character(haiti$department)
+  haiti$cases <- as.numeric(haiti$cases)
 
   return(haiti)
 }

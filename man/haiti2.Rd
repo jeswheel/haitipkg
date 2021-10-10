@@ -4,7 +4,7 @@
 \alias{haiti2}
 \title{Build SpatPomp object for Model 2}
 \usage{
-haiti2(cutoff = 2020, region = c("before", "after"))
+haiti2(cutoff = 2014.161, region = "before")
 }
 \arguments{
 \item{cutoff}{a numeric. Used to define the cutoff time for the model}
