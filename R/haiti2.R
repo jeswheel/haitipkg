@@ -780,6 +780,6 @@ haiti2 <- function(cutoff=2014.161, region="before"){
     rmeasure=cholera_rmeasure,
     dunit_measure=cholera_dunit_measure
   )
-
+  coef(ret) <- par
   return(ret)
 }
