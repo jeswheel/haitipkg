@@ -268,9 +268,8 @@ haiti1 <- function(vacscen = 'id0') {
 
     ## parameter names
     param_names <- c("rho", "tau", "beta1", "beta2", "beta3", "beta4", "beta5",
-                     "beta6", "gamma", "sigma", "theta0", "alpha", "mu", "delta",
-                     "nu", "kappa", "pop_0", "sig_sq",
-                     "S_0","E_0","I_0","A_0","R_0",
+                     "beta6", "nu", "gamma", "sigma", "theta0", "alpha", "mu", "delta",
+                     "sig_sq", "S_0","E_0","I_0","A_0","R_0", "pop_0", "kappa",
                      paste0("S", 1:depts, "_0"),
                      paste0("E", 1:depts, "_0"),
                      paste0("I", 1:depts, "_0"),
@@ -278,7 +277,8 @@ haiti1 <- function(vacscen = 'id0') {
                      paste0("R", 1:depts, "_0"))
 
     ## initial parameter values
-    pars <- c(pars, rep(0, 5*depts))
+    pars <- c(pars, 0.0, rep(0.0, 5*depts))
+    names(pars) <- param_names
 
     ## accum vars
     accum_names <- c("incid","incidU","incidV","asymV","newV",
