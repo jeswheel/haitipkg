@@ -483,15 +483,23 @@ haiti2 <- function(cutoff=2014.161, region="before"){
     int u;
     lik = 0;
     for (u = 0; u < U; u++) {
-      m = Rho*C[u];
-      lik += dnorm(cases[u],m,v,1);
+      if(ISNA(cases[u])){
+        lik += 0;
+      } else {
+        m = Rho*C[u];
+        lik += dnorm(cases[u],m,v,1);
+      }
     }
     if(!give_log) lik = exp(lik);
   ")
 
   cholera_dunit_measure <- Csnippet("
     double m = Rho*C;
-    lik = dnorm(cases,m,v,give_log);
+    if(ISNA(cases)){
+      lik = (give_log) ? 0 : 1;
+    } else {
+      lik = dnorm(cases,m,v,give_log);
+    }
   ")
 
   cholera_eunit_measure <- Csnippet("
