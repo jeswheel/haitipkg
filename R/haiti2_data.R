@@ -7,6 +7,7 @@
 #' @return Data frame
 #' @examples
 #' haiti2_data()
+#' @export
 
 haiti2_data <- function(){
   haiti <- haiti_case_data
