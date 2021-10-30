@@ -308,18 +308,6 @@ haiti1_joint <- function(vacscen = 'id0') {
                      "foival", "Str0", "Sout", "Sin")
 
     ## parameter names
-    # param_names <- c("rho_epi", "beta1_epi", "beta2_epi", "beta3_epi",  # epidemic
-    #                  "beta4_epi", "beta5_epi", "beta6_epi", # epidemic
-    #                  "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0", # epidemic
-    #                  "rho_end", "beta1_end", "beta2_end", "beta3_end", # endemic
-    #                  "beta4_end", "beta5_end", "beta6_end", # endemic
-    #                  "mu", "gamma", "sigma", "theta0", "alpha", "delta", "kappa", # shared
-    #                  "tau", "nu", "sig_sq", # unsure
-    #                  paste0("S", 1:depts, "_0"),
-    #                  paste0("E", 1:depts, "_0"),
-    #                  paste0("I", 1:depts, "_0"),
-    #                  paste0("A", 1:depts, "_0"),
-    #                  paste0("R", 1:depts, "_0"))
     param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", #epidemic
                      "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0", # epidemic
                      "rho_end", "sig_sq_end", "tau_end", # endemic
@@ -339,13 +327,6 @@ haiti1_joint <- function(vacscen = 'id0') {
     state_names <- c("S", "E", "I", "A", "R", "incid", "foival", "Str0", "Sout", "Sin")
 
     ## parameter names
-    # param_names <- c("rho_epi", "beta1_epi", "beta2_epi", "beta3_epi",  # epidemic
-    #                  "beta4_epi", "beta5_epi", "beta6_epi", # epidemic
-    #                  "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0", # epidemic
-    #                  "rho_end", "beta1_end", "beta2_end", "beta3_end", # endemic
-    #                  "beta4_end", "beta5_end", "beta6_end", # endemic
-    #                  "mu", "gamma", "sigma", "theta0", "alpha", "delta", "kappa", # shared
-    #                  "tau", "nu", "sig_sq") # unsure
     param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", #epidemic
                      "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0", # epidemic
                      "rho_end", "sig_sq_end", "tau_end", # endemic
@@ -357,15 +338,6 @@ haiti1_joint <- function(vacscen = 'id0') {
   }
 
   ## partrans
-  # param_trans <- pomp::parameter_trans(
-  #   log = c("beta1_epi", "beta2_epi", "beta3_epi", # epidemic
-  #           "beta4_epi", "beta5_epi", "beta6_epi", # epidemic
-  #           "beta1_end", "beta2_end", "beta3_end", # endemic
-  #           "beta4_end", "beta5_end", "beta6_end", # endemic
-  #           "tau", "sigma", "gamma", "mu", "delta", "alpha", "sig_sq"),
-  #   logit = c("rho_epi", "rho_end", "nu", "theta0"),
-  #   barycentric = c("S_0", "E_0", "I_0", "A_0", "R_0")
-  # )
   param_trans <- pomp::parameter_trans(
     log = c("beta1_joint", "beta2_joint", "beta3_joint", "beta4_joint", "beta5_joint", "beta6_joint", # shared
             "sigma", "gamma", "mu", "delta", "alpha",
@@ -373,6 +345,34 @@ haiti1_joint <- function(vacscen = 'id0') {
     logit = c("rho_epi", "rho_end", "nu", "theta0"),
     barycentric = c("S_0", "E_0", "I_0", "A_0", "R_0")
   )
+
+  ## hand entered for now
+  pars <- c("rho_epi" = 0.4765437,
+            "rho_end" = 0.4496893,
+            "tau_epi" = 688.7796,
+            "tau_end" = 105.3583,
+            "sig_sq_epi" = 0.1105648,
+            "sig_sq_end" = 0.1677307,
+            "beta1_joint" = 4.014758,
+            "beta2_joint" = 2.7089,
+            "beta3_joint" = 2.742331,
+            "beta4_joint" = 3.058927,
+            "beta5_joint" = 3.57466,
+            "beta6_joint" = 2.230872,
+            "nu" = 0.9976078,
+            "gamma" = 3.5,
+            "sigma" = 5.0,
+            "theta0" = 0.0,
+            "alpha" = 0.00239726,
+            "mu" = 0.0004287149,
+            "delta" = 0.000143317,
+            "kappa" = 0.0,
+            "S_0" = 0.9990317,
+            "E_0" = 4.604823e-06,
+            "I_0" = 0.000963733,
+            "A_0" = 0.0,
+            "R_0" = 0.0,
+            "pop_0" = 10911819)
 
   ## build pomp model
   model1 <- pomp::pomp(
@@ -386,6 +386,7 @@ haiti1_joint <- function(vacscen = 'id0') {
       partrans = param_trans,
       statenames = state_names,
       paramnames = param_names,
+      params = pars,
       accumvars = accum_names,
       rinit = rinit
     )

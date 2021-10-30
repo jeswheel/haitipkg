@@ -16,6 +16,9 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
     departement <- departement
     ## get data
     dat <- haiti1_data()
+    dat <- dat %>%
+      dplyr::select(c(departement, "week"))
+    colnames(dat) <- c("cases", "week")
     fc_set <- vac_scen(vacscen)
     ## make covariate table
     covar <- covars(tmin = 0,
@@ -26,15 +29,37 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
                     per = 52.14,
                     data = dat,
                     settings = fc_set)
-    depts <- fc_set$nd
-    if (vacscen == 'id0') {
+
+    ## determine if departement is included in vaccination campaign
+    if (vacscen == 'id0') { ## no vaccination
       vac <- FALSE
-    } else {
+    } else if (vacscen == 'id1') { ## fast national
+      vac <- TRUE
+    } else if (vacscen == 'id2') { ## 2-departement
+      if (departement == 'Centre' | departement == 'Artibonite') {
+        vac <- TRUE
+      }
+    } else if (vacscen == 'id3') { ## slow national
+      vac <- TRUE
+    } else if (vacscen == 'id4') { ## 3-departement
+      if (departement == 'Centre' | departement == 'Artibonite' | departement == 'Ouest') {
+        vac <- TRUE
+      }
+    } else { ## fast national high-coverage
       vac <- TRUE
     }
-    dat <- dat %>%
-      dplyr::select(c(departement, "week"))
-    colnames(dat) <- c("cases", "week")
+
+    dept_order <- switch(departement,
+                         "Centre" = 1,
+                         "Artibonite" = 2,
+                         "Ouest" = 3,
+                         "Nord_Ouest" = 4,
+                         "Nord" = 5,
+                         "Sud" = 6,
+                         "Nippes" = 7,
+                         "Nord_Est" = 8,
+                         "Sud_Est" = 9,
+                         "Grand_Anse" = 10)
 
     ## make components pomp object building
     ## rinit
@@ -74,12 +99,10 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
 
     ## rprocess
     # transition rates and numbers
-    rates_base <- c((2 + depts), (3 + depts), (2 + depts), (2 + depts), (2 + depts)) ## for SEIAR
     if (vac) {
-      rates_other <- rep(c(2, 3, 2, 2, 2), depts)
-      rates <- c(rates_base, rates_other)
+      rates <- rep(c(2, 3, 2, 2, 2), 2)
     } else {
-      rates <- rates_base
+      rates <- c(2, 3, 2, 2, 2)
     }
     trans_rates <- c()
     trans_numbers <- c()
@@ -103,8 +126,8 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
                   "int pop = pop_nv + pop_1",
                   "; \n int births = rpois(mu*pop*dt); \n ") %>%
         paste(collapse = "")
-      tchecks <- c("if (vac_tcheck == 1) { \n eta", #CHECK CHECK
-                   " = num_vacc/pop_nv/dt; \n } \n ") %>%
+      tchecks <- c(paste0("if (vac_tcheck == ", dept_order, ") { \n eta",
+                   " = num_vacc/pop_nv/dt; \n } \n ")) %>%
         paste(collapse = "")
     } else {
       demons <- c("int pop = S + E + I + A + R; \n ",
@@ -125,11 +148,18 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
       foi <- "double foi = pow(I, nu) * mybeta / pop; \n "
     }
 
-    foi <- paste0(foi, "\n dgamma = rgammawn(sig_sq, dt); \n foi = foi * dgamma/dt; \n ")
+    foi <- paste0(foi,
+                  "double sig_sq; \n ",
+                  "if (t < 233) { \n ",
+                  "sig_sq = sig_sq_epi; \n ",
+                  "} else { \n ",
+                  "sig_sq = sig_sq_end; \n ",
+                  "} \n ",
+                  "\n dgamma = rgammawn(sig_sq, dt); \n foi = foi * dgamma/dt; \n ")
 
     # theta_k
     if (vac) {
-      thetas <- paste0("double theta1 = ve_d1; \n ")
+      thetas <- paste0("double theta1 = ve_d", dept_order, "; \n ")
     }
 
     # compute rates
@@ -139,7 +169,6 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
     a_rates <- c("Arate[0] = gamma; \n ", "Arate[1] = delta; \n ")
     r_rates <- c("Rrate[0] = alpha; \n ", "Rrate[1] = delta; \n ")
     if (vac) {
-      depts <- 1
       s_rates <- c(s_rates, paste0("Srate[2] = eta; \n "),
                    paste0("S1rate[0] = foi; \n ",
                           "S1rate[1] = delta; \n "))
@@ -166,7 +195,7 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
                       "reulermultinom(3,I,&Irate[0],dt,&Itrans[0]); \n ",
                       "reulermultinom(3,A,&Arate[0],dt,&Atrans[0]); \n ",
                       "reulermultinom(3,R,&Rrate[0],dt,&Rtrans[0]); \n ")
-    if (depts > 1) {
+    if (vac) {
       numbers <- c(numbers,
                    paste0("reulermultinom(2,S1,&S1rate[0],dt,&S1trans[0]); \n "),
                    paste0("reulermultinom(3,E1,&E1rate[0],dt,&E1trans[0]); \n "),
@@ -235,18 +264,35 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
 
     ## dmeasure
     dmeas <- Csnippet("
-    lik = dnbinom_mu(cases, tau, rho*incid, give_log);
-  ")
+      if (ISNA(cases)) {
+        lik = (give_log) ? 0 : 1;
+      } else {
+        double rho = rho_epi;
+        double tau = tau_epi;
+        if (t > 232) {
+          rho = rho_end;
+          tau = tau_end;
+        }
+        lik = dnbinom_mu(cases, tau, rho*incid, give_log);
+      }
+                 Rprintf(\"%lg %lg %lg %lg %lg %lg\\n\",S,E,I,A,R,lik);
+    ")
 
     ## rmeasure
-    rmeas <- Csnippet(
-      "cases = rnbinom_mu(tau, rho*incid);
-    if (cases > 0.0) {
-      cases = nearbyint(cases);
-    } else {
-      cases = 0.0;
-    }
-  ")
+    rmeas <- Csnippet("
+      double rho = rho_epi;
+      double tau = tau_epi;
+      if (t > 232) {
+        rho = rho_end;
+        tau = tau_end;
+      }
+      cases = rnbinom_mu(tau, rho*incid);
+      if (cases > 0.0) {
+        cases = nearbyint(cases);
+      } else {
+        cases = 0.0;
+      }
+    ")
 
     ## names
     if (vac) {
@@ -260,9 +306,11 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
                        "foival", "Str0", "Sout", "Sin")
 
       ## parameter names
-      param_names <- c("rho", "tau", "beta1", "beta2", "beta3", "beta4", "beta5",
-                       "beta6", "gamma", "sigma", "theta0", "alpha", "mu", "delta",
-                       "nu", "kappa", "pop_0", "sig_sq",
+      param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", #epidemic
+                       "rho_end", "sig_sq_end", "tau_end", # endemic
+                       "beta1", "beta2", "beta3", "beta4", "beta5", "beta6",
+                       "gamma", "sigma", "theta0", "alpha", "mu", "delta",
+                       "nu", "kappa", "pop_0",
                        "S_0","E_0","I_0","A_0","R_0",
                        "S1_0","E1_0","I1_0","A1_0","R1_0")
 
@@ -274,10 +322,12 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
       state_names <- c("S", "E", "I", "A", "R", "incid", "foival", "Str0", "Sout", "Sin")
 
       ## parameter names
-      param_names <- c("rho", "tau", "beta1", "beta2", "beta3", "beta4", "beta5",
-                       "beta6", "gamma", "sigma", "theta0", "alpha", "mu", "delta",
-                       "nu", "pop_0", "sig_sq",
-                       "S_0","E_0","I_0","A_0","R_0")
+      param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", #epidemic
+                       "rho_end", "sig_sq_end", "tau_end", # endemic
+                       "beta1", "beta2", "beta3", "beta4", "beta5", "beta6",
+                       "gamma", "sigma", "theta0", "alpha", "mu", "delta",
+                       "nu", "kappa", "pop_0",
+                       "S_0", "E_0", "I_0", "A_0", "R_0")
 
       ## accum vars
       accum_names <- c("incid", "foival","Str0","Sout","Sin")
@@ -286,8 +336,9 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
     ## partrans
     param_trans <- pomp::parameter_trans(
       log = c("beta1", "beta2", "beta3", "beta4", "beta5", "beta6",
-              "tau", "sigma", "gamma", "mu", "delta", "alpha", "sig_sq"),
-      logit = c("rho", "nu", "theta0"),
+              "sigma", "gamma", "mu", "delta", "alpha",
+              "sig_sq_end", "sig_sq_epi", "tau_end", "tau_epi"),
+      logit = c("rho_epi", "rho_end", "nu", "theta0"),
       barycentric = c("S_0", "E_0", "I_0", "A_0", "R_0")
     )
 
