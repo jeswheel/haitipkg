@@ -23,7 +23,11 @@ haiti1 <- function(vacscen = 'id0') {
                   per = 52.14,
                   data = dat,
                   settings = fc_set)
-  depts <- fc_set$nd
+  if (vacscen == 'id0') {
+    depts <- 0
+  } else {
+    depts <- fc_set$nd
+  }
   ## make components pomp object building
   ## rinit
   state_names_base <- c("S", "E", "I", "A", "R")

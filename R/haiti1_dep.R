@@ -190,12 +190,12 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
       paste(collapse = "")
 
     # transition numbers
-    numbers <- paste0("reulermultinom(3,S,&Srate[0],dt,&Strans[0]); \n ",
-                      "reulermultinom(4,E,&Erate[0],dt,&Etrans[0]); \n ",
-                      "reulermultinom(3,I,&Irate[0],dt,&Itrans[0]); \n ",
-                      "reulermultinom(3,A,&Arate[0],dt,&Atrans[0]); \n ",
-                      "reulermultinom(3,R,&Rrate[0],dt,&Rtrans[0]); \n ")
     if (vac) {
+      numbers <- paste0("reulermultinom(3,S,&Srate[0],dt,&Strans[0]); \n ",
+                        "reulermultinom(4,E,&Erate[0],dt,&Etrans[0]); \n ",
+                        "reulermultinom(3,I,&Irate[0],dt,&Itrans[0]); \n ",
+                        "reulermultinom(3,A,&Arate[0],dt,&Atrans[0]); \n ",
+                        "reulermultinom(3,R,&Rrate[0],dt,&Rtrans[0]); \n ")
       numbers <- c(numbers,
                    paste0("reulermultinom(2,S1,&S1rate[0],dt,&S1trans[0]); \n "),
                    paste0("reulermultinom(3,E1,&E1rate[0],dt,&E1trans[0]); \n "),
@@ -203,6 +203,12 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
                    paste0("reulermultinom(2,A1,&A1rate[0],dt,&A1trans[0]); \n "),
                    paste0("reulermultinom(2,R1,&R1rate[0],dt,&R1trans[0]); \n ")) %>%
         paste(collapse = "")
+    } else {
+      numbers <- paste0("reulermultinom(2,S,&Srate[0],dt,&Strans[0]); \n ",
+                        "reulermultinom(3,E,&Erate[0],dt,&Etrans[0]); \n ",
+                        "reulermultinom(2,I,&Irate[0],dt,&Itrans[0]); \n ",
+                        "reulermultinom(2,A,&Arate[0],dt,&Atrans[0]); \n ",
+                        "reulermultinom(2,R,&Rrate[0],dt,&Rtrans[0]); \n ")
     }
 
     # cohorts
@@ -220,11 +226,11 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
       coh <- c(coh_unvac, coh_vacs) %>%
         paste(collapse = "")
     } else {
-      coh <- c("S += -Strans[0]", paste0(" - Strans[", 1:2, "]"), " + Rtrans[0] + births; \n ",
-               "E += -Etrans[0]", paste0(" - Etrans[", 1:3, "]"), " + Strans[0]; \n ",
-               "I += -Itrans[0]", paste0(" - Itrans[", 1:2, "]"), " + Etrans[0]; \n ",
-               "A += -Atrans[0]", paste0(" - Atrans[", 1:2, "]"), " + Etrans[1]; \n ",
-               "R += -Rtrans[0]", paste0(" - Rtrans[", 1:2, "]"), " + Itrans[0] + Atrans[0]; \n ") %>%
+      coh <- c("S += -Strans[0]", paste0(" - Strans[", 1:1, "]"), " + Rtrans[0] + births; \n ",
+               "E += -Etrans[0]", paste0(" - Etrans[", 1:2, "]"), " + Strans[0]; \n ",
+               "I += -Itrans[0]", paste0(" - Itrans[", 1:1, "]"), " + Etrans[0]; \n ",
+               "A += -Atrans[0]", paste0(" - Atrans[", 1:1, "]"), " + Etrans[1]; \n ",
+               "R += -Rtrans[0]", paste0(" - Rtrans[", 1:1, "]"), " + Itrans[0] + Atrans[0]; \n ") %>%
         paste(collapse = "")
     }
 
@@ -275,7 +281,6 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
         }
         lik = dnbinom_mu(cases, tau, rho*incid, give_log);
       }
-                 Rprintf(\"%lg %lg %lg %lg %lg %lg\\n\",S,E,I,A,R,lik);
     ")
 
     ## rmeasure
