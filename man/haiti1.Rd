@@ -4,10 +4,12 @@
 \alias{haiti1}
 \title{Build pomp object for Model 1}
 \usage{
-haiti1(vacscen = "id0")
+haiti1(vacscen = "id0", period = "epidemic")
 }
 \arguments{
 \item{vacscen}{ID code for vaccination scenario}
+
+\item{period}{either "epidemic" or "endemic", used to determine parameter values}
 }
 \value{
 An object of class \sQuote{pomp}

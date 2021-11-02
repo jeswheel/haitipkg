@@ -3,13 +3,14 @@
 #' Generate a class \sQuote{pomp} object for fitting to epidemic/endemic Haiti cholera data.
 #'
 #' @param vacscen ID code for vaccination scenario
+#' @param period either "epidemic" or "endemic", used to determine parameter values
 #' @importFrom pomp Csnippet
 #' @return An object of class \sQuote{pomp}
 #' @examples
 #' m1 <- haiti1(vacscen = "id0")
 #' @export
 
-haiti1 <- function(vacscen = 'id0') {
+haiti1 <- function(vacscen = 'id0', period = 'epidemic') {
   vacscen <- vacscen
   ## get data
   dat <- haiti1_agg_data()
@@ -257,7 +258,11 @@ haiti1 <- function(vacscen = 'id0') {
   ")
 
   base_pars <- haiti1_adj_params
-  pars <- base_pars[, "epi"] ## default is epidemic period, no vac
+  if (period == "endemic") {
+    pars <- base_pars[, 2] ## endemic period
+  } else {
+    pars <- base_pars[, 1] ## default is epidemic period, no vac
+  }
 
   ## names
   if (depts > 1) {
