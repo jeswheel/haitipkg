@@ -257,13 +257,6 @@ haiti1 <- function(vacscen = 'id0', period = 'epidemic') {
     }
   ")
 
-  base_pars <- haiti1_adj_params
-  if (period == "endemic") {
-    pars <- base_pars[, 2] ## endemic period
-  } else {
-    pars <- base_pars[, 1] ## default is epidemic period, no vac
-  }
-
   ## names
   if (depts > 1) {
     ## state names
@@ -284,10 +277,6 @@ haiti1 <- function(vacscen = 'id0', period = 'epidemic') {
                      paste0("I", 1:depts, "_0"),
                      paste0("A", 1:depts, "_0"),
                      paste0("R", 1:depts, "_0"))
-
-    ## initial parameter values
-    pars <- c(pars, 0.0, rep(0.0, 5*depts))
-    names(pars) <- param_names
 
     ## accum vars
     accum_names <- c("incid","incidU","incidV","asymV","newV",
@@ -323,13 +312,24 @@ haiti1 <- function(vacscen = 'id0', period = 'epidemic') {
       dmeasure = dmeas,
       rprocess = pomp::euler(step.fun = rproc, delta.t = 1/7),
       covar = pomp::covariate_table(covar, times = "time"),
-      params = pars,
       partrans = param_trans,
       statenames = state_names,
       paramnames = param_names,
       accumvars = accum_names,
       rinit = rinit
     )
+
+  base_pars <- haiti1_adj_params
+  if (vacscen == "id0" & period == "endemic") {
+    model1 <- window(model1, start = 233, end = 430) ## endemic period
+    model1@t0 <- 232
+    coef(model1) <- base_pars[, 2] ## endemic period
+  }
+  if (vacscen == "id0" & period == "epidemic") {
+    model1 <- window(model1, start = 1, end = 232) ## epidemic period
+    model1@t0 <- 0
+    coef(model1) <- base_pars[, 1] ## epidemic period
+  }
 
   return(model1)
 }
