@@ -111,28 +111,6 @@ haiti1_joint <- function(vacscen = 'id0') {
 
   # seasonal beta and foi
   time_check <- c(
-    "double beta1, beta2, beta3, beta4, beta5, beta6; \n ",
-    "beta1 = beta1_joint; \n ",
-    "beta2 = beta2_joint; \n ",
-    "beta3 = beta3_joint; \n ",
-    "beta4 = beta4_joint; \n ",
-    "beta5 = beta5_joint; \n ",
-    "beta6 = beta6_joint; \n ",
-    #"if (t < 233) { \n ",
-    # "beta1 = beta1_epi; \n ",
-    # "beta2 = beta2_epi; \n ",
-    # "beta3 = beta3_epi; \n ",
-    # "beta4 = beta4_epi; \n ",
-    # "beta5 = beta5_epi; \n ",
-    # "beta6 = beta6_epi; \n ",
-    #"} else { \n ",
-    # "beta1 = beta1; \n ",
-    # "beta2 = beta2; \n ",
-    # "beta3 = beta3; \n ",
-    # "beta4 = beta4; \n ",
-    # "beta5 = beta5; \n ",
-    # "beta6 = beta6; \n ",
-    # "} \n ",
     "double mybeta = beta1*seas1 + beta2*seas2 + beta3*seas3 + beta4*seas4 + beta5*seas5 + beta6*seas6; \n "
   )
   beta <- paste0(time_check, collapse = "")
@@ -316,7 +294,7 @@ haiti1_joint <- function(vacscen = 'id0') {
     param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", #epidemic
                      "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0", # epidemic
                      "rho_end", "sig_sq_end", "tau_end", # endemic
-                     "beta1_joint", "beta2_joint", "beta3_joint", "beta4_joint", "beta5_joint", "beta6_joint", # shared
+                     "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", # shared
                      "mu", "gamma", "sigma", "theta0", "alpha", "delta", "kappa", "nu",# shared
                      paste0("S", 1:depts, "_0"),
                      paste0("E", 1:depts, "_0"),
@@ -335,7 +313,7 @@ haiti1_joint <- function(vacscen = 'id0') {
     param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", #epidemic
                      "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0", # epidemic
                      "rho_end", "sig_sq_end", "tau_end", # endemic
-                     "beta1_joint", "beta2_joint", "beta3_joint", "beta4_joint", "beta5_joint", "beta6_joint", # shared
+                     "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", # shared
                      "mu", "gamma", "sigma", "theta0", "alpha", "delta", "kappa", "nu") # shared
 
     ## accum vars
@@ -344,7 +322,7 @@ haiti1_joint <- function(vacscen = 'id0') {
 
   ## partrans
   param_trans <- pomp::parameter_trans(
-    log = c("beta1_joint", "beta2_joint", "beta3_joint", "beta4_joint", "beta5_joint", "beta6_joint", # shared
+    log = c("beta1", "beta2", "beta3", "beta4", "beta5", "beta6", # shared
             "sigma", "gamma", "mu", "delta", "alpha",
             "sig_sq_end", "sig_sq_epi", "tau_end", "tau_epi"),
     logit = c("rho_epi", "rho_end", "nu", "theta0"),
@@ -358,12 +336,12 @@ haiti1_joint <- function(vacscen = 'id0') {
             "tau_end" = 105.3583,
             "sig_sq_epi" = 0.1105648,
             "sig_sq_end" = 0.1677307,
-            "beta1_joint" = 4.014758,
-            "beta2_joint" = 2.7089,
-            "beta3_joint" = 2.742331,
-            "beta4_joint" = 3.058927,
-            "beta5_joint" = 3.57466,
-            "beta6_joint" = 2.230872,
+            "beta1" = 4.014758,
+            "beta2" = 2.7089,
+            "beta3" = 2.742331,
+            "beta4" = 3.058927,
+            "beta5" = 3.57466,
+            "beta6" = 2.230872,
             "nu" = 0.9976078,
             "gamma" = 3.5,
             "sigma" = 5.0,
@@ -378,6 +356,17 @@ haiti1_joint <- function(vacscen = 'id0') {
             "A_0" = 0.0,
             "R_0" = 0.0,
             "pop_0" = 10911819)
+
+  if (depts > 1) {
+    par_names <- names(pars)
+    pars <- c(pars, rep(0.0, 5 * depts))
+    names(pars) <- c(par_names,
+                     paste0("S", 1:depts, "_0"),
+                     paste0("E", 1:depts, "_0"),
+                     paste0("I", 1:depts, "_0"),
+                     paste0("A", 1:depts, "_0"),
+                     paste0("R", 1:depts, "_0"))
+  }
 
   ## build pomp model
   model1 <- pomp::pomp(

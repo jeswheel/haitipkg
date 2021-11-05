@@ -31,6 +31,7 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
                     settings = fc_set)
 
     ## determine if departement is included in vaccination campaign
+    vac <- FALSE
     if (vacscen == 'id0') { ## no vaccination
       vac <- FALSE
     } else if (vacscen == 'id1') { ## fast national
@@ -347,6 +348,16 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
       barycentric = c("S_0", "E_0", "I_0", "A_0", "R_0")
     )
 
+    params <- haiti1_dep_params %>% dplyr::select(departement)
+    par_names <- rownames(params)
+    params <- unlist(params)
+    names(params) <- par_names
+
+    if (vac) {
+      params <- c(params, rep(0.0, 5))
+      names(params) <- c(par_names, "S1_0", "E1_0", "I1_0", "A1_0", "R1_0")
+    }
+
     ## build pomp model
     model1 <- pomp::pomp(
       data = dat,
@@ -357,6 +368,7 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
       rprocess = pomp::euler(step.fun = rproc, delta.t = 1/7),
       covar = pomp::covariate_table(covar, times = "time"),
       partrans = param_trans,
+      params = params,
       statenames = state_names,
       paramnames = param_names,
       accumvars = accum_names,
