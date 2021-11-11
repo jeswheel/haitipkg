@@ -41,12 +41,16 @@ haiti1_panel <- function(vacscen = 'id0') {
                    'beta4' = 3.058927,
                    'beta5' = 3.57466,
                    'beta6' = 2.230872,
-                   'nu' = 0.9976078)
+                   'nu' = 0.9976078,
+                   'tau_epi' = 688.7796,
+                   'tau_end' = 105.3583,
+                   'sig_sq_epi' = 0.1105648,
+                   'sig_sq_end' = 0.1677307)
 
   ## departement specific parameters --- values from individual mifs
   spec_par_names <- c("rho_epi", "rho_end",
-                      "tau_epi", "tau_end",
-                      "sig_sq_epi", "sig_sq_end",
+                      #"tau_epi", "tau_end",
+                      #"sig_sq_epi", "sig_sq_end",
                       "S_0","E_0","I_0","A_0","R_0", "pop_0")
 
   dep_params <- haiti1_dep_params
@@ -55,10 +59,10 @@ haiti1_panel <- function(vacscen = 'id0') {
   spec_pars <- rbind(
     unlist(dep_params["rho_epi", ]),
     unlist(dep_params["rho_end", ]),
-    unlist(dep_params["tau_epi", ]),
-    unlist(dep_params["tau_end", ]),
-    unlist(dep_params["sig_sq_epi", ]),
-    unlist(dep_params["sig_sq_end", ]),
+    #unlist(dep_params["tau_epi", ]),
+    #unlist(dep_params["tau_end", ]),
+    #unlist(dep_params["sig_sq_epi", ]),
+    #unlist(dep_params["sig_sq_end", ]),
     unlist(dep_params["S_0", ]),
     unlist(dep_params["E_0", ]),
     unlist(dep_params["I_0", ]),
