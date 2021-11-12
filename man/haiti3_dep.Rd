@@ -8,7 +8,8 @@ haiti3_dep(
   departement = "Artibonite",
   start_time = "2014-03-01",
   delta.t = 1/365.25 * 0.2,
-  betaB_trend = FALSE
+  betaB_trend = FALSE,
+  B0 = FALSE
 )
 }
 \arguments{
@@ -29,6 +30,9 @@ at 2017-06-01}
 
 \item{betaB_trend}{Whether or not to include a trend parameter for
 betaB.}
+
+\item{B0}{Boolean indicator. If TRUE, Initial value of the Bacteria
+compartment will be estimated; If FALSE, the equilibrium will be used.}
 }
 \value{
 \code{\link[pomp]{pomp}} object.

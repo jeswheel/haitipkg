@@ -14,6 +14,8 @@
 #' @param delta.t Delta time step used in Euler's approximation
 #' @param betaB_trend Whether or not to include a trend parameter for
 #'    betaB.
+#' @param B0 Boolean indicator. If TRUE, Initial value of the Bacteria
+#'    compartment will be estimated; If FALSE, the equilibrium will be used.
 #'
 #' @return \code{\link[pomp]{pomp}} object.
 #'
@@ -26,7 +28,8 @@
 haiti3_dep <- function(departement = 'Artibonite',
                        start_time = "2014-03-01",
                        delta.t = 1/365.25 * .2,
-                       betaB_trend = FALSE) {
+                       betaB_trend = FALSE,
+                       B0 = FALSE) {
 
   # function to convert dates to fractions of years for model
   dateToYears <- function(date, origin = as.Date("2014-01-01"), yr_offset = 2014) {
@@ -722,7 +725,86 @@ S = nearbyint(H - I - A - RI1 - RI2 - RI3 - RA1 - RA2 - RA3 -
     " \n };"
   )
 
-  initalizeStates <- pomp::Csnippet("
+  if (B0) {
+    initalizeStates <- pomp::Csnippet("
+  A     = nearbyint((1-sigma)/sigma  * 1/epsilon * cases_at_t_start[n_cases_start-1][1]/7 * 365 /(mu+gammaA));
+  I     = nearbyint(1/epsilon * cases_at_t_start[n_cases_start-1][1]/7 * 365 /(mu+alpha+gammaI))  ;  // Steady state, DP says its correct.
+  double R0[2] = {0,0};
+  //FILE *fp;
+  //fp = fopen('Ouuuutput.txt', 'w');
+
+  double B_acc = 0;
+  double rhoI = rhoA * XrhoI;
+  double thetaA = thetaI * XthetaA;
+  for(int i = 0; i < n_cases_start; i++){
+    R0[0] +=                   cases_at_t_start[i][1]/epsilon  * exp((cases_at_t_start[i][0] - t_start)  * (rhoI+mu)); /* because t_i in past so t_ - t_0 negative */
+    R0[1] += (1-sigma)/sigma * cases_at_t_start[i][1]/epsilon  * exp((cases_at_t_start[i][0] - t_start)  * (rhoA+mu));
+    B_acc += (thetaA * (1-sigma)/sigma * cases_at_t_start[i][1]/epsilon + thetaI * cases_at_t_start[i][1]/epsilon) *
+              (1 + lambdaR * pow(0.024, r)) * D * exp((cases_at_t_start[i][0] - t_start)  * mu_B);
+
+    //fprintf(fp, '%f %f %f', cases_at_t_start[i][0] - t_start, cases_at_t_start[i][0], t_start);
+  }
+ //fclose(fp);
+
+  B = B_acc;
+  RI1   = nearbyint(R0[0]/3);
+  RI2   = nearbyint(R0[0]/3);
+  RI3   = nearbyint(R0[0]/3);
+  RA1   = nearbyint(R0[1]/3);
+  RA2   = nearbyint(R0[1]/3);
+  RA3   = nearbyint(R0[1]/3);
+  if (A + I + RI1 + RI2 + RI3 + RA1 + RA2 + RA3 >= H)
+  {
+    double R_tot = H - A - I - 100.0;
+    if (R_tot <= 0)
+    {
+      I     = nearbyint(H - 100);
+      A     = nearbyint(0);
+      R_tot = nearbyint(0);
+    }
+    RI1   = nearbyint(sigma * R_tot/3.0);
+    RI2   = nearbyint(sigma * R_tot/3.0);
+    RI3   = nearbyint(sigma * R_tot/3.0);
+    RA1   = nearbyint((1-sigma) * R_tot/3.0);
+    RA2   = nearbyint((1-sigma) * R_tot/3.0);
+    RA3   = nearbyint((1-sigma) * R_tot/3.0);
+  }
+  S   = nearbyint(H - A - I - RI1 - RI2 - RI3 - RA1 - RA2 - RA3);
+  // B   = (I * thetaI/mu_B + A * thetaA/mu_B) * D * (1 + lambdaR * pow(B0, r)); // TODO custom initial conditions equivalent to the 'forcing' in the continous model
+  B = B0;
+  C   = 0;
+  W   = 0;
+  VSd = 0;
+  VRI1d = 0;
+  VRI2d = 0;
+  VRI3d = 0;
+  VRA1d = 0;
+  VRA2d = 0;
+  VRA3d = 0;
+  VSdd = 0;
+  VRI1dd = 0;
+  VRI2dd = 0;
+  VRI3dd = 0;
+  VRA1dd = 0;
+  VRA2dd = 0;
+  VRA3dd = 0;
+  VSd_alt = 0;
+  VRI1d_alt = 0;
+  VRI2d_alt = 0;
+  VRI3d_alt = 0;
+  VRA1d_alt = 0;
+  VRA2d_alt = 0;
+  VRA3d_alt = 0;
+  VSdd_alt = 0;
+  VRI1dd_alt = 0;
+  VRI2dd_alt = 0;
+  VRI3dd_alt = 0;
+  VRA1dd_alt = 0;
+  VRA2dd_alt = 0;
+  VRA3dd_alt = 0;
+   ")
+  } else {
+    initalizeStates <- pomp::Csnippet("
   A     = nearbyint((1-sigma)/sigma  * 1/epsilon * cases_at_t_start[n_cases_start-1][1]/7 * 365 /(mu+gammaA));
   I     = nearbyint(1/epsilon * cases_at_t_start[n_cases_start-1][1]/7 * 365 /(mu+alpha+gammaI))  ;  // Steady state, DP says its correct.
   double R0[2] = {0,0};
@@ -798,6 +880,7 @@ S = nearbyint(H - I - A - RI1 - RI2 - RI3 - RA1 - RA2 - RA3 -
   VRA2dd_alt = 0;
   VRA3dd_alt = 0;
    ")
+  }
 
   eff_v.c <- "
    double eff_v_2d(double t_since_vacc, int scenario) {
@@ -973,6 +1056,10 @@ S = nearbyint(H - I - A - RI1 - RI2 - RI3 - RA1 - RA2 - RA3 -
     params['betaB_trend'] <- 0
   }
 
+  if (B0) {
+    params['B0'] <- 0.2
+  }
+
   rain <- rain %>%
     dplyr::filter(time > (t_start - 0.01) & time < (t_end + 0.01)) %>%
     dplyr::select(time, rain_std) %>%
@@ -985,21 +1072,37 @@ S = nearbyint(H - I - A - RI1 - RI2 - RI3 - RA1 - RA2 - RA3 -
 
   covar <- dplyr::full_join(rain, cases_covar)
 
-  pt <- pomp::parameter_trans(
-    log = c(
-      "betaB", "mu_B", "thetaI", "rhoA", "lambdaR", "r",
-      "std_W", "k", "foi_add", "gammaA", "gammaI"
-    ),
-    logit = c(
-      "sigma",
-      "XthetaA",
-      "XrhoI",
-      "epsilon",
-      "cas_def",
-      "Rtot_0"
+  if (B0) {
+    pt <- pomp::parameter_trans(
+      log = c(
+        "betaB", "mu_B", "thetaI", "rhoA", "lambdaR", "r",
+        "std_W", "k", "foi_add", "gammaA", "gammaI", "B0"
+      ),
+      logit = c(
+        "sigma",
+        "XthetaA",
+        "XrhoI",
+        "epsilon",
+        "cas_def",
+        "Rtot_0"
+      )
     )
-  )
-
+  } else {
+    pt <- pomp::parameter_trans(
+      log = c(
+        "betaB", "mu_B", "thetaI", "rhoA", "lambdaR", "r",
+        "std_W", "k", "foi_add", "gammaA", "gammaI"
+      ),
+      logit = c(
+        "sigma",
+        "XthetaA",
+        "XrhoI",
+        "epsilon",
+        "cas_def",
+        "Rtot_0"
+      )
+    )
+  }
 
 
   sirb_cholera <- pomp::pomp(

@@ -12,7 +12,8 @@ haiti3_panel(
   departements = c("Artibonite", "Centre", "Grande_Anse", "Nippes", "Nord", "Nord-Est",
     "Nord-Ouest", "Ouest", "Sud", "Sud-Est"),
   betaB_trend = FALSE,
-  start_time = "2014-03-01"
+  start_time = "2014-03-01",
+  B0 = FALSE
 )
 }
 \arguments{
@@ -27,6 +28,9 @@ departements except for Ouest, which started with a time of 2017-06-10.
 This means that there wasn't a national-coupled model fit to the
 data until 2017-06-01, which means that there was less than 2 years
 of data to fit the model.}
+
+\item{B0}{Boolean indicator. If TRUE, Initial value of the Bacteria
+compartment will be estimated; If FALSE, the equilibrium will be used.}
 
 \item{BetaB_trend}{Boolean indicator of whether or not a trend parameter
 should be added to the betaB parameter.}

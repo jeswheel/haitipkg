@@ -14,13 +14,15 @@
 #'    This means that there wasn't a national-coupled model fit to the
 #'    data until 2017-06-01, which means that there was less than 2 years
 #'    of data to fit the model.
+#' @param B0 Boolean indicator. If TRUE, Initial value of the Bacteria
+#'    compartment will be estimated; If FALSE, the equilibrium will be used.
 #' @importFrom panelPomp panelPomp
 #' @export
 
 haiti3_panel <- function(delta.t = 1/365, departements = c(
   'Artibonite', 'Centre', 'Grande_Anse', 'Nippes',
   'Nord', 'Nord-Est', 'Nord-Ouest', 'Ouest', 'Sud', 'Sud-Est'),
-  betaB_trend = FALSE, start_time = "2014-03-01"
+  betaB_trend = FALSE, start_time = "2014-03-01", B0 = FALSE
 ) {
 
   # Create a list of pomp objects
@@ -62,6 +64,10 @@ haiti3_panel <- function(delta.t = 1/365, departements = c(
     SPECIFIC <- rbind(SPECIFIC, rep(0, 10))
     colnames(SPECIFIC) <- all_deps
     rownames(SPECIFIC) <- c(specific_param_names, "betaB_trend")
+  } else if (B0) {
+    SPECIFIC <- rbind(SPECIFIC, rep(0.2, 10))
+    colnames(SPECIFIC) <- all_deps
+    rownames(SPECIFIC) <- c(specific_param_names, "B0")
   } else {
     colnames(SPECIFIC) <- all_deps
     rownames(SPECIFIC) <- specific_param_names
@@ -73,7 +79,8 @@ haiti3_panel <- function(delta.t = 1/365, departements = c(
     # Using haitipkg, create and save pomp object for each departement
     pomps[[dep]] <- haiti3_dep(departement = dep, delta.t = delta.t,
                                betaB_trend = betaB_trend,
-                               start_time = start_time)
+                               start_time = start_time,
+                               B0 = B0)
   }
 
   SPECIFIC <- SPECIFIC[, departements]
