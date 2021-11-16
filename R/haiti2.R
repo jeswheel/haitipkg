@@ -767,6 +767,11 @@ haiti2 <- function(cutoff=2014.161, region="before"){
                     AlphaS=0.4, ps=1.05, Sat=1e5, BetaW=4.544, sigmaSE=0.01,
                     VR=1.7889e-11, WR=5, Psi=0.5, Rho=0.2, scenario=0,
                     f=0.75, v=5.371e2)
+  # MLE for endemic model
+  if (region=="after") {
+    start_params[c("VR","Mu","v")] <- c(1.643e-20, 4.701e3, 1.417e4)
+  }
+
   par <- c(start_params,c_params_IVPS)
 
   ret <- spatPomp::spatPomp(
