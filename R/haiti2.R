@@ -769,7 +769,7 @@ haiti2 <- function(cutoff=2014.161, region="before"){
                     f=0.75, v=5.371e2)
   # MLE for endemic model
   if (region=="after") {
-    start_params[c("VR","Mu","v")] <- c(1.643e-20, 4.701e3, 1.417e4)
+    start_params[c("VR","Mu","v")] <- c(1.304e-9, 1.897e2, 8.201e1)
   }
 
   par <- c(start_params,c_params_IVPS)
