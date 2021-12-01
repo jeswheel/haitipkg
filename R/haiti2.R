@@ -6,14 +6,18 @@
 #' @importFrom pomp Csnippet
 #' @param cutoff a numeric. Used to define the cutoff time for the model
 #' @param region a character string. Specifies whether the time region is before
-#' or after the cutoff time
+#' or after the cutoff time.
+#' @param measure a character string. Specifies the measurement model used. Valid
+#' entries are "linear" and "log".
+#' @param joint a boolean. Specifies if the state values should carry over from
+#' epidemic to endemic phase.
 #' @return An object of class \sQuote{spatPomp}.
 #' @examples
 #' c_epidemic <- haiti2(cutoff=2014.25, region="before")
 #' @export
 
 
-haiti2 <- function(cutoff=2014.161, region="before"){
+haiti2 <- function(cutoff=2014.161, region="before", measure="linear",joint=FALSE){
   cholera_unit_statenames <- c("S","E","I","A","R","RA","C",
                                "VOD","EOD","IOD","AOD","ROD","RAOD",
                                "VTD","ETD","ITD","ATD","RTD","RATD",
@@ -241,6 +245,118 @@ haiti2 <- function(cutoff=2014.161, region="before"){
       W[u]=0;
     }
   ")
+
+  cholera_rinit_after2 <- Csnippet("
+    double *S = &S1;
+    double *E = &E1;
+    double *I = &I1;
+    double *A = &A1;
+    double *R = &R1;
+    double *RA = &RA1;
+    double *C = &C1;
+    double *VOD = &VOD1;
+    double *EOD = &EOD1;
+    double *IOD = &IOD1;
+    double *AOD = &AOD1;
+    double *ROD = &ROD1;
+    double *RAOD = &RAOD1;
+    double *VTD = &VTD1;
+    double *ETD = &ETD1;
+    double *ITD = &ITD1;
+    double *ATD = &ATD1;
+    double *RTD = &RTD1;
+    double *RATD = &RATD1;
+    double *VODu5 = &VODu51;
+    double *EODu5 = &EODu51;
+    double *IODu5 = &IODu51;
+    double *AODu5 = &AODu51;
+    double *RODu5 = &RODu51;
+    double *RAODu5 = &RAODu51;
+    double *VTDu5 = &VTDu51;
+    double *ETDu5 = &ETDu51;
+    double *ITDu5 = &ITDu51;
+    double *ATDu5 = &ATDu51;
+    double *RTDu5 = &RTDu51;
+    double *RATDu5 = &RATDu51;
+    double *W = &W1;
+
+    double *Si = &Si1;
+    double *Ei = &Ei1;
+    double *Ii = &Ii1;
+    double *Ai = &Ai1;
+    double *Ri = &Ri1;
+    double *RAi = &RAi1;
+    double *Ci = &Ci1;
+    double *VODi = &VODi1;
+    double *EODi = &EODi1;
+    double *IODi = &IODi1;
+    double *AODi = &AODi1;
+    double *RODi = &RODi1;
+    double *RAODi = &RAODi1;
+    double *VTDi = &VTDi1;
+    double *ETDi = &ETDi1;
+    double *ITDi = &ITDi1;
+    double *ATDi = &ATDi1;
+    double *RTDi = &RTDi1;
+    double *RATDi = &RATDi1;
+    double *VODu5i = &VODu5i1;
+    double *EODu5i = &EODu5i1;
+    double *IODu5i = &IODu5i1;
+    double *AODu5i = &AODu5i1;
+    double *RODu5i = &RODu5i1;
+    double *RAODu5i = &RAODu5i1;
+    double *VTDu5i = &VTDu5i1;
+    double *ETDu5i = &ETDu5i1;
+    double *ITDu5i = &ITDu5i1;
+    double *ATDu5i = &ATDu5i1;
+    double *RTDu5i = &RTDu5i1;
+    double *RATDu5i = &RATDu5i1;
+    double *Wi = &Wi1;
+
+    int u;
+
+    for (u = 0; u < U; u++) {
+      I[u] = Ii[u];
+      A[u] = Ai[u];
+      R[u] = Ri[u];
+      RA[u] = RAi[u];
+      E[u] = Ei[u];
+      S[u] = Si[u];
+
+      VOD[u] = VODi[u];
+      IOD[u] = IODi[u];
+      EOD[u] = EODi[u];
+      AOD[u] = AODi[u];
+      ROD[u] = RODi[u];
+      RAOD[u] = RAODi[u];
+
+      VTD[u] = VTDi[u];
+      ITD[u] = ITDi[u];
+      ETD[u] = ETDi[u];
+      ATD[u] = ATDi[u];
+      RTD[u] = RTDi[u];
+      RATD[u] = RATDi[u];
+
+      VODu5[u] = VODu5i[u];
+      IODu5[u] = IODu5i[u];
+      EODu5[u] = EODu5i[u];
+      AODu5[u] = AODu5i[u];
+      RODu5[u] = RODu5i[u];
+      RAODu5[u] = RAODu5i[u];
+
+      VTDu5[u] = VTDu5i[u];
+      ITDu5[u] = ITDu5i[u];
+      ETDu5[u] = ETDu5i[u];
+      ATDu5[u] = ATDu5i[u];
+      RTDu5[u] = RTDu5i[u];
+      RATDu5[u] = RATDu5i[u];
+
+      C[u] = Ci[u];
+
+      W[u] = Wi[u];
+    }
+  ")
+
 
   cholera_rprocess <- Csnippet('
     double *S = &S1;
@@ -488,6 +604,24 @@ haiti2 <- function(cutoff=2014.161, region="before"){
       } else {
         m = Rho*C[u];
         lik += dnorm(cases[u],m,v,1);
+      }
+    }
+    if(!give_log) lik = exp(lik);
+  ")
+
+  cholera_dmeasure2 <- Csnippet("
+    double *C = &C1;
+    double *cases = &cases1;
+    double m,v_nc;
+    int u;
+    lik = 0;
+    for (u = 0; u < U; u++) {
+      if(ISNA(cases[u])){
+        lik += 0;
+      } else {
+        m = Rho*C[u];
+        v_nc = m*(1-Rho + Psi*Psi*m);
+        lik += dnorm(cases[u],m,sqrt(v_nc),1);
       }
     }
     if(!give_log) lik = exp(lik);
@@ -754,7 +888,12 @@ haiti2 <- function(cutoff=2014.161, region="before"){
     cholera_rinit <- cholera_rinit_before
   } else {
     haiti <- haiti[haiti$year > cutoff,]
-    cholera_rinit <- cholera_rinit_after
+    if(joint) cholera_rinit <- cholera_rinit_after2
+    else cholera_rinit <- cholera_rinit_after
+  }
+
+  if (measure == "log"){
+    cholera_dmeasure <- cholera_dmeasure2
   }
 
   # Initialize unit values based on reported cases
@@ -773,6 +912,15 @@ haiti2 <- function(cutoff=2014.161, region="before"){
   }
 
   par <- c(start_params,c_params_IVPS)
+
+  if (region=="after" & joint==TRUE) {
+    cholera_IVPnames_mod <-
+      sapply(cholera_unit_statenames, FUN= function(x) paste0(x,"i",1:10)) %>% as.vector()
+    cholera_paramnames <- c(cholera_RPnames,cholera_IVPnames_mod)
+    joint_IVPS <- rep(0, length(cholera_IVPnames_mod))
+    names(joint_IVPS) <- cholera_IVPnames_mod
+    par <- c(start_params, joint_IVPS)
+  }
 
   ret <- spatPomp::spatPomp(
     data = haiti,
@@ -793,6 +941,6 @@ haiti2 <- function(cutoff=2014.161, region="before"){
     rmeasure=cholera_rmeasure,
     dunit_measure=cholera_dunit_measure
   )
-  coef(ret) <- par
+  ret@params <- par
   return(ret)
 }
