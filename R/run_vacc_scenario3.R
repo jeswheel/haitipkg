@@ -2,21 +2,25 @@
 #'
 #' TODO: needs to be finished.
 
-run_vacc_scenario3 <- function() {
+run_vacc_scenario3 <- function(scenario_strs = c("S0", "S1", "S2", "S3",
+                                                 "S4", "S25"),
+                               NSIM = 100) {
 
   # Create 6 different vaccination scenarios:
   #   S0, S1, S2, S3, S4, S25.
   # These scenarios are "encoded" in the file MODEL3_VACC_SCENARIOS,
   # and the lines below simply "decode" the scenarios.
+
+  scenarios <- list()
   for (i in 1:nrow(MODEL3_VACC_SCENARIOS)) {
     not_dep <- c()  # By default, include all departements.
     course_year <- 2  # By default, the campaign is 2 years.
 
-    if (MODEL3_VACC_SCENARIOS[i, 'Roll.out'] == 2) {
+    if (MODEL3_VACC_SCENARIOS[i, 'Roll-out'] == 2) {
       not_dep <- c('Ouest', 'Nord-Ouest', 'Nord', 'Sud', 'Nippes', 'Nord-Est', 'Sud-Est', 'Grande_Anse')
-    } else if (MODEL3_VACC_SCENARIOS[i, 'Roll.out'] == 3) {
+    } else if (MODEL3_VACC_SCENARIOS[i, 'Roll-out'] == 3) {
       course_year <- 5
-    } else if (MODEL3_VACC_SCENARIOS[i, 'Roll.out'] == 4) {
+    } else if (MODEL3_VACC_SCENARIOS[i, 'Roll-out'] == 4) {
       not_dep <- c('Nord-Ouest', 'Nord', 'Sud', 'Nippes', 'Nord-Est', 'Sud-Est', 'Grande_Anse')
     }
 
@@ -42,66 +46,83 @@ run_vacc_scenario3 <- function() {
     # 1 for all campaigns we are interested in.
     ve <- MODEL3_VACC_SCENARIOS[i, 'VE']
 
-    # Priority == 1 corresponds to the S1, S2, S3, S4, and S5 campaigns.
+    # Priority == 1 corresponds to the S1, S2, S3, S4, and S25 campaigns.
     if (MODEL3_VACC_SCENARIOS[i, 'Priority'] == 1) {
       sid <- paste0('S', MODEL3_VACC_SCENARIOS[i, 'ID'])
-      scenarios[[sid]] <- VaccinationScenario3(
-        course_year = course_year,
-        percent_completely_unvaccinated = percent_completely_unvaccinated,
-        percent_onedose = percent_onedose, percent_twodoses = percent_twodoses,
-        ve = ve, not_dep = not_dep
-      )
+
+      # Only save and run input scenarios.
+      if (sid %in% scenario_strs) {
+        scenarios[[sid]] <- VaccinationScenario3(
+          course_year = course_year,
+          percent_uv = percent_completely_unvaccinated,
+          percent_1d = percent_onedose, percent_2d = percent_twodoses,
+          ve = ve, not_dep = not_dep
+        )
+      }
     }
   }
 
-  # Create S0 campagin and name it.
-  S0 <- VaccinationScenario3(50,
-                            99.9999999,
-                            0.00000001,
-                            0.00,
-                            ve = 1)
 
-  scenarios[['S0']] <- S0
+  if (any(scenario_strs == "S0")) {
+    # Create S0 campagin and name it.
+    S0 <- VaccinationScenario3(50,
+                               99.9999999,
+                               0.00000001,
+                               0.00,
+                               ve = 1)
 
+    scenarios[['S0']] <- S0
+  }
 
   # TODO: The code below was copied and pasted from all_scenarios_all_dept.R.
   # This needs to be updated. Basically the code above gives us each of the
   # vaccination campaigns that we are interested, the task now is to simulate
   # the model under those vaccination scenarios.
 
-  cat('Working on Scenario', scenario_str)
-  all_data <- list()
-  run_scenario <- scenarios[[scenario_str]]
+  for (scenario_str in names(scenarios)) {
+    cat('Working on Scenario', scenario_str)
+    all_data <- list()
+    run_scenario <- scenarios[[scenario_str]]
 
-  scenario <- scenario_str
-  nsim <- NSIM
-  t_vacc_start <- run_scenario$t_vacc_start
-  t_vacc_end <- run_scenario$t_vacc_end
-  p1d_reg <- run_scenario$p1d_reg
-  r_v_year <- run_scenario$r_v_year
-  cases_ext <- run_scenario$ve
+    t_vacc_start <- run_scenario$t_vacc_start
+    t_vacc_end <- run_scenario$t_vacc_end
+    p1d_reg <- run_scenario$p1d_reg
+    r_v_year <- run_scenario$r_v_year
+    cases_ext <- run_scenario$ve
 
-  DEPARTMENTS1 <-
-    c(
-      'Artibonite',
-      'Centre',
-      'Grande_Anse',
-      'Nippes',
-      'Nord',
-      'Nord-Est',
-      'Nord-Ouest',
-      'Ouest',
-      'Sud',
-      'Sud-Est'
-    )
+    DEPARTMENTS <-
+      c(
+        'Artibonite',
+        'Centre',
+        'Grande_Anse',
+        'Nippes',
+        'Nord',
+        'Nord-Est',
+        'Nord-Ouest',
+        'Ouest',
+        'Sud',
+        'Sud-Est'
+      )
+
+    input_parameters <- MODEL3_INPUT_PARAMETERS
+
+    # Start and end dates of epidemic
+    t_start <- dateToYears(as.Date(input_parameters$t_start))
+    t_end <- dateToYears(as.Date(input_parameters$t_end))
+    t_forecast <- dateToYears(as.Date("2029-12-21"))  # TODO: Make as a function parameter.
+
+  }
+
+  # scenario <- scenario_str
+  # nsim <- NSIM
 
   # input parameters to the model
-  input_parameters <- yaml::read_yaml("input/haiti-data/input_parameters.yaml")
-  # Start and end dates of epidemic
-  t_start <- dateToYears(as.Date(input_parameters$t_start))
-  t_end <- dateToYears(as.Date(input_parameters$t_end))
 
-  t_forecast <- dateToYears(as.Date("2029-12-21"))
+
+  # TODO: Rain data only needs to be loaded once as this does take some time,
+  # but this needs to happen before we simulate from the model. Therefore the
+  # rain stuff will need to go before the for loop, but the forloop currently
+  # contains information that is important for the rain data stuff.
 
   all_rain <- read_csv("input/haiti-data/fromAzman/rainfall.csv") %>%
     mutate(date = as.Date(date, format = "%Y-%m-%d"),
