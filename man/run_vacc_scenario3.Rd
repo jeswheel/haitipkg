@@ -4,8 +4,26 @@
 \alias{run_vacc_scenario3}
 \title{Simulate Vaccination Campaign.}
 \usage{
-run_vacc_scenario3()
+run_vacc_scenario3(
+  scenario_strs = c("S0", "S1", "S2", "S3", "S4", "S25"),
+  nsim = 20
+)
+}
+\arguments{
+\item{scenario_strs}{character vector containing the name of each vaccination
+scenario that will be simulated. The options are:
+TODO: update this list
+\itemize{
+\item S0: Default vaccination scenario
+\item S1
+\item S2
+\item S3
+\item S4
+\item S25
+}}
+
+\item{nsim}{integer number of simulations for each vaccination scenario.}
 }
 \description{
-TODO: needs to be finished.
+Simulate Vaccination Campaign.
 }

@@ -1,17 +1,126 @@
 #' Simulate Vaccination Campaign.
 #'
-#' TODO: needs to be finished.
+#' @param scenario_strs character vector containing the name of each vaccination
+#' scenario that will be simulated. The options are:
+#' TODO: update this list
+#' * S0: Default vaccination scenario
+#' * S1
+#' * S2
+#' * S3
+#' * S4
+#' * S25
+#' @param nsim integer number of simulations for each vaccination scenario.
+#'
+#' @importFrom magrittr %>%
+#' @importFrom foreach %do%
+#' @importFrom foreach foreach
+#' @export
 
 run_vacc_scenario3 <- function(scenario_strs = c("S0", "S1", "S2", "S3",
                                                  "S4", "S25"),
-                               NSIM = 100) {
+                               nsim = 20) {
 
   # Create 6 different vaccination scenarios:
   #   S0, S1, S2, S3, S4, S25.
   # These scenarios are "encoded" in the file MODEL3_VACC_SCENARIOS,
   # and the lines below simply "decode" the scenarios.
 
+
+  # Auxillary Helper functions
+  dateToYears <- function(date, origin = as.Date("2014-01-01"), yr_offset = 2014) {
+    # Converts Date object to decimal years.
+    julian(date, origin = origin) / 365.25 + yr_offset
+  }
+
+  yearsToDate <- function(year_frac, origin = as.Date("2014-01-01"), yr_offset = 2014.0) {
+    # Converts decimal years to Date object
+    as.Date((year_frac - yr_offset) * 365.25, origin = origin)
+  }
+
+  yearsToDateTime <- function(year_frac, origin = as.Date("2014-01-01"), yr_offset = 2014.0) {
+    # Converts decimal years to DateTime object.
+    as.POSIXct((year_frac - yr_offset) * 365.25 * 3600 * 24, origin = origin)
+  }
+
+  # Save convenient list of all of the department names
+  DEPARTMENTS <-
+    c(
+      'Artibonite',
+      'Centre',
+      'Grande_Anse',
+      'Nippes',
+      'Nord',
+      'Nord-Est',
+      'Nord-Ouest',
+      'Ouest',
+      'Sud',
+      'Sud-Est'
+    )
+
+  # Load the input parameters
+  input_parameters <- MODEL3_INPUT_PARAMETERS
+
+  # Start and end dates of epidemic
+  t_start <- dateToYears(as.Date(input_parameters$t_start))
+  t_end <- dateToYears(as.Date(input_parameters$t_end))
+  t_forecast <- dateToYears(as.Date("2029-12-21"))  # TODO: Make as a function parameter.
+
+  # Get the times that we would like to forecast
+  time_forecast <- dateToYears(seq.Date(yearsToDate(t_start), yearsToDate(t_forecast), by = "1 week"))
+
+  all_rain <- MODEL3_RAIN %>%
+    dplyr::mutate(date = as.Date(date, format = "%Y-%m-%d"),
+           time = dateToYears(date)) %>%
+    dplyr::filter(time > t_start - 0.01 & time < (t_end + 0.01))
+
+  for (dp in DEPARTMENTS) {
+    rain <- MODEL3_RAIN %>%
+      tidyr::gather(dep, rain,-date) %>%
+      dplyr::group_by(dep) %>%
+      dplyr::ungroup() %>%
+      dplyr::filter(dep == dp) %>%
+      dplyr::mutate(date = as.Date(date, format = "%Y-%m-%d"),
+             time = dateToYears(date)) %>%
+      dplyr::filter(time > t_start - 0.01 & time < (t_end + 0.01)) %>%
+      dplyr::mutate(max_rain = max(rain), rain_std = rain / max_rain)
+
+    all_rain <- cbind(all_rain, placeholder = rain$max_rain)
+    all_rain <- cbind(all_rain, placeholder2 = rain$rain_std)
+    names(all_rain)[names(all_rain) == "placeholder"] <- paste0('max_rain', gsub('-','_',dp))
+    names(all_rain)[names(all_rain) == "placeholder2"] <- paste0('rain_std', gsub('-','_',dp))
+
+  }
+
+  all_rain_forecast <- MODEL3_PROJ_RAIN %>%
+    dplyr::mutate(date = as.Date(date, format = "%Y-%m-%d"),
+           time = dateToYears(date)) %>%
+    dplyr::filter(time > t_start - 0.01 & time < (t_forecast + 0.01))
+
+  for (dp in DEPARTMENTS) {
+    rain_forecast <- MODEL3_PROJ_RAIN %>%
+      tidyr::gather(dep, rain, -date) %>%
+      dplyr::group_by(dep) %>%
+      dplyr::ungroup() %>%
+      dplyr::filter(dep == dp) %>%
+      dplyr::mutate(date = as.Date(date, format = "%Y-%m-%d"),
+             time = dateToYears(date)) %>%
+      dplyr::filter(time > t_start - 0.01 & time < (t_forecast + 0.01)) %>%
+      dplyr::mutate(max_rain = all_rain[paste0('max_rain',gsub('-','_', dp))][[1]][1],
+             rain_std = rain/all_rain[paste0('max_rain',gsub('-','_', dp))][[1]][1])
+
+    all_rain_forecast <- cbind(all_rain_forecast, placeholder2 = rain_forecast$rain_std)
+    all_rain_forecast <- cbind(all_rain_forecast, placeholder = rain_forecast$max_rain)
+    names(all_rain_forecast)[names(all_rain_forecast) == "placeholder2"] <- paste0('rain_std', gsub('-','_',dp))
+    names(all_rain_forecast)[names(all_rain_forecast) == "placeholder"] <- paste0('max_rain', gsub('-','_',dp))
+  }
+
+  all_rain_forecast$time <- round(all_rain_forecast$time, 3)
+
+  # Create list to store vaccination scenarios
   scenarios <- list()
+
+  # Loop through all encoded vaccination scenarios and only keep the ones that
+  # we are actually interested. They are marked with a priority == 1.
   for (i in 1:nrow(MODEL3_VACC_SCENARIOS)) {
     not_dep <- c()  # By default, include all departements.
     course_year <- 2  # By default, the campaign is 2 years.
@@ -74,14 +183,22 @@ run_vacc_scenario3 <- function(scenario_strs = c("S0", "S1", "S2", "S3",
     scenarios[['S0']] <- S0
   }
 
-  # TODO: The code below was copied and pasted from all_scenarios_all_dept.R.
-  # This needs to be updated. Basically the code above gives us each of the
-  # vaccination campaigns that we are interested, the task now is to simulate
-  # the model under those vaccination scenarios.
+  mod <- haiti3()
 
-  for (scenario_str in names(scenarios)) {
-    cat('Working on Scenario', scenario_str)
-    all_data <- list()
+  first_flag <- TRUE
+
+  # Loop through each of the scenarios and simulate the model.
+  all_sims <- foreach(scenario_str = scenario_strs,
+                      .combine = dplyr::bind_rows) %do% {
+
+    if (first_flag) {
+      first_flag <- FALSE
+      include_data <- TRUE
+    } else {
+      include_data <- FALSE
+    }
+
+    cat('Working on Scenario', scenario_str, '\n')
     run_scenario <- scenarios[[scenario_str]]
 
     t_vacc_start <- run_scenario$t_vacc_start
@@ -90,117 +207,32 @@ run_vacc_scenario3 <- function(scenario_strs = c("S0", "S1", "S2", "S3",
     r_v_year <- run_scenario$r_v_year
     cases_ext <- run_scenario$ve
 
-    DEPARTMENTS <-
-      c(
-        'Artibonite',
-        'Centre',
-        'Grande_Anse',
-        'Nippes',
-        'Nord',
-        'Nord-Est',
-        'Nord-Ouest',
-        'Ouest',
-        'Sud',
-        'Sud-Est'
-      )
-
-    input_parameters <- MODEL3_INPUT_PARAMETERS
-
-    # Start and end dates of epidemic
-    t_start <- dateToYears(as.Date(input_parameters$t_start))
-    t_end <- dateToYears(as.Date(input_parameters$t_end))
-    t_forecast <- dateToYears(as.Date("2029-12-21"))  # TODO: Make as a function parameter.
-
-  }
-
-  # scenario <- scenario_str
-  # nsim <- NSIM
-
-  # input parameters to the model
-
-
-  # TODO: Rain data only needs to be loaded once as this does take some time,
-  # but this needs to happen before we simulate from the model. Therefore the
-  # rain stuff will need to go before the for loop, but the forloop currently
-  # contains information that is important for the rain data stuff.
-
-  all_rain <- read_csv("input/haiti-data/fromAzman/rainfall.csv") %>%
-    mutate(date = as.Date(date, format = "%Y-%m-%d"),
-           time = dateToYears(date)) %>%
-    filter(time > t_start - 0.01 & time < (t_end + 0.01))
-
-
-  for (dp in DEPARTMENTS1) {
-    rain <- read_csv("input/haiti-data/fromAzman/rainfall.csv")  %>%
-      gather(dep, rain,-date) %>%
-      group_by(dep) %>%
-      ungroup() %>%
-      filter(dep == dp) %>%
-      mutate(date = as.Date(date, format = "%Y-%m-%d"),
-             time = dateToYears(date)) %>%
-      filter(time > t_start - 0.01 & time < (t_end + 0.01)) %>%
-      mutate(max_rain = max(rain), rain_std = rain / max_rain)
-
-    all_rain <- cbind(all_rain, placeholder = rain$max_rain)
-    all_rain <- cbind(all_rain, placeholder2 = rain$rain_std)
-    names(all_rain)[names(all_rain) == "placeholder"] <- paste0('max_rain', gsub('-','_',dp))
-    names(all_rain)[names(all_rain) == "placeholder2"] <- paste0('rain_std', gsub('-','_',dp))
-
-  }
-
-  all_rain_forecast <- read_csv("input/haiti-data/proj/rainfall.csv") %>%
-    mutate(date = as.Date(date, format = "%Y-%m-%d"),
-           time = dateToYears(date)) %>%
-    filter(time > t_start - 0.01 & time < (t_forecast + 0.01))
-
-  for (dp in DEPARTMENTS1) {
-    rain_forecast <- read_csv("input/haiti-data/proj/rainfall.csv")  %>%
-      gather(dep, rain, -date) %>%
-      group_by(dep) %>%
-      ungroup() %>%
-      filter(dep == dp) %>%
-      mutate(date = as.Date(date, format = "%Y-%m-%d"),
-             time = dateToYears(date)) %>%
-      filter(time > t_start - 0.01 & time < (t_forecast + 0.01)) %>%
-      mutate(max_rain = all_rain[paste0('max_rain',gsub('-','_', dp))][[1]][1],
-             rain_std = rain/all_rain[paste0('max_rain',gsub('-','_', dp))][[1]][1])
-
-    all_rain_forecast <- cbind(all_rain_forecast, placeholder2 = rain_forecast$rain_std)
-    all_rain_forecast <- cbind(all_rain_forecast, placeholder = rain_forecast$max_rain)
-    names(all_rain_forecast)[names(all_rain_forecast) == "placeholder2"] <- paste0('rain_std', gsub('-','_',dp))
-    names(all_rain_forecast)[names(all_rain_forecast) == "placeholder"] <- paste0('max_rain', gsub('-','_',dp))
-
-  }
-
-  time_forecast <- dateToYears(seq.Date(yearsToDate(t_start), yearsToDate(t_forecast), by = "1 week"))
-
-  # function to simulate from a given set of paramters
-  simulatePOMP <- function(nsim, seed = 199919L) {
-    for (dp in DEPARTMENTS1) {
-      coef(sirb_cholera)[paste0("t_vacc_start", gsub('-','_', dp))] <- dateToYears(as.Date(t_vacc_start[gsub('-','_', dp)][[1]][1]))
-      coef(sirb_cholera)[paste0("t_vacc_end", gsub('-','_', dp))] <- dateToYears(as.Date(t_vacc_end[gsub('-','_', dp)][[1]][1]))
-      coef(sirb_cholera)[paste0("p1d_reg", gsub('-','_', dp))] <-  as.numeric(p1d_reg[gsub('-','_', dp)][[1]][1])
-      coef(sirb_cholera)[paste0("r_v_year", gsub('-','_', dp))] <- as.numeric(r_v_year[gsub('-','_', dp)][[1]][1])
+    for (dp in DEPARTMENTS) {
+      pomp::coef(mod)[paste0("t_vacc_start", gsub('-','_', dp))] <- dateToYears(as.Date(t_vacc_start[gsub('-','_', dp)][[1]][1]))
+      pomp::coef(mod)[paste0("t_vacc_end", gsub('-','_', dp))] <- dateToYears(as.Date(t_vacc_end[gsub('-','_', dp)][[1]][1]))
+      pomp::coef(mod)[paste0("p1d_reg", gsub('-','_', dp))] <-  as.numeric(p1d_reg[gsub('-','_', dp)][[1]][1])
+      pomp::coef(mod)[paste0("r_v_year", gsub('-','_', dp))] <- as.numeric(r_v_year[gsub('-','_', dp)][[1]][1])
     }
-    coef(sirb_cholera)["cases_ext"] <- as.numeric(cases_ext)
+    pomp::coef(mod)["cases_ext"] <- as.numeric(cases_ext)
 
-    pomp::simulate(sirb_cholera, nsim = nsim, format = 'data.frame' , include.data = TRUE, seed = runif(1,1,10000), times = time_forecast) -> projec
-    save(projec, file = sprintf("output/Simulations/Haiti_OCV_Projection-allDep-%i-%s.rda", nsim, scenario))
-    rm(projec)
+    sirb_cholera <- pomp::pomp(
+      mod,
+      covar = pomp::covariate_table(all_rain_forecast, times = 'time')
+    )
+
+    sims <- pomp::simulate(sirb_cholera, nsim = nsim,
+                           format = 'data.frame', include.data = FALSE,  # TODO: maybe make this so that it can change
+                           seed = 8432, times = time_forecast)
+    # %>%
+    #   select(.id, time, date, IncidenceAll, DosesAll, CasesAll, starts_with('cases'))
+
+    sims$scenario <- scenario_str
+
+    sims
   }
 
-  # all_rain_forecast <- all_rain_forecast %>%
-  #   dplyr::select(-date)
 
-  sirb_cholera <- pomp(
-    sirb_cholera,
-    covar = covariate_table(all_rain_forecast, times = 'time')
-  )
-
-  # run simulations for each model
-  simulatePOMP(nsim = nsim)
-
-
+  all_sims
   # res_df <- data.frame('time' = temp[temp$isdata == 'simulation' & temp$variable == paste0("S", "Sud"), 'time'])
   #
   # important_compartments <- COMPARTMENTS[1:13]
