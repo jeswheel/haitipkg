@@ -90,8 +90,8 @@ haiti3 <- function() {
 
   # Loads the input parameters
   # load('R/sysdata.rda')  # These are loaded by the package automatically
-  t_start <- dateToYears(as.Date(input_parameters$t_start))
-  t_end   <- dateToYears(as.Date(input_parameters$t_end))
+  t_start <- dateToYears(as.Date(MODEL3_INPUT_PARAMETERS$t_start))
+  t_end   <- dateToYears(as.Date(MODEL3_INPUT_PARAMETERS$t_end))
 
   all_state_names <- c('IncidenceAll', 'DosesAll', 'CasesAll')
   all_param_names <- params_common
@@ -99,15 +99,15 @@ haiti3 <- function() {
   all_matrix_cases_at_t_start.string <- ""
   all_matrix_cases_other.string <- ""
 
-  # ALL_CASES is imported from the internal data: R/sysdata.rda
-  all_cases <- ALL_CASES %>%
+  # MODEL3_CASES is imported from the internal data: R/sysdata.rda
+  all_cases <- MODEL3_CASES %>%
     dplyr::mutate(
       date = as.Date(date, format = '%Y-%m-%d'),
       time = dateToYears(date)
     )
 
-  # ALL_RAIN is imported from the internal data: R/sysdata.rda
-  all_rain <- ALL_RAIN %>%
+  # MODEL3_RAIN is imported from the internal data: R/sysdata.rda
+  all_rain <- MODEL3_RAIN %>%
     dplyr::mutate(
       date = as.Date(date, format = "%Y-%m-%d"),
       time = dateToYears(date)
@@ -119,7 +119,7 @@ haiti3 <- function() {
   # (2) Create a dataset with each departement rain history
   for (dp in departements) {
 
-    cases <- ALL_CASES %>%
+    cases <- MODEL3_CASES %>%
       tidyr::gather(dep, cases, -date) %>%
       dplyr::filter(dep == dp) %>%
       dplyr::mutate(
@@ -127,7 +127,7 @@ haiti3 <- function() {
         time = dateToYears(date)
       )
 
-    rain <- ALL_RAIN %>%
+    rain <- MODEL3_RAIN %>%
       tidyr::gather(dep, rain,-date) %>%
       dplyr::group_by(dep) %>%
       dplyr::ungroup() %>%
@@ -147,7 +147,7 @@ haiti3 <- function() {
     all_cases <- cbind(all_cases, placeholder = cases$cases)
     names(all_cases)[names(all_cases) == "placeholder"] <- paste0('cases', gsub('-','_',dp))
 
-    cases_other_dept <- ALL_CASES  %>%
+    cases_other_dept <- MODEL3_CASES  %>%
       tidyr::gather(dep, cases,-date) %>%
       dplyr::filter(dep != dp) %>%
       dplyr::mutate(
@@ -197,14 +197,14 @@ haiti3 <- function() {
                      cases_other.string,
                      " \n };")
 
-    all_matrix_cases_at_t_start.string = stringr::str_c(all_matrix_cases_at_t_start.string, matrix_cases_at_t_start.string)
-    all_matrix_cases_other.string = stringr::str_c(all_matrix_cases_other.string, matrix_cases_other.string)
+    all_matrix_cases_at_t_start.string <- stringr::str_c(all_matrix_cases_at_t_start.string, matrix_cases_at_t_start.string)
+    all_matrix_cases_other.string <- stringr::str_c(all_matrix_cases_other.string, matrix_cases_other.string)
 
-    all_state_names = append(all_state_names, lapply(state_names, paste0, gsub('-', '_',dp)))
-    all_param_names = append(all_param_names, lapply(params_diff, paste0, gsub('-', '_',dp)))
+    all_state_names <- append(all_state_names, lapply(state_names, paste0, gsub('-', '_',dp)))
+    all_param_names <- append(all_param_names, lapply(params_diff, paste0, gsub('-', '_',dp)))
 
-    all_state_names = unlist(all_state_names)
-    all_param_names = unlist(all_param_names)
+    all_state_names <- unlist(all_state_names)
+    all_param_names <- unlist(all_param_names)
 
     all_params <- purrr::set_names(seq_along(all_param_names) * 0, all_param_names)
 
@@ -853,6 +853,51 @@ return(dB);
       "cas_def"
     )
   )
+
+  all_params["sigma"] <- .25               # Fixed
+  all_params["rhoA"] <- 1 / (365 * 8) * 365.25   # Fixed  \rho in table 14
+  all_params["XrhoI"] <- 1                 # Fixed, saying loss of infected for those in compartments A and I are the same
+  all_params["gammaA"] <- 182.625          # TODO: where does this number come from? I think this is a mistake by the authors. Fixed  divide by 365 to get \gamma in table 14
+  all_params["gammaI"] <- 182.625          # Fixed  divide by 365 to get \gamma in table 14
+  all_params["Rtot_0"] <- 0.35             # Useless
+
+
+  all_params['cases_ext'] <- 1
+  all_params['mu'] <-  0.01586625546  # divide by 365 to get \mu in table 14
+  all_params['alpha'] <- 1.461  # divide by 365 to get \alpha in table 14
+
+  # From calibration
+  all_params["mu_B"] <-  133.19716102404308  # This value mu_B / 365 matches calibrated \mu_B in table
+  all_params["XthetaA"] <- 0.0436160721505241  # This multiplies thetaI to get \theta_A in table S15
+  all_params["thetaI"] <- 3.4476623459780395e-4  # matches \theta_I in table S15
+  all_params["lambdaR"] <- 0.2774237712085347  # matches \lambda in table S15
+  all_params["r"] <- 0.31360358752214235  # Matches table S15
+  all_params["std_W"] <- 0.008172280355938182  # Matches table S15
+  all_params["epsilon"] <- 0.9750270707877388  # Matches table S15
+  all_params["k"] <- 101.2215999283583  # Matches p in table S15
+  all_params["cas_def"] <- 0.10  # TODO: It is clear this wasn't fit using MIF, but the authors say that it was. Matches \epsilon_2 in table S15
+
+  all_params["betaBArtibonite"] =   0.516191
+  all_params["betaBSud_Est"] =      1.384372
+  all_params["betaBNippes"] =       2.999928
+  all_params["betaBNord_Est"] =     3.248645
+  all_params["betaBOuest"] =        0.090937
+  all_params["betaBCentre"] =       1.977686
+  all_params["betaBNord"] =         0.589541
+  all_params["betaBSud"] =          1.305966
+  all_params["betaBNord_Ouest"] =   1.141691
+  all_params["betaBGrande_Anse"] =  2.823539
+
+  all_params["foi_addArtibonite"] =    1.530994e-06
+  all_params["foi_addSud_Est"] =     6.105491e-07
+  all_params["foi_addNippes"] =       3.056857e-07
+  all_params["foi_addNord_Est"] =     8.209611e-07
+  all_params["foi_addOuest"] =       1.070717e-06
+  all_params["foi_addCentre"] =      0.0000106504579266415
+  all_params["foi_addNord"] =         5.319736e-07
+  all_params["foi_addSud"] =          1.030357e-06
+  all_params["foi_addNord_Ouest"] =   5.855759e-07
+  all_params["foi_addGrande_Anse"] =  8.762740e-07
 
   sirb_cholera <- pomp::pomp(
     # set data
