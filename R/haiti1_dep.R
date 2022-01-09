@@ -19,6 +19,11 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
     dat <- dat %>%
       dplyr::select(c(departement, "week"))
     colnames(dat) <- c("cases", "week")
+    other_cases <- haiti1_data() %>%
+      dplyr::select(-departement)
+    other_cases$other_cases = rowSums(other_cases[ , c(1,9)])
+    other_cases <- other_cases %>%
+      dplyr::select(c("week", "other_cases"))
     fc_set <- vac_scen(vacscen)
     ## make covariate table
     covar <- covars(tmin = 0,
@@ -29,6 +34,7 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
                     per = 52.14,
                     data = dat,
                     settings = fc_set)
+    covar <- dplyr::left_join(covar, other_cases, by = c("time" = "week"))
 
     ## determine if departement is included in vaccination campaign
     vac <- FALSE
@@ -138,18 +144,26 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
 
     # seasonal beta and foi
     beta <- "double mybeta = beta1*seas1 + beta2*seas2 + beta3*seas3 + beta4*seas4 + beta5*seas5 + beta6*seas6; \n "
+    mob <- "double mobility;
+    if(ISNA(other_cases)) {
+      mobility = 0.0;
+    } else {
+      mobility = mob_c * other_cases;
+    } \n
+    "
     if (vac) {
       foi_i <- c("I + I1") %>%
         paste(collapse = "")
       foi_a <- c("A + A1") %>%
         paste(collapse = "")
-      foi <- paste0("double foi = pow(", foi_i, "+(1-kappa)*(", foi_a, "), nu)*mybeta/pop; \n ") %>%
+      foi <- paste0("double foi = pow(", foi_i, "+(1-kappa)*(", foi_a, "), nu)*mybeta/pop + mobility; \n ") %>%
         paste(collapse = "")
     } else {
-      foi <- "double foi = pow(I, nu) * mybeta / pop; \n "
+      foi <- "double foi = pow(I, nu) * mybeta / pop + mobility; \n "
     }
 
-    foi <- paste0(foi,
+    foi <- paste0(mob,
+                  foi,
                   "double sig_sq; \n ",
                   "if (t < 233) { \n ",
                   "sig_sq = sig_sq_epi; \n ",
@@ -314,6 +328,7 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
       ## parameter names
       param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", #epidemic
                        "rho_end", "sig_sq_end", "tau_end", # endemic
+                       "mob_c", #mobility term intensity
                        "beta1", "beta2", "beta3", "beta4", "beta5", "beta6",
                        "gamma", "sigma", "theta0", "alpha", "mu", "delta",
                        "nu", "kappa", "pop_0",
@@ -330,6 +345,7 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
       ## parameter names
       param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", #epidemic
                        "rho_end", "sig_sq_end", "tau_end", # endemic
+                       "mob_c", #mobility term intensity
                        "beta1", "beta2", "beta3", "beta4", "beta5", "beta6",
                        "gamma", "sigma", "theta0", "alpha", "mu", "delta",
                        "nu", "kappa", "pop_0",
@@ -343,7 +359,8 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
     param_trans <- pomp::parameter_trans(
       log = c("beta1", "beta2", "beta3", "beta4", "beta5", "beta6",
               "sigma", "gamma", "mu", "delta", "alpha",
-              "sig_sq_end", "sig_sq_epi", "tau_end", "tau_epi"),
+              "sig_sq_end", "sig_sq_epi", "tau_end", "tau_epi",
+              "mob_c"),
       logit = c("rho_epi", "rho_end", "nu", "theta0"),
       barycentric = c("S_0", "E_0", "I_0", "A_0", "R_0")
     )

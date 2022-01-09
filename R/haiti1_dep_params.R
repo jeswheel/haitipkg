@@ -2,7 +2,7 @@
 ##'
 ##' Dataset containing the 2 columns: epidemic MIF2 results and endemic MIF2 results for Model 1, Departement specific
 ##'
-##' @format A data frame with 26 rows and 10 columns (1 for each departement)
+##' @format A data frame with 27 rows and 10 columns (1 for each departement)
 ##' \describe{
 ##'     \item{rho_epi}{reporting rate for the epidemic period}
 ##'     \item{tau_epi}{dispersion in observation process for the epidemic period}
@@ -29,6 +29,7 @@
 ##'     \item{A_0}{initial proportion of population Asymptomatic at start of time window}
 ##'     \item{R_0}{initial proportion of population Recovered at start of time window}
 ##'     \item{pop_0}{initial population at start of time window}
+##'     \item{mob_c}{intensity of mobility term}
 ##' }
 ##'
 "haiti1_dep_params"

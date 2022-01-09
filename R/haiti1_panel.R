@@ -1,14 +1,13 @@
 #' Build panelPomp object for Model 1
 #'
 #' Generate a class \sQuote{panelPomp} object for fitting to epidemic/endemic Haiti cholera data.
-#' All parameters initialized at 0. These values must be overwritten.
 #'
 #' @param vacscen Vaccination scenario
 #' @importFrom pomp Csnippet
 #' @importFrom panelPomp panelPomp
 #' @return An object of class \sQuote{panelPomp}.
 #' @examples
-#' m1 <- haiti1(vacscen = 'id0')
+#' m1 <- haiti1_panel(vacscen = 'id0')
 #' @export
 
 haiti1_panel <- function(vacscen = 'id0') {
@@ -51,7 +50,8 @@ haiti1_panel <- function(vacscen = 'id0') {
   spec_par_names <- c("rho_epi", "rho_end",
                       #"tau_epi", "tau_end",
                       #"sig_sq_epi", "sig_sq_end",
-                      "S_0","E_0","I_0","A_0","R_0", "pop_0")
+                      "S_0","E_0","I_0","A_0","R_0", "pop_0",
+                      "mob_c")
 
   dep_params <- haiti1_dep_params
   dep_params <- dep_params[rownames(dep_params) %in% spec_par_names, ]
@@ -68,7 +68,8 @@ haiti1_panel <- function(vacscen = 'id0') {
     unlist(dep_params["I_0", ]),
     unlist(dep_params["A_0", ]),
     unlist(dep_params["R_0", ]),
-    unlist(dep_params["pop_0", ]))
+    unlist(dep_params["pop_0", ]),
+    unlist(dep_params["mob_c", ]))
 
   rownames(spec_pars) <- spec_par_names
 
