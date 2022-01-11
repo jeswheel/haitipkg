@@ -13,6 +13,10 @@ haiti1_disagg <- function() {
   vacscen <- "id0" # do not need vaccinations
   ## get data
   dat <- haiti1_data()
+  colnames(dat) <- c("cases_Artibonite", "cases_Centre", "cases_Grand_Anse",
+                     "cases_Nippes", "cases_Nord", "cases_Nord_Est",
+                     "cases_Nord_Ouest", "cases_Ouest", "cases_Sud",
+                     "cases_Sud_Est", "date_sat", "week")
   fc_set <- vac_scen(vacscen)
   ## make covariate table
   covar <- covars(tmin = 0,
@@ -43,30 +47,29 @@ haiti1_disagg <- function() {
     state_names <- c(state_names, paste0(state_names_base, "_", i))
   }
   ivp_names <- paste0(state_names, "_0")
-  denom <- ivp_names[1]
-  for (i in 2:length(ivp_names)) {
-    denom <- c(denom, " + ", ivp_names[i])
-  }
-  denom <- paste(denom, collapse = "")
-  frac_ivp <- paste0(" = nearbyint(frac * ", ivp_names, "); \n ")
+  denoms <- paste0("double denom_", depts_names, " = S_", depts_names,
+                   "_0 + ", "E_", depts_names, "_0 + ", "I_", depts_names,
+                   "_0 + ", "A_", depts_names, "_0 + ", "R_", depts_names, "_0; \n ")
+  denom <- paste(denoms, collapse = "")
+
+  frac_ivp <- paste0(" = nearbyint(frac_", depts_names, " * ", ivp_names, "); \n ")
   state_eqs <- c()
   for (i in 1:length(frac_ivp)) {
     state_eqs <- c(state_eqs, state_names[i], frac_ivp[i])
   }
   state_eqs <- paste(state_eqs, collapse = "")
 
-  rinit_paste <- paste0("double frac = pop_0 / (", denom, "); \n ",
-                        state_eqs,
-                        "incid = 0.0; \n ",
-                        "foival = 0.0; \n ",
-                        "Str0 = 0.0; \n ",
-                        "Sout = 0.0; \n ",
-                        "Sin = 0.0; \n ")
-  rinit_paste <- c(rinit_paste, "incidU = 0.0; \n ", "incidV = 0.0; \n",
-                     "asymV = 0.0; \n ", "newV = 0.0; \n ")
+  rinit_paste <- paste0("double frac_", depts_names, " = pop0_", depts_names,
+                        " / (denom_", depts_names, "); \n ",
+                        "incid_", depts_names, " = 0.0; \n ",
+                        "foival_", depts_names, " = 0.0; \n ",
+                        "Str0_", depts_names, " = 0.0; \n ",
+                        "Sout_", depts_names, " = 0.0; \n ",
+                        "Sin_", depts_names, " = 0.0; \n ")
+  rinit_full <- paste(denom, paste(rinit_paste, collapse = ""), state_eqs, collapse = "")
 
   rinit <- Csnippet(
-    paste(rinit_paste, collapse = "")
+    rinit_full
   )
 
   ## rprocess
@@ -80,19 +83,22 @@ haiti1_disagg <- function() {
   }
   trans_rates <- paste(trans_rates, collapse = "")
   trans_numbers <- paste(trans_numbers, collapse = "")
-  trans_numbers <- paste0(trans_numbers, "\n double dgamma; \n ")
+  trans_numbers <- paste0(trans_numbers)
 
 
   # demonitors and time checks
   demons <- c(paste0("int pop_", depts_names, " = S_", depts_names, " + E_",
                      depts_names, " + I_", depts_names, " + A_", depts_names,
                      " + R_", depts_names, "; \n "),
-              paste0("int birts_", depts_names, " = rpois(mu*pop_", depts_names, "*dt); \n")) %>%
+              paste0("int births_", depts_names, " = rpois(mu*pop_", depts_names, "*dt); \n")) %>%
     paste(collapse = "")
 
   # seasonal beta and foi
-  time_check <- c(
-    "double mybeta = beta1*seas1 + beta2*seas2 + beta3*seas3 + beta4*seas4 + beta5*seas5 + beta6*seas6; \n "
+  time_check <- paste0("double mybeta_", depts_names,
+                       " = beta1_", depts_names, "*seas1 + beta2_",
+                       depts_names, "*seas2 + beta3_", depts_names,
+                       "*seas3 + beta4_", depts_names, "*seas4 + beta5_",
+                       depts_names, "*seas5 + beta6_", depts_names, "*seas6; \n "
   )
   beta <- paste0(time_check, collapse = "")
 
@@ -101,31 +107,57 @@ haiti1_disagg <- function() {
   other_cases <- all_dat %>%
     dplyr::select(week)
   all_dat <- all_dat %>%
+    dplyr::ungroup() %>%
     dplyr::select(-c(week, date_sat))
   for (i in depts_names) {
     other_depts <- all_dat %>%
-      dplyr::select(-i)
+      dplyr::select(-c(i))
     others <- rowSums(other_depts)
-    other_cases <- cbind(other_cases, others)
+    other_cases[, i] <- others
   }
-  colnames(other_cases) <- c("week",
-                             depts_names)
 
-  mobs <- paste0("double mobility_", depts_names, " = if(ISNA(other_cases[t, ", depts_names, "])) { \n mobility = 0.0; \n } else { \n mobility = mob_c_", depts_names, "*other_cases[t, ", depts_names, "]; } \n")
-  fois <- paste0("double foi_", depts_names, " = pow(I_", depts_names, " + (1-kappa) * A_", depts_names, ", nu)*mybeta/pop_", depts_names, " + mobility_", depts_names, "; \n")
-  foi <- paste0(mobs,
-                fois,
-                "double sig_sq; \n ",
-                "if (t < 233) { \n ",
-                paste0("sig_sq_", depts_names, " = sig_sq_epi_", depts_names, "; \n "),
-                "} else { \n ",
-                paste0("sig_sq_", depts_names, " = sig_sq_end_", depts_names, "; \n "),
-                "} \n ",
-                paste0("\n dgamma_", depts_names, " = rgammawn(sig_sq_", depts_names, ", dt); \n foi_", depts_names, " = foi_", depts_names, "* dgamma_", depts_names, "/dt; \n "))
+  mobs <- paste0("double mobility_", depts_names, " = 0.0; \n ",
+                 "oth_case = other_cases_mat[t_val][", 1:depts, "]; \n ",
+                 "if(oth_case < 0) { \n mobility_", depts_names,
+                 " = 0.0; \n } else { \n mobility_", depts_names, " = mob_c_",
+                 depts_names, "*oth_case; } \n")
+  fois <- paste0("double foi_", depts_names, " = pow(I_", depts_names, " + (1-kappa)*A_",
+                 depts_names, ", nu_", depts_names, ")*mybeta_", depts_names, "/pop_",
+                 depts_names, " + mobility_", depts_names, "; \n")
+
+  other_cases_string <- foreach(
+    r = iterators::iter(other_cases, by = "row"),
+    .combine = c
+  ) %do% {
+    sprintf(" {%f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f} ",
+            r$week, r$Artibonite, r$Centre, r$`Grand_Anse`, r$`Nippes`,
+            r$`Nord`, r$`Nord_Est`, r$`Nord_Ouest`, r$Ouest, r$Sud, r$`Sud_Est`)
+  } %>%
+    stringr::str_c(collapse = ", \n")
+
+  matrix_other_cases <- stringr::str_c(
+    sprintf("double other_cases_mat[%i][%i] = {\n", nrow(other_cases), ncol(other_cases)),
+    other_cases_string,
+    " \n };"
+  )
+
+  matrix_other_cases <- stringr::str_replace_all(matrix_other_cases, "NA", "-1")
+
+  foi <- paste(mobs, fois, paste0("double sig_sq_", depts_names, "; \n "),
+               "if (t < 233) { \n ",
+               paste0("sig_sq_", depts_names, " = sig_sq_epi_", depts_names, "; \n "),
+               "} else { \n ",
+               paste0("sig_sq_", depts_names, " = sig_sq_end_", depts_names, "; \n "),
+               "} \n ",
+               paste0("\n double dgamma_", depts_names, " = rgammawn(sig_sq_", depts_names,
+                      ", dt); \n foi_", depts_names, " = foi_", depts_names, "* dgamma_",
+                      depts_names, "/dt; \n "), collapse = "")
 
   # compute rates
-  s_rates <- paste0("S_", depts_names, "_rate[0] = foi_", depts_names, "; \n S_", depts_names, "_rate[1] = delta; \n ")
-  e_rates <- paste0("E_", depts_names, "_rate[0] = sigma*(1-theta0); \n E_", depts_names, "_rate[1] = sigma*theta0; \n E", depts_names, "_rate[2] = delta; \n ")
+  s_rates <- paste0("S_", depts_names, "_rate[0] = foi_", depts_names,
+                    "; \n S_", depts_names, "_rate[1] = delta; \n ")
+  e_rates <- paste0("E_", depts_names, "_rate[0] = sigma*(1-theta0); \n E_",
+                    depts_names, "_rate[1] = sigma*theta0; \n E_", depts_names, "_rate[2] = delta; \n ")
   i_rates <- paste0("I_", depts_names, "_rate[0] = gamma; \n I_", depts_names, "_rate[1] = delta; \n ")
   a_rates <- paste0("A_", depts_names, "_rate[0] = gamma; \n A_", depts_names, "_rate[1] = delta; \n ")
   r_rates <- paste0("R_", depts_names, "_rate[0] = alpha; \n R_", depts_names, "_rate[1] = delta; \n ")
@@ -133,11 +165,16 @@ haiti1_disagg <- function() {
     paste(collapse = "")
 
   # transition numbers
-  numbers <- c(paste0("reulermultinom(2,S_", depts_names, ",&S_", depts_names, "_rate[0],dt,&S_", depts_names, "_trans[0]); \n "),
-               paste0("reulermultinom(3,E_", depts_names, ",&E_", depts_names, "_rate[0],dt,&E_", depts_names, "_trans[0]); \n "),
-               paste0("reulermultinom(2,I_", depts_names, ",&I_", depts_names, "_rate[0],dt,&I_", depts_names, "_trans[0]); \n "),
-               paste0("reulermultinom(2,A_", depts_names, ",&A_", depts_names, "_rate[0],dt,&A_", depts_names, "_trans[0]); \n "),
-               paste0("reulermultinom(2,R_", depts_names, ",&R_", depts_names, "_rate[0],dt,&R_", depts_names, "_trans[0]); \n ")) %>%
+  numbers <- c(paste0("reulermultinom(2,S_", depts_names, ",&S_",
+                      depts_names, "_rate[0],dt,&S_", depts_names, "_trans[0]); \n "),
+               paste0("reulermultinom(3,E_", depts_names, ",&E_",
+                      depts_names, "_rate[0],dt,&E_", depts_names, "_trans[0]); \n "),
+               paste0("reulermultinom(2,I_", depts_names, ",&I_",
+                      depts_names, "_rate[0],dt,&I_", depts_names, "_trans[0]); \n "),
+               paste0("reulermultinom(2,A_", depts_names, ",&A_",
+                      depts_names, "_rate[0],dt,&A_", depts_names, "_trans[0]); \n "),
+               paste0("reulermultinom(2,R_", depts_names, ",&R_",
+                      depts_names, "_rate[0],dt,&R_", depts_names, "_trans[0]); \n ")) %>%
     paste(collapse = "")
 
   # cohorts
@@ -154,165 +191,186 @@ haiti1_disagg <- function() {
   coh <- coh %>%
     paste(collapse = "")
 
-  ################# unfinished past here
-
-  # incidence
-  incids <- c("incid += Etrans[0]; \n ")
-  foi_val <- "foival += foi; \n "
-  str0 <- "Str0 += Strans[0]; \n "
-  sin <- c("Sin += Rtrans[0] + births; \n ")
-  sout <- c("Sout += Strans[0] + Strans[1]; \n ")
-  last <- c(foi_val, str0, sin)
-
-  if (depts > 1) {
-    incids <- c("incid += Etrans[0]", paste0(" + E", 1:depts, "trans[0]"), "; \n ")
-    incid_u <- "incidU += Etrans[0]; \n "
-    incid_v <- c("incidV += E1trans[0]", paste0(" + E", 2:depts, "trans[0]"), "; \n ")
-    asym_v <- c("asymV += E1trans[1]", paste0(" + E", 2:depts, "trans[1]"), "; \n ")
-    new_v <- c("newV += Strans[2]", paste0(" + Strans[", 3:(depts + 1), "]"),
-               paste0(" + Etrans[", 3:(depts + 2), "]"),
-               paste0(" + Itrans[", 2:(depts + 1), "]"),
-               paste0(" + Atrans[", 2:(depts + 1), "]"),
-               paste0(" + Rtrans[", 2:(depts + 1), "]"), "; \n ")
-    sout <- c("Sout += Strans[0]", paste0(" + Strans[", 1:(depts + 1), "]"), "; \n ")
-    last <- c(last, incid_u, incid_v, asym_v, new_v)
-  }
-  last <- c(last, incids, sout) %>%
+  ## accumvars
+  incids <- paste0("incid_", depts_names, " += E_", depts_names, "; \n ")
+  fois <- paste0("foival_", depts_names, " += foi_", depts_names, "; \n ")
+  str0 <- paste0("Str0_", depts_names, "+= S_", depts_names, "_trans[0]; \n ")
+  sin <- paste0("Sin_", depts_names, " += R_", depts_names, "_trans[0] + births_", depts_names, "; \n ")
+  sout <- paste0("Sout_", depts_names, " += S_", depts_names, "_trans[0] + S_", depts_names, "_trans[1]; \n ")
+  last <- c(fois, str0, sin, sout, incids) %>%
     paste(collapse = "")
 
-  if (depts > 1) {
-    rproc_paste <- c(trans_rates, trans_numbers, vac_rates, demons, tchecks, beta,
-                     foi, thetas, rates, numbers, coh, last) %>%
-      paste(collapse = "")
-  } else {
-    rproc_paste <- c(trans_rates, trans_numbers, demons, beta, foi, rates, numbers,
-                     coh, last) %>%
-      paste(collapse = "")
-  }
+  rproc_paste <- c(matrix_other_cases,
+                   "int t_val = (int)t; \n ",
+                   "double oth_case = 0.0; \n ",
+                   trans_rates, trans_numbers, demons, beta, foi, rates, numbers, coh, last) %>%
+    paste(collapse = "")
 
   rproc <- Csnippet(
     rproc_paste
   )
 
   ## dmeasure
-  dmeas <- Csnippet("
-    if (ISNA(cases)) {
-      lik = (give_log) ? 0 : 1;
-    } else {
-      double rho = rho_epi;
-      double tau = tau_epi;
-      if (t > 232) {
-        rho = rho_end;
-        tau = tau_end;
-      }
-      lik = dnbinom_mu(cases, tau, rho*incid, give_log);
-    }
-  ")
+  liks <- paste0("lik = 0.0; \n ",
+                 "double rho_", depts_names, " = 0.0; \n ",
+                 "double tau_", depts_names, " = 0.0; \n ",
+                 "if (ISNA(cases_", depts_names, ")) { \n ",
+                 "lik += (give_log) ? 0 : 1; \n ",
+                 "} else { \n ",
+                 "rho_", depts_names, " = rho_epi_", depts_names, "; \n ",
+                 "tau_", depts_names, " = tau_epi_", depts_names, "; \n ",
+                 "if (t > 232) { \n ",
+                 "rho_", depts_names, " = rho_end_", depts_names, "; \n ",
+                 "tau_", depts_names, " = tau_end_", depts_names, "; \n",
+                 "} \n ",
+                 "lik += dnbinom_mu(cases_", depts_names, ", tau_", depts_names, ", rho_", depts_names, "*incid_", depts_names, ", give_log); \n ",
+                 "} \n ")
+
+  dmeas <- Csnippet(
+    liks
+  )
 
   ## rmeasure
-  rmeas <- Csnippet("
-    double rho = rho_epi;
-    double tau = tau_epi;
-    if (t > 232) {
-      rho = rho_end;
-      tau = tau_end;
-    }
-    cases = rnbinom_mu(tau, rho*incid);
-    if (cases > 0.0) {
-      cases = nearbyint(cases);
-    } else {
-      cases = 0.0;
-    }
-  ")
+  cases <- paste0("cases_", depts_names, " = 0.0; \n ",
+                  "double rho_", depts_names, " = rho_epi_", depts_names, "; \n ",
+                  "double tau_", depts_names, " = tau_epi_", depts_names, "; \n ",
+                  "if (t > 232) { \n ",
+                  "rho_", depts_names, " = rho_end_", depts_names, "; \n ",
+                  "tau_", depts_names, " = tau_end_", depts_names, "; \n",
+                  "} \n ",
+                  "cases_", depts_names, " = rnbinom_mu(tau_", depts_names, ", rho_", depts_names, "*incid_", depts_names, "); \n ",
+                  "if (cases_", depts_names, " > 0.0) { \n ",
+                  "cases_", depts_names, " = nearbyint(cases_", depts_names, "); \n ",
+                  "} else { \n",
+                  "cases_", depts_names, " = 0.0; \n ",
+                  "} \n ")
+
+  rmeas <- Csnippet(
+    cases
+  )
 
   ## names
-  if (depts > 1) {
     ## state names
-    state_names <- c("S", paste0("S", 1:depts),
-                     "E", paste0("E", 1:depts),
-                     "I", paste0("I", 1:depts),
-                     "A", paste0("A", 1:depts),
-                     "R", paste0("R", 1:depts),
-                     "incid", "incidU", "incidV", "asymV", "newV",
-                     "foival", "Str0", "Sout", "Sin")
+    state_names <- c(paste0("S_", depts_names),
+                     paste0("E_", depts_names),
+                     paste0("I_", depts_names),
+                     paste0("A_", depts_names),
+                     paste0("R_", depts_names),
+                     paste0("incid_", depts_names),
+                     paste0("foival_", depts_names),
+                     paste0("Str0_", depts_names),
+                     paste0("Sout_", depts_names),
+                     paste0("Sin_", depts_names))
 
-    ## parameter names
-    param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", #epidemic
-                     "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0", # epidemic
-                     "rho_end", "sig_sq_end", "tau_end", # endemic
-                     "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", # shared
-                     "mu", "gamma", "sigma", "theta0", "alpha", "delta", "kappa", "nu",# shared
-                     paste0("S", 1:depts, "_0"),
-                     paste0("E", 1:depts, "_0"),
-                     paste0("I", 1:depts, "_0"),
-                     paste0("A", 1:depts, "_0"),
-                     paste0("R", 1:depts, "_0"))
+  ## accum vars
+  accum_names <- c(paste0("incid_", depts_names),
+                   paste0("foival_", depts_names),
+                   paste0("Str0_", depts_names),
+                   paste0("Sout_", depts_names),
+                   paste0("Sin_", depts_names)) %>%
+    paste(collapse = "")
 
-    ## accum vars
-    accum_names <- c("incid","incidU","incidV","asymV","newV",
-                     "foival","Str0","Sout","Sin")
-  } else {
-    ## state names
-    state_names <- c("S", "E", "I", "A", "R", "incid", "foival", "Str0", "Sout", "Sin")
-
-    ## parameter names
-    param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", #epidemic
-                     "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0", # epidemic
-                     "rho_end", "sig_sq_end", "tau_end", # endemic
-                     "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", # shared
-                     "mu", "gamma", "sigma", "theta0", "alpha", "delta", "kappa", "nu") # shared
-
-    ## accum vars
-    accum_names <- c("incid", "foival","Str0","Sout","Sin")
-  }
 
   ## partrans
   param_trans <- pomp::parameter_trans(
-    log = c("beta1", "beta2", "beta3", "beta4", "beta5", "beta6", # shared
-            "sigma", "gamma", "mu", "delta", "alpha",
-            "sig_sq_end", "sig_sq_epi", "tau_end", "tau_epi"),
-    logit = c("rho_epi", "rho_end", "nu", "theta0"),
-    barycentric = c("S_0", "E_0", "I_0", "A_0", "R_0")
+    log = c(paste0("beta1_", depts_names),
+            paste0("beta2_", depts_names),
+            paste0("beta3_", depts_names),
+            paste0("beta4_", depts_names),
+            paste0("beta5_", depts_names),
+            paste0("beta6_", depts_names),
+            paste0("sig_sq_end_", depts_names),
+            paste0("sig_sq_epi_", depts_names),
+            paste0("tau_end_", depts_names),
+            paste0("tau_epi_", depts_names),
+            "sigma", "gamma", "mu", "delta", "alpha"),
+    logit = c(paste0("rho_epi_", depts_names),
+              paste0("rho_end_", depts_names),
+              paste0("nu_", depts_names), "theta0"),
+    barycentric = c(paste0("S_", depts_names, "_0"),
+                    paste0("E_", depts_names, "_0"),
+                    paste0("I_", depts_names, "_0"),
+                    paste0("A_", depts_names, "_0"),
+                    paste0("R_", depts_names, "_0"))
   )
 
   ## hand entered for now
-  pars <- c("rho_epi" = 0.4765437,
-            "rho_end" = 0.4496893,
-            "tau_epi" = 688.7796,
-            "tau_end" = 105.3583,
-            "sig_sq_epi" = 0.1105648,
-            "sig_sq_end" = 0.1677307,
-            "beta1" = 4.014758,
-            "beta2" = 2.7089,
-            "beta3" = 2.742331,
-            "beta4" = 3.058927,
-            "beta5" = 3.57466,
-            "beta6" = 2.230872,
-            "nu" = 0.9976078,
-            "gamma" = 3.5,
-            "sigma" = 5.0,
-            "theta0" = 0.0,
-            "alpha" = 0.00239726,
-            "mu" = 0.0004287149,
-            "delta" = 0.000143317,
-            "kappa" = 0.0,
-            "S_0" = 0.9990317,
-            "E_0" = 4.604823e-06,
-            "I_0" = 0.000963733,
-            "A_0" = 0.0,
-            "R_0" = 0.0,
-            "pop_0" = 10911819)
+  pars <- haiti1_dep_params
+  rho_epis <- paste0("rho_epi_", depts_names)
+  rho_ends <- paste0("rho_end_", depts_names)
+  tau_epis <- paste0("tau_epi_", depts_names)
+  tau_ends <- paste0("tau_end_", depts_names)
+  sig_sq_epis <- paste0("sig_sq_epi_", depts_names)
+  sig_sq_ends <- paste0("sig_sq_end_", depts_names)
+  beta1s <- paste0("beta1_", depts_names)
+  beta2s <- paste0("beta2_", depts_names)
+  beta3s <- paste0("beta3_", depts_names)
+  beta4s <- paste0("beta4_", depts_names)
+  beta5s <- paste0("beta5_", depts_names)
+  beta6s <- paste0("beta6_", depts_names)
+  nus <- paste0("nu_", depts_names)
+  S0s <- paste0("S_", depts_names, "_0")
+  E0s <- paste0("E_", depts_names, "_0")
+  I0s <- paste0("I_", depts_names, "_0")
+  A0s <- paste0("A_", depts_names, "_0")
+  R0s <- paste0("R_", depts_names, "_0")
+  pop0s <- paste0("pop0_", depts_names)
+  mob_cs <- paste0("mob_c_", depts_names)
 
-  if (depts > 1) {
-    par_names <- names(pars)
-    pars <- c(pars, rep(0.0, 5 * depts))
-    names(pars) <- c(par_names,
-                     paste0("S", 1:depts, "_0"),
-                     paste0("E", 1:depts, "_0"),
-                     paste0("I", 1:depts, "_0"),
-                     paste0("A", 1:depts, "_0"),
-                     paste0("R", 1:depts, "_0"))
-  }
+  par_names <- c(rho_epis, rho_ends, tau_epis, tau_ends, sig_sq_epis,
+                 sig_sq_ends, beta1s, beta2s, beta3s, beta4s, beta5s, beta6s,
+                 nus, S0s, E0s, I0s, A0s, R0s, pop0s, mob_cs,
+                 "gamma", "sigma", "theta0", "alpha", "mu", "delta", "kappa")
+
+  rho_epis <- pars["rho_epi", 1:depts] %>%
+    unlist()
+  rho_ends <- pars["rho_end", 1:depts] %>%
+    unlist()
+  tau_epis <- pars["tau_epi", 1:depts] %>%
+    unlist()
+  tau_ends <- pars["tau_end", 1:depts] %>%
+    unlist()
+  sig_sq_epis <- pars["sig_sq_epi", 1:depts] %>%
+    unlist()
+  sig_sq_ends <- pars["sig_sq_end", 1:depts] %>%
+    unlist()
+  beta1s <- pars["beta1", 1:depts] %>%
+    unlist()
+  beta2s <- pars["beta2", 1:depts] %>%
+    unlist()
+  beta3s <- pars["beta3", 1:depts] %>%
+    unlist()
+  beta4s <- pars["beta4", 1:depts] %>%
+    unlist()
+  beta5s <- pars["beta5", 1:depts] %>%
+    unlist()
+  beta6s <- pars["beta6", 1:depts] %>%
+    unlist()
+  nus <- pars["nu", 1:depts] %>%
+    unlist()
+  S0s <- pars["S_0", 1:depts] %>%
+    unlist()
+  E0s <- pars["E_0", 1:depts] %>%
+    unlist()
+  I0s <- pars["I_0", 1:depts] %>%
+    unlist()
+  A0s <- pars["A_0", 1:depts] %>%
+    unlist()
+  R0s <- pars["R_0", 1:depts] %>%
+    unlist()
+  pop0s <- pars["pop_0", 1:depts] %>%
+    unlist()
+  mob_cs <- pars["mob_c", 1:depts] %>%
+    unlist()
+
+  par_vals <- c(rho_epis, rho_ends, tau_epis, tau_ends, sig_sq_epis,
+                sig_sq_ends, beta1s, beta2s, beta3s, beta4s, beta5s, beta6s,
+                nus, S0s, E0s, I0s, A0s, R0s, pop0s, mob_cs,
+                3.5, 5.0, 0.0, 0.00239726, 0.0004287149, 0.000143317, 0.0) %>%
+    unlist()
+
+  params <- par_vals
+  names(params) <- par_names
 
   ## build pomp model
   model1 <- pomp::pomp(
@@ -325,8 +383,8 @@ haiti1_disagg <- function() {
     covar = pomp::covariate_table(covar, times = "time"),
     partrans = param_trans,
     statenames = state_names,
-    paramnames = param_names,
-    params = pars,
+    paramnames = par_names,
+    params = params,
     accumvars = accum_names,
     rinit = rinit
   )
