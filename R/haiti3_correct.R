@@ -271,12 +271,12 @@ B%s   = (I%s * thetaI/mu_B + A%s * thetaA/mu_B) * D%s * (1 + lambdaR * pow(0.024
 C%s   = 0;
 W%s   = 0;
 VSd%s = 0;
-VAd%s = 0;
+// VAd%s = 0;
 VR1d%s = 0;
 VR2d%s = 0;
 VR3d%s = 0;
 VSdd%s = 0;
-VAdd%s = 0;
+// VAdd%s = 0;
 VR1dd%s = 0;
 VR2dd%s = 0;
 VR3dd%s = 0;
@@ -413,9 +413,9 @@ rate[7] = gamma;         // I -> R
 
 // A compartment
 rate[8] = mu;               // natural death
-rate[9] = gamma;            // A -> R
-rate[10] = p1d * r_v_wdn;   // A -> VAd
-rate[11] = pdd * r_v_wdn;   // A -> VAdd
+rate[9] = gamma;            // A -> R1
+rate[10] = p1d * r_v_wdn;   // A -> VR1d
+rate[11] = pdd * r_v_wdn;   // A -> VR1dd
 
 // R1
 rate[12] = 3 * rho;        // loss of natural immunity; R1 -> R2
@@ -440,55 +440,56 @@ rate[24] = sigma * (1 - eff_v_1d(t_eff, scenario)) * foi_stoc;       // VSd -> I
 rate[25] = (1 - sigma) * (1 - eff_v_1d(t_eff, scenario)) * foi_stoc; // VSd -> A
 rate[26] = mu;                                                       // VSd -> death
 
+// TODO: Adjust these rates
 // VAd
-rate[27] = gamma;       // VAd -> VR1d
-rate[28] = mu;          // VAd -> natural death
+// rate[27] = gamma;      VAd -> VR1d
+// rate[28] = mu;         VAd -> natural death
 
 // VR1d
-rate[29] = mu;          // natural death:    VR1d -> death
-rate[30] = 3 * rho;     // loss of immunity: VR1d -> VR2d
+rate[27] = mu;          // natural death:    VR1d -> death
+rate[28] = 3 * rho;     // loss of immunity: VR1d -> VR2d
 
 // VR2d
-rate[31] = mu;          // natural death:    VR2d -> death
-rate[32] = 3 * rho;     // loss of immunity: VR2d -> VR3d
+rate[29] = mu;          // natural death:    VR2d -> death
+rate[30] = 3 * rho;     // loss of immunity: VR2d -> VR3d
 
 // VR3d
-rate[33] = mu;          // natural death:    VR3d -> death
-rate[34] = 3 * rho;     // loss of immunity: VR3d -> VSd
+rate[31] = mu;          // natural death:    VR3d -> death
+rate[32] = 3 * rho;     // loss of immunity: VR3d -> VSd
 
 // VSdd
-rate[35] = sigma * (1 - eff_v_2d(t_eff, scenario)) * foi_stoc;       // VSdd -> I
-rate[36] = (1 - sigma) * (1 - eff_v_2d(t_eff, scenario)) * foi_stoc; // VSdd -> A
-rate[37] = mu;                                                       // natural death
+rate[33] = sigma * (1 - eff_v_2d(t_eff, scenario)) * foi_stoc;       // VSdd -> I
+rate[34] = (1 - sigma) * (1 - eff_v_2d(t_eff, scenario)) * foi_stoc; // VSdd -> A
+rate[35] = mu;                                                       // natural death
 
-// VAdd
-rate[38] = gamma;       // VAdd -> VR1dd
-rate[39] = mu;          // VAdd -> natural death
+// VAdd NO LONGER EXISTS
+// rate[38] = gamma;       VAdd -> VR1dd
+// rate[39] = mu;          /VAdd -> natural death
 
 // VR1dd
-rate[40] = mu;          // natural death:    VR1dd -> death
-rate[41] = 3 * rho;     // loss of immunity: VR1dd -> VR2dd
+rate[36] = mu;          // natural death:    VR1dd -> death
+rate[37] = 3 * rho;     // loss of immunity: VR1dd -> VR2dd
 
 // VR2dd
-rate[42] = mu;          // natural death:    VR2dd -> death
-rate[43] = 3 * rho;     // loss of immunity: VR2dd -> VR3dd
+rate[38] = mu;          // natural death:    VR2dd -> death
+rate[39] = 3 * rho;     // loss of immunity: VR2dd -> VR3dd
 
 // VR3dd
-rate[44] = mu;          // natural death:    VR3dd -> death
-rate[45] = 3 * rho;     // loss of immunity: VR3dd -> VSdd
+rate[40] = mu;          // natural death:    VR3dd -> death
+rate[41] = 3 * rho;     // loss of immunity: VR3dd -> VSdd
 
 
 /* For previous vacc campagain */
 
 // VSd_alt
-rate[46] = sigma       * (1 - eff_v_1d(t_eff_alt, scenario)) * foi_stoc; // VSd -> I
-rate[47] = (1 - sigma) * (1 - eff_v_1d(t_eff_alt, scenario)) * foi_stoc; // VSd -> A
-rate[48] = mu;                                                           // natural death
+rate[42] = sigma       * (1 - eff_v_1d(t_eff_alt, scenario)) * foi_stoc; // VSd -> I
+rate[43] = (1 - sigma) * (1 - eff_v_1d(t_eff_alt, scenario)) * foi_stoc; // VSd -> A
+rate[44] = mu;                                                           // natural death
 
 // VSdd_alt
-rate[49] = sigma       * (1 - eff_v_2d(t_eff_alt, scenario)) * foi_stoc; // VSdd -> I
-rate[50] = (1 - sigma) * (1 - eff_v_2d(t_eff_alt, scenario)) * foi_stoc; // VSdd -> A
-rate[51] = mu;                                                           // natural death
+rate[45] = sigma       * (1 - eff_v_2d(t_eff_alt, scenario)) * foi_stoc; // VSdd -> I
+rate[46] = (1 - sigma) * (1 - eff_v_2d(t_eff_alt, scenario)) * foi_stoc; // VSdd -> A
+rate[47] = mu;                                                           // natural death
 
 // All other alts already defined.
 
@@ -502,31 +503,29 @@ reulermultinom(4, R3%s,    &rate[20], dt, &dN[20]);
 
 /* Vaccinated 1 dose */
 reulermultinom(3,  VSd%s,   &rate[24], dt, &dN[24]);
-reulermultinom(2,  VAd%s,   &rate[27], dt, &dN[27]);
-reulermultinom(2, VR1d%s,   &rate[29], dt, &dN[29]);
-reulermultinom(2, VR2d%s,   &rate[31], dt, &dN[31]);
-reulermultinom(2, VR3d%s,   &rate[33], dt, &dN[33]);
+reulermultinom(2, VR1d%s,   &rate[27], dt, &dN[27]);
+reulermultinom(2, VR2d%s,   &rate[29], dt, &dN[29]);
+reulermultinom(2, VR3d%s,   &rate[31], dt, &dN[31]);
 
 /* Vaccinated 2 doses */
-reulermultinom(3,  VSdd%s,   &rate[35], dt, &dN[35]);
-reulermultinom(2,  VAdd%s,   &rate[38], dt, &dN[38]);
-reulermultinom(2, VR1dd%s,   &rate[40], dt, &dN[40]);
-reulermultinom(2, VR2dd%s,   &rate[42], dt, &dN[42]);
-reulermultinom(2, VR3dd%s,   &rate[44], dt, &dN[44]);
+reulermultinom(3,  VSdd%s,   &rate[33], dt, &dN[33]);
+reulermultinom(2, VR1dd%s,   &rate[36], dt, &dN[36]);
+reulermultinom(2, VR2dd%s,   &rate[38], dt, &dN[38]);
+reulermultinom(2, VR3dd%s,   &rate[40], dt, &dN[40]);
 
 /* For the previous vaccination campain */
 
 /* Alt Vaccinated 1 dose */
-reulermultinom(3,  VSd_alt%s,   &rate[46], dt, &dN[46]);
-reulermultinom(2, VR1d_alt%s,   &rate[29], dt, &dN[49]);
-reulermultinom(2, VR2d_alt%s,   &rate[31], dt, &dN[51]);
-reulermultinom(2, VR3d_alt%s,   &rate[33], dt, &dN[53]);
+reulermultinom(3,  VSd_alt%s,   &rate[42], dt, &dN[42]);
+reulermultinom(2, VR1d_alt%s,   &rate[27], dt, &dN[45]);
+reulermultinom(2, VR2d_alt%s,   &rate[29], dt, &dN[47]);
+reulermultinom(2, VR3d_alt%s,   &rate[31], dt, &dN[49]);
 
 /* Alt Vaccinated 2 doses */
-reulermultinom(3,  VSdd_alt%s,   &rate[49], dt, &dN[55]);
-reulermultinom(2, VR1dd_alt%s,   &rate[29], dt, &dN[58]);
-reulermultinom(2, VR2dd_alt%s,   &rate[31], dt, &dN[60]);
-reulermultinom(2, VR3dd_alt%s,   &rate[33], dt, &dN[62]);
+reulermultinom(3,  VSdd_alt%s,   &rate[45], dt, &dN[51]);
+reulermultinom(2, VR1dd_alt%s,   &rate[27], dt, &dN[54]);
+reulermultinom(2, VR2dd_alt%s,   &rate[29], dt, &dN[56]);
+reulermultinom(2, VR3dd_alt%s,   &rate[31], dt, &dN[58]);
 
 // bacteria as continous state variable
 // implement Runge-Kutta integration assuming S, I, R, V* stay constant during dt
@@ -538,6 +537,8 @@ k4 = dt * fB(I%s, A%s, B%s, mu_B, thetaI, thetaA, lambdaR, rain_std%s, r, D%s);
 dB = (k1 + 2*k2 + 2*k3 + k4) / 6.0;
 
 
+// Good until here
+
 I%s += dN[0] + dN[24] + dN[35] + dN[46] + dN[55] - dN[7] - dN[6] - dN[5];      // I += S + VSd + VSdd + VSd_alt + VSdd_alt - R1 - ND - CD
 A%s += dN[1] + dN[25] + dN[36] + dN[47] + dN[56] - dN[9] - dN[10] - dN[11] - dN[8];     // A += S + VSd + VSdd + VSd_alt + VSdd_alt - R1 - VR1d - VR1dd - death
 R1%s += dN[7] + dN[9] - dN[12] - dN[14] - dN[15] - dN[13];  // I-> R1, A -> R1, R1 -> R2, R1 -> VR1d, R1 -> VR1dd, R1 -> death
@@ -547,10 +548,10 @@ R3%s += dN[16] - dN[20] - dN[22] - dN[23] - dN[21]; // R2 -> R3, R3 -> S , R3 ->
 //////////////// COMPLETE UNTIL HERE /////////////////
 
 if (previous_vacc_campaign){
-	VSd_alt%s    += dN[];
-	VR1d_alt%s  += dN[];
-	VR2d_alt%s  += dN[];
-	VR3d_alt%s  += dN[];
+	VSd_alt%s    +=  dN[2];   S -> VSd
+	VR1d_alt%s   +=  dN[14];  R1 -> VR1d
+	VR2d_alt%s   +=  dN[18];  R2 -> VR2d
+	VR3d_alt%s   +=  dN[22];  R3 -> VR3d
 	// VRA1d_alt%s  += dN[] + dN[] ; TODO: WHY two adds?
 
 	VSdd_alt%s    += dN[];
