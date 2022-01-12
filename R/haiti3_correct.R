@@ -243,7 +243,7 @@ haiti3_correct <- function(dt_yrs = 1 / 365.25 * .5) {
 
   initalizeStatesTemplate =   "
 A%s     = nearbyint((1-sigma)/sigma  * 1/epsilon * cases_at_t_start%s[n_cases_start-1][1]/7 * 365 /(mu + gamma));
-I%s     = nearbyint(1/epsilon * cases_at_t_start%s[n_cases_start-1][1]/7 * 365 /(mu+alpha + gamma))  ;  // Steady state, DP says its correct.
+I%s     = nearbyint(1/epsilon * cases_at_t_start%s[n_cases_start-1][1]/7 * 365 /(mu + alpha + gamma))  ;  // Steady state, DP says its correct.
 
 B_acc = 0;
 
@@ -255,10 +255,10 @@ B_acc += (thetaA * (1-sigma)/sigma * cases_at_t_start%s[i][1]/epsilon + thetaI *
 
 }
 
-B%s = B_acc;
-R1%s   = nearbyint((R0[0] + R0[1]) / 3);
-R2%s   = nearbyint((R0[0] + R0[1]) / 3);
-R3%s   = nearbyint((R0[0] + R0[1]) / 3);
+B%s  = B_acc;
+R1%s = nearbyint((R0[0] + R0[1]) / 3);
+R2%s = nearbyint((R0[0] + R0[1]) / 3);
+R3%s = nearbyint((R0[0] + R0[1]) / 3);
 
 if (A%s + I%s + R1%s + R2%s + R3%s >= H%s)
 {
@@ -269,21 +269,21 @@ if (A%s + I%s + R1%s + R2%s + R3%s >= H%s)
   A%s     = nearbyint(0);
   R_tot = nearbyint(0);
   }
-  R1%s   = nearbyint(R_tot / 3);
-  R2%s   = nearbyint(R_tot / 3);
-  R3%s   = nearbyint(R_tot / 3);
+  R1%s = nearbyint(R_tot / 3);
+  R2%s = nearbyint(R_tot / 3);
+  R3%s = nearbyint(R_tot / 3);
 }
 S%s   = nearbyint(H%s - A%s - I%s - R1%s - R2%s - R3%s);
 B%s   = (I%s * thetaI/mu_B + A%s * thetaA/mu_B) * D%s * (1 + lambdaR * pow(0.024, r)); // TODO this just overwrites what was done above???
 C%s   = 0;
 W%s   = 0;
+
 VSd%s = 0;
-// VAd%s = 0;
 VR1d%s = 0;
 VR2d%s = 0;
 VR3d%s = 0;
+
 VSdd%s = 0;
-// VAdd%s = 0;
 VR1dd%s = 0;
 VR2dd%s = 0;
 VR3dd%s = 0;
@@ -292,6 +292,7 @@ VSd_alt%s = 0;
 VR1d_alt%s = 0;
 VR2d_alt%s = 0;
 VR3d_alt%s = 0;
+
 VSdd_alt%s = 0;
 VR1dd_alt%s = 0;
 VR2dd_alt%s = 0;
@@ -319,7 +320,7 @@ double thetaA = thetaI * XthetaA;"
   rmeasTemplate <- "
   double mean_cases%s = epsilon * C%s;
   if (t > 2018)
-  mean_cases%s = mean_cases%s * cas_def;
+    mean_cases%s = mean_cases%s * cas_def;
   cases%s = rnbinom_mu(k, mean_cases%s);
   "
 
@@ -495,13 +496,13 @@ reulermultinom(4, R1%s,    &rate[12], dt, &dN[12]);
 reulermultinom(4, R2%s,    &rate[16], dt, &dN[16]);
 reulermultinom(4, R3%s,    &rate[20], dt, &dN[20]);
 
-/* Vaccinated 1 dose */
+// Vaccinated 1 dose
 reulermultinom(3,  VSd%s,   &rate[24], dt, &dN[24]);
 reulermultinom(2, VR1d%s,   &rate[27], dt, &dN[27]);
 reulermultinom(2, VR2d%s,   &rate[29], dt, &dN[29]);
 reulermultinom(2, VR3d%s,   &rate[31], dt, &dN[31]);
 
-/* Vaccinated 2 doses */
+// Vaccinated 2 doses
 reulermultinom(3,  VSdd%s,   &rate[33], dt, &dN[33]);
 reulermultinom(2, VR1dd%s,   &rate[36], dt, &dN[36]);
 reulermultinom(2, VR2dd%s,   &rate[38], dt, &dN[38]);
@@ -509,13 +510,13 @@ reulermultinom(2, VR3dd%s,   &rate[40], dt, &dN[40]);
 
 /* For the previous vaccination campain */
 
-/* Alt Vaccinated 1 dose */
+// Alt Vaccinated 1 dose
 reulermultinom(3,  VSd_alt%s,   &rate[42], dt, &dN[42]);
 reulermultinom(2, VR1d_alt%s,   &rate[27], dt, &dN[45]);
 reulermultinom(2, VR2d_alt%s,   &rate[29], dt, &dN[47]);
 reulermultinom(2, VR3d_alt%s,   &rate[31], dt, &dN[49]);
 
-/* Alt Vaccinated 2 doses */
+// Alt Vaccinated 2 doses
 reulermultinom(3,  VSdd_alt%s,   &rate[45], dt, &dN[51]);
 reulermultinom(2, VR1dd_alt%s,   &rate[27], dt, &dN[54]);
 reulermultinom(2, VR2dd_alt%s,   &rate[29], dt, &dN[56]);
@@ -532,8 +533,8 @@ k4 = dt * fB(I%s, A%s, B%s, mu_B, thetaI, thetaA, lambdaR, rain_std%s, r, D%s);
 dB = (k1 + 2*k2 + 2*k3 + k4) / 6.0;
 
 // Update States
-I%s += dN[0] + dN[24] + dN[35] + dN[46] + dN[55] - dN[7] - dN[6] - dN[5];      // I += S + VSd + VSdd + VSd_alt + VSdd_alt - R1 - ND - CD
-A%s += dN[1] + dN[25] + dN[36] + dN[47] + dN[56] - dN[9] - dN[10] - dN[11] - dN[8];     // A += S + VSd + VSdd + VSd_alt + VSdd_alt - R1 - VR1d - VR1dd - death
+I%s  += dN[0] + dN[24] + dN[35] + dN[46] + dN[55] - dN[7] - dN[6] - dN[5];      // I += S + VSd + VSdd + VSd_alt + VSdd_alt - R1 - ND - CD
+A%s  += dN[1] + dN[25] + dN[36] + dN[47] + dN[56] - dN[9] - dN[10] - dN[11] - dN[8];     // A += S + VSd + VSdd + VSd_alt + VSdd_alt - R1 - VR1d - VR1dd - death
 R1%s += dN[7] + dN[9] - dN[12] - dN[14] - dN[15] - dN[13];  // I-> R1, A -> R1, R1 -> R2, R1 -> VR1d, R1 -> VR1dd, R1 -> death
 R2%s += dN[12] - dN[16] - dN[18] - dN[19] - dN[17]; // R1 -> R2, R2 -> R3, R2 -> VR2d, R2 -> VR2dd, R2 -> death
 R3%s += dN[16] - dN[20] - dN[22] - dN[23] - dN[21]; // R2 -> R3, R3 -> S , R3 -> VR3d, R3 -> VR3dd, R3 -> death
@@ -571,7 +572,7 @@ VR1dd%s  += - dN[36] - dN[37];                  // VR1dd -> death, VR1dd -> VR2d
 VR2dd%s  +=  dN[37] - dN[38] - dN[39];          // VR1dd -> VR2dd, VR2dd -> death, VR2dd -> VR3dd
 VR3dd%s  +=  dN[39] - dN[40] - dN[41];          // VR2dd -> VR3dd, VR3dd -> death, VR3dd -> VSdd
 
-/* *previous* vacccination campain */
+// previous vacccination campain
 VSd_alt%s   += dN[50] - dN[42] - dN[43] - dN[44]; // VR3d_alt -> VSd_alt, VSd_alt -> I, VSd_alt -> A, VSd_alt -> death
 VR1d_alt%s  += - dN[45] - dN[46];                 // death, VR1d_alt -> VR2d_alt
 VR2d_alt%s  += dN[46] - dN[47] - dN[48];          // VR1d_alt -> VR2d_alt, death, VR2d_alt -> VR3d_alt
@@ -583,7 +584,7 @@ VR2dd_alt%s  +=  dN[55] - dN[56] - dN[57] ;
 VR3dd_alt%s  +=  dN[57] - dN[58] - dN[59];
 
 C%s   +=  dN[0] + dN[24] + dN[33] + dN[42] + dN[51]; // S -> I, VSd -> I, VSdd -> I, VSd_alt -> I, VSdd_alt -> I
-W%s   +=  (dw - dt)/std_W;  // standardized i.i.d. white noise
+W%s   +=  (dw - dt) / std_W;  // standardized i.i.d. white noise
 B%s   += (((dB) < -B%s) ? (-B%s + 1.0e-3) : (dB)); // condition to ensure B>0
 
 // susceptibles so as to match total population

@@ -75,14 +75,16 @@ haiti3_dep_data <- function(departement = 'Artibonite', start_time = '2014-03-01
     dplyr::mutate(time = Category) %>%
     dplyr::mutate(cases = x)
 
-  cases_covar <- cases_other_dept
+  cases_covar <- cases_other_dept %>%
+    dplyr::select(time, cases) %>%
+    dplyr::rename(cases_other = cases)
 
   ret <- list()
   ret$cases_covar <- cases_covar
   ret$rain <- rain
   ret$cases <- cases
-  ret$input_parameters <- MODEL3_INPUT_PARAMETERS
-  ret$cases_other_dept <- cases_other_dept
+  # ret$input_parameters <- MODEL3_INPUT_PARAMETERS
+  # ret$cases_other_dept <- cases_other_dept
   ret$params <- MODEL3_PARAMS
 
   ret
