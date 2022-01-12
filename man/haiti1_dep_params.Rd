@@ -5,7 +5,7 @@
 \alias{haiti1_dep_params}
 \title{Initial parameter values for Model 1: haiti1_dep()}
 \format{
-A data frame with 26 rows and 10 columns (1 for each departement)
+A data frame with 27 rows and 10 columns (1 for each departement)
 \describe{
 \item{rho_epi}{reporting rate for the epidemic period}
 \item{tau_epi}{dispersion in observation process for the epidemic period}
@@ -32,6 +32,7 @@ A data frame with 26 rows and 10 columns (1 for each departement)
 \item{A_0}{initial proportion of population Asymptomatic at start of time window}
 \item{R_0}{initial proportion of population Recovered at start of time window}
 \item{pop_0}{initial population at start of time window}
+\item{mob_c}{intensity of mobility term}
 }
 }
 \usage{

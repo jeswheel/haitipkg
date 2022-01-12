@@ -14,8 +14,7 @@ An object of class \sQuote{panelPomp}.
 }
 \description{
 Generate a class \sQuote{panelPomp} object for fitting to epidemic/endemic Haiti cholera data.
-All parameters initialized at 0. These values must be overwritten.
 }
 \examples{
-m1 <- haiti1(vacscen = 'id0')
+m1 <- haiti1_panel(vacscen = 'id0')
 }
