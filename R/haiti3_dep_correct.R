@@ -68,26 +68,27 @@ haiti3_dep_correct <- function(departement = 'Artibonite',
     "VSdd", "VR1dd", "VR2dd", "VR3dd",
     "VSd_alt", "VR1d_alt", "VR2d_alt", "VR3d_alt",  # For previous vaccination campagins
     "VSdd_alt", "VR1dd_alt", "VR2dd_alt", "VR3dd_alt",
-    "B", "C", "W"
+    "B", "C"
   )
 
   dmeas <- pomp::Csnippet("
-  double mean_cases = epsilon * C;
-  if (t > 2018)
-    mean_cases = mean_cases * cas_def;
   if (ISNA(cases)) {
     lik = (give_log) ? 0 : 1;
     } else {
-      lik = dnbinom_mu(cases, k, mean_cases, give_log) ;
+      if (t > 2018) {
+        lik = dnbinom_mu(cases, k, epsilon * C * cas_def, give_log);
+      } else {
+        lik = dnbinom_mu(cases, k, epsilon * C, give_log) ;
+      }
     }
-      ")
+    ")
 
   rmeas <- pomp::Csnippet("
-  double mean_cases = epsilon * C;
-  if (t > 2018)
-    mean_cases = mean_cases * cas_def;
-  // cases = mean_cases;
-  cases = rnbinom_mu(k, mean_cases);
+  if (t > 2018) {
+    cases = rnbinom_mu(k, epsilon * C * cas_def);
+  } else {
+    cases = rnbinom_mu(k, epsilon * C);
+  }
   ")
 
 
@@ -116,16 +117,15 @@ if (t < 2018){
      number of cases). Finally, individuals remain infected for an average of
      (1/gamma) days
   */
-	mobility = 365 * cases_other / (epsilon * (gamma + mu + alpha) * 7) * (1 + 1 / sigma);
+	mobility = (365 * cases_other / (7 * epsilon)) * (1 / (mu + alpha + gamma) + (1 - sigma) / (sigma * (mu + gamma)))
 }
 else
 {
-	mobility = 365 * cases_other / (epsilon * cas_def * (gamma + mu + alpha) * 7) * (1 + 1 / sigma);
+	mobility = (365 * cases_other / (7 * epsilon * cas_def)) * (1 / (mu + alpha + gamma) + (1 - sigma) / (sigma * (mu + gamma)))
 }
 
 // force of infection
 foi = betaB * (B / (1 + B)) + foi_add * mobility;
-// foi = (betaB + betaB_trend * (t - 2016.579)) * (B / (1 + B)) + foi_add*mobility;
 
 if(std_W > 0.0)
 {
@@ -285,11 +285,10 @@ k4 = dt * fB(I, A, B, mu_B, thetaI, thetaA, lambdaR, rain, r, D);
 // bacteria increment
 dB = (k1 + 2*k2 + 2*k3 + k4) / 6.0;
 
-
 // Update States
-I  += dN[0] + dN[24] + dN[35] + dN[46] + dN[55] - dN[7] - dN[6] - dN[5];      // I += S + VSd + VSdd + VSd_alt + VSdd_alt - R1 - ND - CD
-A  += dN[1] + dN[25] + dN[36] + dN[47] + dN[56] - dN[9] - dN[10] - dN[11] - dN[8];     // A += S + VSd + VSdd + VSd_alt + VSdd_alt - R1 - VR1d - VR1dd - death
-R1 += dN[7] + dN[9] - dN[12] - dN[14] - dN[15] - dN[13];  // I-> R1, A -> R1, R1 -> R2, R1 -> VR1d, R1 -> VR1dd, R1 -> death
+I  += dN[0] + dN[24] + dN[33] + dN[42] + dN[51] - dN[7] - dN[6] - dN[5];            // S -> I, VSd -> I, VSdd -> I, VSd_alt -> I, VSdd_alt -> I, I -> R, I-> death, I -> death
+A  += dN[1] + dN[25] + dN[34] + dN[43] + dN[52] - dN[9] - dN[10] - dN[11] - dN[8];  // S -> A, VSd -> A, VSdd -> A, VSd_alt -> A, VSdd_alt -> A, A -> R1, A -> VR1d, A -> VR1dd, natural death.
+R1 += dN[7] + dN[9] - dN[12] - dN[14] - dN[15] - dN[13];  // I -> R1, A -> R1, R1 -> R2, R1 -> VR1d, R1 -> VR1dd, R1 -> death
 R2 += dN[12] - dN[16] - dN[18] - dN[19] - dN[17]; // R1 -> R2, R2 -> R3, R2 -> VR2d, R2 -> VR2dd, R2 -> death
 R3 += dN[16] - dN[20] - dN[22] - dN[23] - dN[21]; // R2 -> R3, R3 -> S , R3 -> VR3d, R3 -> VR3dd, R3 -> death
 
@@ -340,7 +339,6 @@ VR3dd_alt  +=  dN[57] - dN[58] - dN[59];
 // Rprintf(\"I: %f\\n\", I);
 
 C   +=  dN[0] + dN[24] + dN[33] + dN[42] + dN[51]; // S -> I, VSd -> I, VSdd -> I, VSd_alt -> I, VSdd_alt -> I
-W   +=  (dw - dt) / std_W;  // standardized i.i.d. white noise
 B   += (((dB) < -B) ? (-B + 1.0e-3) : (dB)); // condition to ensure B>0
 
 // susceptibles so as to match total population
@@ -397,19 +395,15 @@ if (S < 0) {
 
   initalizeStates <- pomp::Csnippet("
   A     = nearbyint((1-sigma)/sigma  * 1/epsilon * cases_at_t_start[n_cases_start-1][1]/7 * 365 /(mu+gamma));
-  I     = nearbyint(1/epsilon * cases_at_t_start[n_cases_start-1][1]/7 * 365 /(mu+alpha+gamma))  ;  // Steady state, DP says its correct.
+  I     = nearbyint(1/epsilon * cases_at_t_start[n_cases_start-1][1]/7 * 365 /(mu+alpha+gamma))  ;  // Steady state
   double R0[2] = {0,0};
 
-  double B_acc = 0;
   double thetaA = thetaI * XthetaA;
   for(int i = 0; i < n_cases_start; i++){
     R0[0] +=                   cases_at_t_start[i][1]/epsilon  * exp((cases_at_t_start[i][0] - t_start)  * (rho+mu)); /* because t_i in past so t_ - t_0 negative */
     R0[1] += (1-sigma)/sigma * cases_at_t_start[i][1]/epsilon  * exp((cases_at_t_start[i][0] - t_start)  * (rho+mu));
-    B_acc += (thetaA * (1-sigma)/sigma * cases_at_t_start[i][1]/epsilon + thetaI * cases_at_t_start[i][1]/epsilon) *
-              (1 + lambdaR * pow(0.024, r)) * D * exp((cases_at_t_start[i][0] - t_start)  * mu_B);
   }
 
-  B  = B_acc;
   R1 = nearbyint((R0[0] + R0[1]) / 3);
   R2 = nearbyint((R0[0] + R0[1]) / 3);
   R3 = nearbyint((R0[0] + R0[1]) / 3);
@@ -431,7 +425,6 @@ if (S < 0) {
   S   = nearbyint(H - A - I - R1 - R2 - R3);
   B   = (I * thetaI/mu_B + A * thetaA/mu_B) * D * (1 + lambdaR * pow(B0, r)); // TODO custom initial conditions equivalent to the 'forcing' in the continous model
   C   = 0;
-  W   = 0;
 
   VSd  = 0;
   VR1d = 0;
@@ -679,8 +672,8 @@ if (S < 0) {
     # names of state variables
     statenames = state_names,
     # names of accumulator variables to be re-initalized at each observation timestep
-    # (C for cases, W for the white noise just for plotting)
-    accumvars = c("C", "W"),
+    # (C for cases)
+    accumvars = c("C"),
     # names of paramters
     paramnames = names(params),
     rinit = initalizeStates,
