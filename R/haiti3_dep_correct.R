@@ -117,11 +117,11 @@ if (t < 2018){
      number of cases). Finally, individuals remain infected for an average of
      (1/gamma) days
   */
-	mobility = (365 * cases_other / (7 * epsilon)) * (1 / (mu + alpha + gamma) + (1 - sigma) / (sigma * (mu + gamma)))
+	mobility = (365 * cases_other / (7 * epsilon)) * (1 / (mu + alpha + gamma) + (1 - sigma) / (sigma * (mu + gamma)));
 }
 else
 {
-	mobility = (365 * cases_other / (7 * epsilon * cas_def)) * (1 / (mu + alpha + gamma) + (1 - sigma) / (sigma * (mu + gamma)))
+	mobility = (365 * cases_other / (7 * epsilon * cas_def)) * (1 / (mu + alpha + gamma) + (1 - sigma) / (sigma * (mu + gamma)));
 }
 
 // force of infection
