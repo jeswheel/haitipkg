@@ -81,7 +81,8 @@ haiti3_correct <- function(dt_yrs = 1 / 365.25 * .5) {
     "VSd_alt", "VR1d_alt", "VR2d_alt", "VR3d_alt",
     "VSdd_alt", "VR1dd_alt",
     "VR2dd_alt", "VR3dd_alt",
-    "B", "C", "W"
+    "B", "C", "W",
+    "Mob1", "Mob2"
   )
 
   # All parameters that are common to each departement (disease specific parameters)
@@ -152,6 +153,8 @@ haiti3_correct <- function(dt_yrs = 1 / 365.25 * .5) {
     all_rain <- cbind(all_rain, placeholder2 = rain$rain_std)
     names(all_rain)[names(all_rain) == "placeholder"] <- paste0('max_rain', gsub('-','_',dp))
     names(all_rain)[names(all_rain) == "placeholder2"] <- paste0('rain_std', gsub('-','_',dp))
+
+
 
     all_cases <- cbind(all_cases, placeholder = cases$cases)
     names(all_cases)[names(all_cases) == "placeholder"] <- paste0('cases', gsub('-','_',dp))
@@ -298,6 +301,9 @@ VR1dd_alt%s = 0;
 VR2dd_alt%s = 0;
 VR3dd_alt%s = 0;
 
+Mob1%s = 0;
+Mob2%s = 0;
+
 "
 
   initalizeStatesAll <- "double R0[2] = {0,0};
@@ -370,6 +376,19 @@ mobility =  (IArtibonite + ICentre + IGrande_Anse + INippes + INord +
              INord_Est + INord_Ouest + IOuest + ISud + ISud_Est - I%s +
              AArtibonite + ACentre + AGrande_Anse + ANippes + ANord +
              ANord_Est + ANord_Ouest + AOuest + ASud + ASud_Est - A%s);
+
+Mob1%s = mobility;
+
+other_cases = CasesArtibonite + CasesCentre + CasesGrande_Anse + CasesNippes + CasesNord +
+             CasesNord_Est + CasesNord_Ouest + CasesOuest + CasesSud + CasesSud_Est - Cases%s;
+
+if (t >= 2018) {
+  Mob2%s = (other_cases / (cas_def * epsilon * gamma * 7)) * (1 + 1 / sigma) * 365;
+} else {
+  Mob2%s = (other_cases / (epsilon * gamma * 7)) * (1 + 1 / sigma) * 365;
+}
+
+
 
   // force of infection
 foi = betaB%s * (B%s / (1 + B%s)) + foi_add%s * mobility;
@@ -615,6 +634,7 @@ double r_v_wdn = 0.0;   // rate of vaccination: 0 if out of time window, r_v if 
 int previous_vacc_campaign; // flag that indicate if we are on the first or second campain
 int scenario =  cases_ext;
 double t_eff, t_eff_alt;
+double other_cases;
 
 double thetaA = thetaI * XthetaA;
 
@@ -784,7 +804,7 @@ return(dB);
                   };
   "
 
-  zeronameTemplate = c("C", "W")
+  zeronameTemplate = c("C", "W", "Mob2")
   zeronameAll = c('IncidenceAll', 'CasesAll')
   for (dp in departements){
     zeronameAll = append(zeronameAll, lapply(zeronameTemplate, paste0, gsub('-', '_', dp)))
@@ -854,16 +874,37 @@ return(dB);
   all_params["foi_addNord_Ouest"] =   5.855759e-07
   all_params["foi_addGrande_Anse"] =  8.762740e-07
 
+  cases_df <- all_cases %>%
+    dplyr::filter(time > t_start & time < (t_end + 0.01)) %>%
+    dplyr::select(
+      time, casesArtibonite, casesCentre,
+      casesGrande_Anse, casesNippes,
+      casesNord, casesNord_Est, casesOuest,
+      casesSud, casesSud_Est, casesNord_Ouest
+    )
+
+  tot_cases <- cases_df %>%
+    dplyr::rename(
+      CasesArtibonite = casesArtibonite,
+      CasesCentre = casesCentre,
+      CasesGrande_Anse = casesGrande_Anse,
+      CasesNippes = casesNippes,
+      CasesNord = casesNord,
+      CasesNord_Est = casesNord_Est,
+      CasesOuest = casesOuest,
+      CasesSud = casesSud,
+      CasesSud_Est = casesSud_Est,
+      CasesNord_Ouest = casesNord_Ouest
+    )
+
+  covars <- dplyr::right_join(all_rain, tot_cases, by = 'time')
+
+  # %>%
+    # tidyr::fill(dplyr::starts_with("Cases"), .direction = 'up')
+
   sirb_cholera <- pomp::pomp(
     # set data
-    data = all_cases %>%
-      dplyr::filter(time > t_start & time < (t_end + 0.01)) %>%
-      dplyr::select(
-        time, casesArtibonite, casesCentre,
-        casesGrande_Anse, casesNippes,
-        casesNord, casesNord_Est, casesOuest,
-        casesSud, casesSud_Est, casesNord_Ouest
-      ),
+    data = cases_df,
     # time column
     times = "time",
     # initialization time
@@ -878,7 +919,7 @@ return(dB);
     # measurement model density
     dmeasure = dmeas,
     # covariates
-    covar = pomp::covariate_table(all_rain, times = 'time'),
+    covar = pomp::covariate_table(covars, times = 'time'),
     # names of state variables
     statenames = all_state_names,
     # names of accumulator variables to be re-initalized at each observation timestep

@@ -33,7 +33,12 @@ haiti3_panel <- function(delta.t = 1/365, departements = c(
     'mu_B' = 111.3593, 'XthetaA' = 0.05779537, 'thetaI' = 0.0004327653,
     'lambdaR' = 0.499169, 'std_W' = 0.01400412, 'epsilon' = 0.993717,
     'k' = 516.8755, 'cas_def' = 0.9341205, 'sigma' = 0.25, 'r' = 0.6359411,
-    'gammaI' = 182.625, 'gammaA' = 182.625, 'rhoA' = 0.1250856, 'XrhoI' = 1,
+    'gamma' = 182.625,
+    'rho' = 0.1250856,
+    # 'gammaI' = 182.625,
+    # 'gammaA' = 182.625,
+    # 'rhoA' = 0.1250856,
+    # 'XrhoI' = 1,
     'Rtot_0' = 0.35, 'mu' = 0.01586626, 'alpha' = 1.461, 'cases_ext' = 1,
     't_vacc_start' = 0, 't_vacc_end' = 0, 'p1d_reg' = 0, 'r_v_year' = 0
   )
@@ -65,7 +70,7 @@ haiti3_panel <- function(delta.t = 1/365, departements = c(
     colnames(SPECIFIC) <- all_deps
     rownames(SPECIFIC) <- c(specific_param_names, "betaB_trend")
   } else if (B0) {
-    SPECIFIC <- rbind(SPECIFIC, rep(0.2, 10))
+    SPECIFIC <- rbind(SPECIFIC, rep(0.024, 10))
     colnames(SPECIFIC) <- all_deps
     rownames(SPECIFIC) <- c(specific_param_names, "B0")
   } else {
@@ -76,11 +81,18 @@ haiti3_panel <- function(delta.t = 1/365, departements = c(
   # Loop through each departement
   for (dep in departements) {
 
+    # # Using haitipkg, create and save pomp object for each departement
+    # pomps[[dep]] <- haiti3_dep(departement = dep, delta.t = delta.t,
+    #                            betaB_trend = betaB_trend,
+    #                            start_time = start_time,
+    #                            B0 = B0)
+
     # Using haitipkg, create and save pomp object for each departement
-    pomps[[dep]] <- haiti3_dep(departement = dep, delta.t = delta.t,
-                               betaB_trend = betaB_trend,
-                               start_time = start_time,
-                               B0 = B0)
+    pomps[[dep]] <- haiti3_dep_correct(
+      departement = dep,
+      delta.t = delta.t,
+      start_time = start_time
+    )
   }
 
   SPECIFIC <- SPECIFIC[, departements]

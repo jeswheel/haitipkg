@@ -49,8 +49,7 @@ haiti3_dep <- function(departement = 'Artibonite',
   cases <- DATA$cases
   rain <- DATA$rain
   cases_covar <- DATA$cases_covar
-  input_parameters <- DATA$input_parameters
-  cases_other_dept <- DATA$cases_other_dept
+  input_parameters <- MODEL3_INPUT_PARAMETERS
 
   t_start <- dateToYears(as.Date(start_time))
 
@@ -712,7 +711,7 @@ S = nearbyint(H - I - A - RI1 - RI2 - RI3 - RA1 - RA2 - RA3 -
   )
 
   cases_other.string <- foreach(
-    r = iterators::iter(cases_other_dept, by = "row"),
+    r = iterators::iter(cases_covar, by = "row"),
     .combine = c
   ) %do% {
     sprintf(" {%f, %f} ", r$time, r$cases)
@@ -720,7 +719,7 @@ S = nearbyint(H - I - A - RI1 - RI2 - RI3 - RA1 - RA2 - RA3 -
     stringr::str_c(collapse = ", \n")
 
   matrix_cases_other.string <- stringr::str_c(
-    sprintf("double cases_other[%i][%i] = {\n", nrow(cases_other_dept), 2),
+    sprintf("double cases_other[%i][%i] = {\n", nrow(cases_covar), 2),
     cases_other.string,
     " \n };"
   )
@@ -1026,7 +1025,7 @@ S = nearbyint(H - I - A - RI1 - RI2 - RI3 - RA1 - RA2 - RA3 -
    return 0;
 };"
 
-  populations  <- unlist(purrr::flatten(input_parameters["population"]))
+  populations  <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS["population"]))
   densities <- unlist(purrr::flatten(input_parameters["density"]))
   # param_proc_fixed['H'] <- populations[departement]
   # param_proc_fixed['D'] <- densities[departement]
@@ -1041,7 +1040,7 @@ S = nearbyint(H - I - A - RI1 - RI2 - RI3 - RA1 - RA2 - RA3 -
   r_v_alt_year = nb_doses_alt_year[departement]/(t_vacc_end_alt - t_vacc_start_alt)
   p1d_alt = p1d_alt_year[departement]
 
-  cases_ext_mean <- cases_other_dept %>% dplyr::filter(time > t_start)
+  cases_ext_mean <- cases_covar %>% dplyr::filter(time > t_start)
   cases_ext_mean <- mean(cases_ext_mean$cases)
 
   # rate of simulation in fractions of years
@@ -1067,8 +1066,8 @@ S = nearbyint(H - I - A - RI1 - RI2 - RI3 - RA1 - RA2 - RA3 -
 
   cases_covar <- cases_covar %>%
     dplyr::filter(time > (t_start - 0.01) & time < (t_end + 0.01)) %>%
-    dplyr::select(time, cases) %>%
-    dplyr::rename(cases_covar_c = cases)
+    dplyr::select(time, cases_other) %>%
+    dplyr::rename(cases_covar_c = cases_other)
 
   covar <- dplyr::full_join(rain, cases_covar)
 
@@ -1076,7 +1075,7 @@ S = nearbyint(H - I - A - RI1 - RI2 - RI3 - RA1 - RA2 - RA3 -
     pt <- pomp::parameter_trans(
       log = c(
         "betaB", "mu_B", "thetaI", "rhoA", "lambdaR", "r",
-        "std_W", "k", "foi_add", "gammaA", "gammaI", "B0"
+        "std_W", "k", "foi_add", "gammaA", "gammaI"
       ),
       logit = c(
         "sigma",
@@ -1084,7 +1083,8 @@ S = nearbyint(H - I - A - RI1 - RI2 - RI3 - RA1 - RA2 - RA3 -
         "XrhoI",
         "epsilon",
         "cas_def",
-        "Rtot_0"
+        "Rtot_0",
+        "B0"
       )
     )
   } else {
@@ -1139,7 +1139,7 @@ S = nearbyint(H - I - A - RI1 - RI2 - RI3 - RA1 - RA2 - RA3 -
       sprintf("double r_v_alt = %f;", r_v_alt_year),
       sprintf("double p1d_alt = %f;", p1d_alt),
       sprintf("int n_cases_start = %i;",  nrow(cases_at_t_start)),
-      sprintf("int n_cases_other = %i;",  nrow(cases_other_dept)),
+      sprintf("int n_cases_other = %i;",  nrow(cases_covar)),
       sprintf("double t_start = %f;",  t_start),
       sprintf("double t_end = %f;",  t_end),
       derivativeBacteria.c,

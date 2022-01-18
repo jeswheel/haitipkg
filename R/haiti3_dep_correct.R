@@ -30,9 +30,7 @@
 
 haiti3_dep_correct <- function(departement = 'Artibonite',
                                start_time = "2010-10-23",
-                               delta.t = 1/365.25 * .2,
-                               betaB_trend = FALSE,
-                               B0 = FALSE) {
+                               delta.t = 1/365.25) {
 
   # function to convert dates to fractions of years for model
   dateToYears <- function(date, origin = as.Date("2014-01-01"), yr_offset = 2014) {
@@ -80,12 +78,8 @@ haiti3_dep_correct <- function(departement = 'Artibonite',
   if (ISNA(cases)) {
     lik = (give_log) ? 0 : 1;
     } else {
-        if (S < 10000) {
-          lik = (give_log) ? -99999 : 1.0e-18;
-          } else {
-              lik = dnbinom_mu(cases, k, mean_cases, give_log) ;
-          }
-      }
+      lik = dnbinom_mu(cases, k, mean_cases, give_log) ;
+    }
       ")
 
   rmeas <- pomp::Csnippet("
@@ -115,11 +109,18 @@ double t_eff, t_eff_alt;
 double thetaA = thetaI * XthetaA;
 
 if (t < 2018){
-	mobility = (cases_other / epsilon) * (1 + 1 / sigma);
+  /* We want estimate of instantaneous I and A. To do this, we divide the total
+     number of observed cases by reporting rate to get total number of newly
+     infected individuals for the week. Then, we convert the weekly cases into
+     daily cases by dividing by 7 (assuming each day is approximately the same
+     number of cases). Finally, individuals remain infected for an average of
+     (1/gamma) days
+  */
+	mobility = 365 * cases_other / (epsilon * (gamma + mu + alpha) * 7) * (1 + 1 / sigma);
 }
 else
 {
-	mobility = cases_other / (epsilon * cas_def) * (1 + 1 / sigma);
+	mobility = 365 * cases_other / (epsilon * cas_def * (gamma + mu + alpha) * 7) * (1 + 1 / sigma);
 }
 
 // force of infection
@@ -336,6 +337,8 @@ VR1dd_alt  += - dN[54] - dN[55];
 VR2dd_alt  +=  dN[55] - dN[56] - dN[57] ;
 VR3dd_alt  +=  dN[57] - dN[58] - dN[59];
 
+// Rprintf(\"I: %f\\n\", I);
+
 C   +=  dN[0] + dN[24] + dN[33] + dN[42] + dN[51]; // S -> I, VSd -> I, VSdd -> I, VSd_alt -> I, VSdd_alt -> I
 W   +=  (dw - dt) / std_W;  // standardized i.i.d. white noise
 B   += (((dB) < -B) ? (-B + 1.0e-3) : (dB)); // condition to ensure B>0
@@ -346,6 +349,9 @@ S = nearbyint(H - I - A - R1 - R2 - R3 -
 	VSdd- VR1dd -VR2dd -VR3dd -
 	VSd_alt - VR1d_alt - VR2d_alt - VR3d_alt -
 	VSdd_alt - VR1dd_alt - VR2dd_alt - VR3dd_alt);
+if (S < 0) {
+  S = 0;
+}
                          ")
 
 
@@ -633,19 +639,21 @@ S = nearbyint(H - I - A - R1 - R2 - R3 -
   cases_covar <- cases_covar %>%
     dplyr::filter(time > (t_start - 0.01) & time < (t_end + 0.01))
 
-  covar <- dplyr::full_join(rain, cases_covar, by = 'time')
+  covar <- dplyr::full_join(rain, cases_covar, by = 'time') %>%
+    tidyr::fill(cases_other, .direction = c('updown'))
 
   pt <- pomp::parameter_trans(
     log = c(
       "betaB", "mu_B", "thetaI", "rho", "lambdaR", "r",
-      "std_W", "k", "foi_add", "gamma", "B0"
+      "std_W", "k", "foi_add", "gamma"
     ),
     logit = c(
       "sigma",
       "XthetaA",
       "epsilon",
       "cas_def",
-      "Rtot_0"
+      "Rtot_0",
+      "B0"
     )
   )
 

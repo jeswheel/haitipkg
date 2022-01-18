@@ -7,9 +7,7 @@
 haiti3_dep_correct(
   departement = "Artibonite",
   start_time = "2010-10-23",
-  delta.t = 1/365.25 * 0.2,
-  betaB_trend = FALSE,
-  B0 = FALSE
+  delta.t = 1/365.25
 )
 }
 \arguments{
