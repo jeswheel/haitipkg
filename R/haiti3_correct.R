@@ -81,8 +81,8 @@ haiti3_correct <- function(dt_yrs = 1 / 365.25 * .5) {
     "VSd_alt", "VR1d_alt", "VR2d_alt", "VR3d_alt",
     "VSdd_alt", "VR1dd_alt",
     "VR2dd_alt", "VR3dd_alt",
-    "B", "C", "W",
-    "Mob1", "Mob2"
+    "B", "C", "W"
+    # "Mob1", "Mob2" # TODO: Remove this when done.
   )
 
   # All parameters that are common to each departement (disease specific parameters)
@@ -245,26 +245,23 @@ haiti3_correct <- function(dt_yrs = 1 / 365.25 * .5) {
 
 
   initalizeStatesTemplate =   "
-A%s     = nearbyint((1-sigma)/sigma  * 1/epsilon * cases_at_t_start%s[n_cases_start-1][1]/7 * 365 /(mu + gamma));
-I%s     = nearbyint(1/epsilon * cases_at_t_start%s[n_cases_start-1][1]/7 * 365 /(mu + alpha + gamma))  ;  // Steady state, DP says its correct.
+A%s = nearbyint((1-sigma)/sigma * 1/epsilon * cases_at_t_start%s[n_cases_start-1][1]/7 * 365 /(mu + gamma));
+I%s = nearbyint(1/epsilon * cases_at_t_start%s[n_cases_start-1][1]/7 * 365 /(mu + alpha + gamma))  ;  // Steady state, DP says its correct.
 
-B_acc = 0;
+// Reset R0 vector
+R0[0] = 0;
+R0[1] = 0;
 
 for(int i = 0; i < n_cases_start; i++){
-R0[0] +=                   cases_at_t_start%s[i][1]/epsilon  * exp((cases_at_t_start%s[i][0] - t_start)  * (rho + mu)); /* because t_i in past so t_ - t_0 negative */
-R0[1] += (1-sigma)/sigma * cases_at_t_start%s[i][1]/epsilon  * exp((cases_at_t_start%s[i][0] - t_start)  * (rho + mu));
-B_acc += (thetaA * (1-sigma)/sigma * cases_at_t_start%s[i][1]/epsilon + thetaI * cases_at_t_start%s[i][1]/epsilon) *
-(1 + lambdaR * pow(0.024, r)) * D%s * exp((cases_at_t_start%s[i][0] - t_start)  * mu_B);
-
+  R0[0] +=                   cases_at_t_start%s[i][1]/epsilon  * exp((cases_at_t_start%s[i][0] - t_start)  * (rho + mu)); /* because t_i in past so t_ - t_0 negative */
+  R0[1] += (1-sigma)/sigma * cases_at_t_start%s[i][1]/epsilon  * exp((cases_at_t_start%s[i][0] - t_start)  * (rho + mu));
 }
 
-B%s  = B_acc;
 R1%s = nearbyint((R0[0] + R0[1]) / 3);
 R2%s = nearbyint((R0[0] + R0[1]) / 3);
 R3%s = nearbyint((R0[0] + R0[1]) / 3);
 
-if (A%s + I%s + R1%s + R2%s + R3%s >= H%s)
-{
+if (A%s + I%s + R1%s + R2%s + R3%s >= H%s) {
   double R_tot = H%s - A%s - I%s - 100.0;
   if (R_tot <= 0)
   {
@@ -276,8 +273,9 @@ if (A%s + I%s + R1%s + R2%s + R3%s >= H%s)
   R2%s = nearbyint(R_tot / 3);
   R3%s = nearbyint(R_tot / 3);
 }
+
 S%s   = nearbyint(H%s - A%s - I%s - R1%s - R2%s - R3%s);
-B%s   = (I%s * thetaI/mu_B + A%s * thetaA/mu_B) * D%s * (1 + lambdaR * pow(0.024, r)); // TODO this just overwrites what was done above???
+B%s   = (I%s * thetaI/mu_B + A%s * thetaA/mu_B) * D%s * (1 + lambdaR * pow(0.024, r));
 C%s   = 0;
 W%s   = 0;
 
@@ -301,9 +299,6 @@ VR1dd_alt%s = 0;
 VR2dd_alt%s = 0;
 VR3dd_alt%s = 0;
 
-Mob1%s = 0;
-Mob2%s = 0;
-
 "
 
   initalizeStatesAll <- "double R0[2] = {0,0};
@@ -324,10 +319,11 @@ double thetaA = thetaI * XthetaA;"
   ###
 
   rmeasTemplate <- "
-  double mean_cases%s = epsilon * C%s;
-  if (t > 2018)
-    mean_cases%s = mean_cases%s * cas_def;
-  cases%s = rnbinom_mu(k, mean_cases%s);
+  if (t > 2018) {
+    cases%s = rnbinom_mu(k, epsilon * C%s * cas_def);
+  } else {
+    cases%s = rnbinom_mu(k, epsilon * C%s);
+  }
   "
 
   rmeasAll = ""
@@ -342,17 +338,14 @@ double thetaA = thetaI * XthetaA;"
   ###
 
   dmeasTemplate <- "
-    double mean_cases%s = epsilon * C%s;
-    if (t > 2018)
-       mean_cases%s = mean_cases%s * cas_def;
     if (ISNA(cases%s)) {
        lik += (give_log) ? 0 : 1;
     } else {
-       if (S%s < 10000) {
-          lik += (give_log) ? -99999 : 1.0e-18;
-       } else {
-           lik += dnbinom_mu(cases%s, k, mean_cases%s, give_log) ;
-       }
+      if (t > 2018) {
+        lik += dnbinom_mu(cases%s, k, epsilon * C%s * cas_def, give_log);
+      } else {
+        lik += dnbinom_mu(cases%s, k, epsilon * C%s, give_log);
+      }
     }
 "
 
@@ -377,28 +370,28 @@ mobility =  (IArtibonite + ICentre + IGrande_Anse + INippes + INord +
              AArtibonite + ACentre + AGrande_Anse + ANippes + ANord +
              ANord_Est + ANord_Ouest + AOuest + ASud + ASud_Est - A%s);
 
-Mob1%s = mobility;
+// TODO: Remove when done
+// Mob1%s = mobility;
 
-other_cases = CasesArtibonite + CasesCentre + CasesGrande_Anse + CasesNippes + CasesNord +
-             CasesNord_Est + CasesNord_Ouest + CasesOuest + CasesSud + CasesSud_Est - Cases%s;
+// other_cases = CasesArtibonite + CasesCentre + CasesGrande_Anse + CasesNippes + CasesNord +
+//               CasesNord_Est + CasesNord_Ouest + CasesOuest + CasesSud + CasesSud_Est - Cases%s;
 
-if (t >= 2018) {
-  Mob2%s = (other_cases / (cas_def * epsilon * gamma * 7)) * (1 + 1 / sigma) * 365;
-} else {
-  Mob2%s = (other_cases / (epsilon * gamma * 7)) * (1 + 1 / sigma) * 365;
-}
+// if (t >= 2018) {
+//   Mob2%s = (other_cases / (cas_def * epsilon * gamma * 7)) * (1 + 1 / sigma) * 365;
+// } else {
+//   Mob2%s = (other_cases / (epsilon * gamma * 7)) * (1 + 1 / sigma) * 365;
+// }
 
 
 
-  // force of infection
+// force of infection
 foi = betaB%s * (B%s / (1 + B%s)) + foi_add%s * mobility;
-if(std_W > 0.0)
-{
-    dw = rgammawn(std_W, dt);   // white noise (extra-demographic stochasticity)
-    foi_stoc = foi * dw/dt;      // apply stochasticity
-} else
-{
-    foi_stoc = foi;
+
+if(std_W > 0.0) {
+  dw = rgammawn(std_W, dt);   // white noise (extra-demographic stochasticity)
+  foi_stoc = foi * dw/dt;     // apply stochasticity
+} else {
+  foi_stoc = foi;
 }
 
 if (t <= (t_vacc_end_alt%s + dt)){
@@ -414,6 +407,7 @@ if (t <= (t_vacc_end_alt%s + dt)){
 	}
 	p1d = p1d_reg%s;
 }
+
 pdd = 1 - p1d;
 
 // time in the vacc_eff referential. We assume different timing for 1d and 2d
@@ -552,8 +546,8 @@ k4 = dt * fB(I%s, A%s, B%s, mu_B, thetaI, thetaA, lambdaR, rain_std%s, r, D%s);
 dB = (k1 + 2*k2 + 2*k3 + k4) / 6.0;
 
 // Update States
-I%s  += dN[0] + dN[24] + dN[35] + dN[46] + dN[55] - dN[7] - dN[6] - dN[5];      // I += S + VSd + VSdd + VSd_alt + VSdd_alt - R1 - ND - CD
-A%s  += dN[1] + dN[25] + dN[36] + dN[47] + dN[56] - dN[9] - dN[10] - dN[11] - dN[8];     // A += S + VSd + VSdd + VSd_alt + VSdd_alt - R1 - VR1d - VR1dd - death
+I%s  += dN[0] + dN[24] + dN[33] + dN[42] + dN[51] - dN[7] - dN[6] - dN[5];            // S -> I, VSd -> I, VSdd -> I, VSd_alt -> I, VSdd_alt -> I, I -> R, I-> death, I -> death
+A%s  += dN[1] + dN[25] + dN[34] + dN[43] + dN[52] - dN[9] - dN[10] - dN[11] - dN[8];  // S -> A, VSd -> A, VSdd -> A, VSd_alt -> A, VSdd_alt -> A, A -> R1, A -> VR1d, A -> VR1dd, natural death.
 R1%s += dN[7] + dN[9] - dN[12] - dN[14] - dN[15] - dN[13];  // I-> R1, A -> R1, R1 -> R2, R1 -> VR1d, R1 -> VR1dd, R1 -> death
 R2%s += dN[12] - dN[16] - dN[18] - dN[19] - dN[17]; // R1 -> R2, R2 -> R3, R2 -> VR2d, R2 -> VR2dd, R2 -> death
 R3%s += dN[16] - dN[20] - dN[22] - dN[23] - dN[21]; // R2 -> R3, R3 -> S , R3 -> VR3d, R3 -> VR3dd, R3 -> death
@@ -634,7 +628,7 @@ double r_v_wdn = 0.0;   // rate of vaccination: 0 if out of time window, r_v if 
 int previous_vacc_campaign; // flag that indicate if we are on the first or second campain
 int scenario =  cases_ext;
 double t_eff, t_eff_alt;
-double other_cases;
+// double other_cases; // TODO: remove this when done
 
 double thetaA = thetaI * XthetaA;
 
@@ -804,7 +798,7 @@ return(dB);
                   };
   "
 
-  zeronameTemplate = c("C", "W", "Mob2")
+  zeronameTemplate = c("C", "W")
   zeronameAll = c('IncidenceAll', 'CasesAll')
   for (dp in departements){
     zeronameAll = append(zeronameAll, lapply(zeronameTemplate, paste0, gsub('-', '_', dp)))
@@ -883,21 +877,23 @@ return(dB);
       casesSud, casesSud_Est, casesNord_Ouest
     )
 
-  tot_cases <- cases_df %>%
-    dplyr::rename(
-      CasesArtibonite = casesArtibonite,
-      CasesCentre = casesCentre,
-      CasesGrande_Anse = casesGrande_Anse,
-      CasesNippes = casesNippes,
-      CasesNord = casesNord,
-      CasesNord_Est = casesNord_Est,
-      CasesOuest = casesOuest,
-      CasesSud = casesSud,
-      CasesSud_Est = casesSud_Est,
-      CasesNord_Ouest = casesNord_Ouest
-    )
+  # tot_cases <- cases_df %>%
+  #   dplyr::rename(
+  #     CasesArtibonite = casesArtibonite,
+  #     CasesCentre = casesCentre,
+  #     CasesGrande_Anse = casesGrande_Anse,
+  #     CasesNippes = casesNippes,
+  #     CasesNord = casesNord,
+  #     CasesNord_Est = casesNord_Est,
+  #     CasesOuest = casesOuest,
+  #     CasesSud = casesSud,
+  #     CasesSud_Est = casesSud_Est,
+  #     CasesNord_Ouest = casesNord_Ouest
+  #   )
 
-  covars <- dplyr::right_join(all_rain, tot_cases, by = 'time')
+  # covars <- dplyr::right_join(all_rain, tot_cases, by = 'time')
+  covars <- all_rain %>%
+    dplyr::select(time, dplyr::starts_with('rain_std'))
 
   # %>%
     # tidyr::fill(dplyr::starts_with("Cases"), .direction = 'up')

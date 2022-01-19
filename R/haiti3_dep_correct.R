@@ -127,13 +127,11 @@ else
 // force of infection
 foi = betaB * (B / (1 + B)) + foi_add * mobility;
 
-if(std_W > 0.0)
-{
-    dw = rgammawn(std_W, dt);   // white noise (extra-demographic stochasticity)
-    foi_stoc = foi * dw/dt;      // apply stochasticity
-} else
-{
-    foi_stoc = foi;
+if(std_W > 0.0) {
+  dw = rgammawn(std_W, dt);    // white noise (extra-demographic stochasticity)
+  foi_stoc = foi * dw/dt;      // apply stochasticity
+} else {
+  foi_stoc = foi;
 }
 
 if (t <= (t_vacc_end_alt + dt)){
@@ -282,6 +280,7 @@ k1 = dt * fB(I, A, B, mu_B, thetaI, thetaA, lambdaR, rain, r, D);
 k2 = dt * fB(I, A, B, mu_B, thetaI, thetaA, lambdaR, rain, r, D);
 k3 = dt * fB(I, A, B, mu_B, thetaI, thetaA, lambdaR, rain, r, D);
 k4 = dt * fB(I, A, B, mu_B, thetaI, thetaA, lambdaR, rain, r, D);
+
 // bacteria increment
 dB = (k1 + 2*k2 + 2*k3 + k4) / 6.0;
 
@@ -394,8 +393,8 @@ if (S < 0) {
   # )
 
   initalizeStates <- pomp::Csnippet("
-  A     = nearbyint((1-sigma)/sigma  * 1/epsilon * cases_at_t_start[n_cases_start-1][1]/7 * 365 /(mu+gamma));
-  I     = nearbyint(1/epsilon * cases_at_t_start[n_cases_start-1][1]/7 * 365 /(mu+alpha+gamma))  ;  // Steady state
+  A = nearbyint((1-sigma)/sigma * 1/epsilon * cases_at_t_start[n_cases_start-1][1]/7 * 365 /(mu+gamma));
+  I = nearbyint(1/epsilon * cases_at_t_start[n_cases_start-1][1]/7 * 365 /(mu+alpha+gamma))  ;  // Steady state
   double R0[2] = {0,0};
 
   double thetaA = thetaI * XthetaA;
@@ -408,8 +407,7 @@ if (S < 0) {
   R2 = nearbyint((R0[0] + R0[1]) / 3);
   R3 = nearbyint((R0[0] + R0[1]) / 3);
 
-  if (A + I + R1 + R2 + R3 >= H)
-  {
+  if (A + I + R1 + R2 + R3 >= H) {
     double R_tot = H - A - I - 100.0;
     if (R_tot <= 0)
     {
@@ -423,7 +421,7 @@ if (S < 0) {
   }
 
   S   = nearbyint(H - A - I - R1 - R2 - R3);
-  B   = (I * thetaI/mu_B + A * thetaA/mu_B) * D * (1 + lambdaR * pow(B0, r)); // TODO custom initial conditions equivalent to the 'forcing' in the continous model
+  B   = (I * thetaI/mu_B + A * thetaA/mu_B) * D * (1 + lambdaR * pow(B0, r));
   C   = 0;
 
   VSd  = 0;
