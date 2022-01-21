@@ -84,6 +84,29 @@ project_rain <- function(end_date = as.Date("2029-12-20")) {
 
   colnames(rain_prj) <- c('date', departments)
 
-  # rain_prj
-  dplyr::bind_rows(rf, rain_prj)
+  all_rain <- dplyr::bind_rows(rf, rain_prj)
+
+  result <- all_rain %>%
+    filter(date >= as.Date("2010-10-23") - 7) %>%
+    summarize(
+      date = date, across(Artibonite:`Sud-Est`, std_rain)
+    ) %>%
+    mutate(
+      time = dateToYears(date)
+    )
+
+  colnames(rain_prj_std) <- c(
+    "date",
+    paste0(
+      'rain_std', c(
+        'Artibonite', 'Centre', 'Grande_Anse',
+        'Nippes', 'Nord', 'Nord-Est', 'Nord-Ouest',
+        'Ouest', 'Sud', 'Sud-Est'
+      )
+    ),
+    'time'
+  )
+
+  rain_prj_std
+
 }
