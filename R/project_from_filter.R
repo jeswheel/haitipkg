@@ -12,6 +12,9 @@
 #'
 #' \deqn{Xk | Y1 = y1*, \ldots, Yk*}
 #'
+#' As currently implemented, the efficiency could be greatly improved for
+#' projecting models that do not have covariates.
+#'
 #' @param mod: POMP model that you would like to simulate from.
 #' @param PF: pfilter object, the result of calling
 #'    pfilter(..., save.states = TRUE). Note that the states must be saved in
@@ -92,33 +95,56 @@ project_from_filter <- function(mod, PF, covarGen = NULL,
     # Sample from end states
     samp_end_state <- end_states[sample(nrow(end_states), 1), ]
 
-    # Generate covariates
-    cov_df <- covarGen()
+    if (!is.null(covarGen)) {
+      # Generate covariates
+      cov_df <- covarGen()
 
-    # Add covariates to the model, and then run rprocess from end-state:
-    proc_sim <- mod %>%
-      pomp::pomp(
-        covar = pomp::covariate_table(cov_df, times = 'time')
-      ) %>%
-      pomp::rprocess(
-        .,
-        x0 = samp_end_state,
-        t0 = max(mod@times),
-        times = new_times,
-        params = mod@params
-      )
+      # Add covariates to the model, and then run rprocess from end-state:
+      proc_sim <- mod %>%
+        pomp::pomp(
+          covar = pomp::covariate_table(cov_df, times = 'time')
+        ) %>%
+        pomp::rprocess(
+          .,
+          x0 = samp_end_state,
+          t0 = max(mod@times),
+          times = new_times,
+          params = mod@params
+        )
 
-    measures <- mod %>%
-      pomp::pomp(
-        covar = pomp::covariate_table(cov_df, times = 'time')
-      ) %>%
-      rmeasure(
-        object = .,
-        x = proc_sim,
-        times = new_times,
-        params = mod@params
-      ) %>%
-      drop() %>% t() %>% as.data.frame()
+      measures <- mod %>%
+        pomp::pomp(
+          covar = pomp::covariate_table(cov_df, times = 'time')
+        ) %>%
+        rmeasure(
+          object = .,
+          x = proc_sim,
+          times = new_times,
+          params = mod@params
+        ) %>%
+        drop() %>% t() %>% as.data.frame()
+    } else {
+
+      # run rprocess from end-state:
+      proc_sim <- mod %>%
+        pomp::rprocess(
+          .,
+          x0 = samp_end_state,
+          t0 = max(mod@times),
+          times = new_times,
+          params = mod@params
+        )
+
+      measures <- mod %>%
+        rmeasure(
+          object = .,
+          x = proc_sim,
+          times = new_times,
+          params = mod@params
+        ) %>%
+        drop() %>% t() %>% as.data.frame()
+    }
+
 
     # One of the dimensions in the array is empty, so we drop it. After, the
     # rows are the states, and columns are the times, but it is more natural

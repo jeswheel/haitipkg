@@ -43,4 +43,7 @@ available date. The state of the system at the end of the time series
 can be accounted for by simulating the filtering distribution:
 
 \deqn{Xk | Y1 = y1*, \ldots, Yk*}
+
+As currently implemented, the efficiency could be greatly improved for
+projecting models that do not have covariates.
 }
