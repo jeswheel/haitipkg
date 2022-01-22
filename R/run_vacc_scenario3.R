@@ -222,7 +222,7 @@ run_vacc_scenario3 <- function(scenario_strs = c("S0", "S1", "S2", "S3",
 
     sims <- pomp::simulate(sirb_cholera, nsim = nsim,
                            format = 'data.frame', include.data = FALSE,  # TODO: maybe make this so that it can change
-                           seed = 8432, times = time_forecast)
+                           times = time_forecast)
     # %>%
     #   select(.id, time, date, IncidenceAll, DosesAll, CasesAll, starts_with('cases'))
 

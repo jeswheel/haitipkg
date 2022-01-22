@@ -37,6 +37,13 @@
 
 haiti3 <- function() {
 
+  # Create vector of departement names
+  departements = c(
+    'Artibonite', 'Centre', 'Grande_Anse',
+    'Nippes', 'Nord', 'Nord-Est', 'Nord-Ouest',
+    'Ouest', 'Sud', 'Sud-Est'
+  )
+
   # First Define some helper functions:
   dateToYears <- function(date, origin = as.Date("2014-01-01"), yr_offset = 2014) {
     # This function converts a date to a decimal representation
@@ -211,14 +218,14 @@ haiti3 <- function() {
   }
 
   for (dp in departements) {
-    populations <- unlist(purrr::flatten(input_parameters["population"]))
-    densities <- unlist(purrr::flatten(input_parameters["density"]))
+    populations <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS["population"]))
+    densities <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS["density"]))
     all_params[paste0('H', gsub('-', '_', dp))] <- populations[dp]
     all_params[paste0('D', gsub('-', '_', dp))] <- densities[dp]
-    p1d_alt_year <- unlist(purrr::flatten(input_parameters['p1d_alt_year']))
-    nb_doses_alt_year <- unlist(purrr::flatten(input_parameters['nb_doses_alt_year']))
-    t_vacc_start_alt  <- unlist(purrr::flatten(input_parameters["t_vacc_start_alt"]))
-    t_vacc_end_alt <- unlist(purrr::flatten(input_parameters["t_vacc_end_alt"]))
+    p1d_alt_year <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS['p1d_alt_year']))
+    nb_doses_alt_year <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS['nb_doses_alt_year']))
+    t_vacc_start_alt  <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS["t_vacc_start_alt"]))
+    t_vacc_end_alt <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS["t_vacc_end_alt"]))
     # Vaccination information:
     t_vacc_start_alt = dateToYears(as.Date(t_vacc_start_alt[dp]))
     t_vacc_end_alt   = dateToYears(as.Date(t_vacc_end_alt[dp]))
