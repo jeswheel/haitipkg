@@ -12,8 +12,9 @@
 #' @export
 
 haiti1_data <- function(){
-  allDat <- haiti_case_data
-
+  allDat <- haitiCholera
+  allDat <- allDat %>%
+    dplyr::mutate(date_sat_orig = date_saturday)
   splitDate <- strsplit(allDat$date_sat_orig, "-")
   data.table::setattr(splitDate[[1]], 'names', c("year", "month", "day"))
   dateDf <- tibble::as_tibble(as.data.frame(do.call(rbind, splitDate))) %>%

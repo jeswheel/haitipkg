@@ -11,7 +11,7 @@
 #' 25 = fast national high coverage, and all others represent combinations
 #'
 #' @param scen_code Code for vaccination scenario
-#' @return A list of codes specific to the gien vaccination scenario
+#' @return A list of codes specific to the given vaccination scenario
 #' @export
 
 vac_scen <- function(scen_code) {

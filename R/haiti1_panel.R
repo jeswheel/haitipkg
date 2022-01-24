@@ -27,57 +27,34 @@ haiti1_panel <- function(vacscen = 'id0') {
   }
 
   ## parameters --- from best fit of haiti1_joint()
-  shared_pars <- c('mu' = ((1+22.6/1000)^(1/52.14))-1,
-                   'delta' = ((1+7.5/1000)^(1/52.14))-1,
-                   'gamma' = 7/2,
-                   'sigma' = 7/1.4,
-                   'theta0' = 0.0,
-                   'alpha' = 7/2920,
-                   'kappa' = 0,
-                   'beta1' = 4.014758,
-                   'beta2' = 2.7089,
-                   'beta3' = 2.742331,
-                   'beta4' = 3.058927,
-                   'beta5' = 3.57466,
-                   'beta6' = 2.230872,
-                   'nu' = 0.9976078,
-                   'tau_epi' = 688.7796,
-                   'tau_end' = 105.3583,
-                   'sig_sq_epi' = 0.1105648,
-                   'sig_sq_end' = 0.1677307)
+  shared_pars <- unlist(MODEL1_INPUT_PARAMETERS$panel_shared_params)
 
   ## departement specific parameters --- values from individual mifs
   spec_par_names <- c("rho_epi", "rho_end",
-                      #"tau_epi", "tau_end",
-                      #"sig_sq_epi", "sig_sq_end",
                       "S_0","E_0","I_0","A_0","R_0", "pop_0",
                       "mob_c")
 
-  dep_params <- haiti1_dep_params
-  dep_params <- dep_params[rownames(dep_params) %in% spec_par_names, ]
+  pars <- unlist(MODEL1_INPUT_PARAMETERS$dep_params)
 
-  spec_pars <- rbind(
-    unlist(dep_params["rho_epi", ]),
-    unlist(dep_params["rho_end", ]),
-    #unlist(dep_params["tau_epi", ]),
-    #unlist(dep_params["tau_end", ]),
-    #unlist(dep_params["sig_sq_epi", ]),
-    #unlist(dep_params["sig_sq_end", ]),
-    unlist(dep_params["S_0", ]),
-    unlist(dep_params["E_0", ]),
-    unlist(dep_params["I_0", ]),
-    unlist(dep_params["A_0", ]),
-    unlist(dep_params["R_0", ]),
-    unlist(dep_params["pop_0", ]),
-    unlist(dep_params["mob_c", ]))
+  rho_epis <- pars[grepl('rho_epi', names(pars))]
+  rho_ends <- pars[grepl('rho_end', names(pars))]
+  S0s <- pars[grepl('S_0', names(pars))]
+  E0s <- pars[grepl('E_0', names(pars))]
+  I0s <- pars[grepl('I_0', names(pars))]
+  A0s <- pars[grepl('A_0', names(pars))]
+  R0s <- pars[grepl('R_0', names(pars))]
+  pop0s <- pars[grepl('pop_0', names(pars))]
+  mob_cs <- pars[grepl('mob_c', names(pars))]
 
+  spec_pars <- rbind(rho_epis, rho_ends, S0s, E0s, I0s, A0s, R0s, pop0s, mob_cs)
+  colnames(spec_pars) <- depts
   rownames(spec_pars) <- spec_par_names
 
   ## build panelPomp object
   m1_panel <- panelPomp(
     pomps,
     shared = shared_pars,
-    specific = spec_par_names
+    specific = spec_pars
   )
 
   return(m1_panel)

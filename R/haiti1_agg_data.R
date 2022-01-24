@@ -12,7 +12,13 @@
 #' @export
 
 haiti1_agg_data <- function(){
-  allDat <- haiti_case_data
+  allDat <- haitiCholera
+  ## must switch back to numeric from NA because sum() will ignore other values in row if we try to use na.rm = TRUE
+  allDat[allDat$date_saturday == '2016-10-01', "Artibonite"] <- 0
+  allDat[allDat$date_saturday == '2017-11-11', 'Artibonite'] <- 0
+  allDat[allDat$date_saturday == '2017-01-07', 'Ouest'] <- 0
+  allDat <- allDat %>%
+    dplyr::mutate(date_sat_orig = date_saturday)
 
   splitDate <- strsplit(allDat$date_sat_orig, "-")
   data.table::setattr(splitDate[[1]], 'names', c("year", "month", "day"))
@@ -32,6 +38,8 @@ haiti1_agg_data <- function(){
     dplyr::full_join(fullDateVec, by = c("date_sat")) %>%
     dplyr::arrange(date_sat) %>%
     dplyr::mutate(week = seq_along(date_sat)) %>%
+    dplyr::rename(Grand_Anse = Grand.Anse,
+                  Sud_Est = Sud.Est) %>%
     tidyr::gather(department, cases, Artibonite:Sud_Est)
 
   aggDat <- cleanDat %>%

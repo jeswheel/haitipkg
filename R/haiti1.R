@@ -11,7 +11,6 @@
 #' @export
 
 haiti1 <- function(vacscen = 'id0', period = 'epidemic') {
-  vacscen <- vacscen
   ## get data
   dat <- haiti1_agg_data()
   fc_set <- vac_scen(vacscen)
@@ -319,16 +318,16 @@ haiti1 <- function(vacscen = 'id0', period = 'epidemic') {
       rinit = rinit
     )
 
-  base_pars <- haiti1_adj_params
+  epi_pars <- MODEL1_INPUT_PARAMETERS$adj_pars_epi
+  end_pars <- MODEL1_INPUT_PARAMETERS$adj_pars_end
   if (vacscen == "id0" & period == "endemic") {
-    model1 <- window(model1, start = 233, end = 430) ## endemic period
     model1@t0 <- 232
-    coef(model1) <- base_pars[, 2] ## endemic period
-  }
-  if (vacscen == "id0" & period == "epidemic") {
-    model1 <- window(model1, start = 1, end = 232) ## epidemic period
+    model1 <- pomp::window(model1, start = 233, end = 430) ## endemic period
+    pomp::coef(model1) <- unlist(end_pars) ## endemic period
+  } else {
+    model1 <- pomp::window(model1, start = 1, end = 232) ## epidemic period
     model1@t0 <- 0
-    coef(model1) <- base_pars[, 1] ## epidemic period
+    pomp::coef(model1) <- unlist(epi_pars) ## epidemic period
   }
 
   return(model1)

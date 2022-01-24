@@ -15,11 +15,21 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
     vacscen <- vacscen
     departement <- departement
     ## get data
-    dat <- haiti1_data()
+    dat <- haiti1_data() %>%
+      dplyr::select(-1) %>%
+      dplyr::rename(Grand_Anse = Grand.Anse,
+                    Nord_Est = Nord.Est,
+                    Nord_Ouest = Nord.Ouest,
+                    Sud_Est = Sud.Est)
     dat <- dat %>%
       dplyr::select(c(departement, "week"))
     colnames(dat) <- c("cases", "week")
-    other_cases <- haiti1_data() %>%
+    other_cases <- haiti1_data()  %>%
+      dplyr::select(-1) %>%
+      dplyr::rename(Grand_Anse = Grand.Anse,
+                    Nord_Est = Nord.Est,
+                    Nord_Ouest = Nord.Ouest,
+                    Sud_Est = Sud.Est) %>%
       dplyr::select(-departement)
     other_cases$other_cases = rowSums(other_cases[ , c(1,9)])
     other_cases <- other_cases %>%
@@ -326,9 +336,9 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
                        "foival", "Str0", "Sout", "Sin")
 
       ## parameter names
-      param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", #epidemic
+      param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", # epidemic
                        "rho_end", "sig_sq_end", "tau_end", # endemic
-                       "mob_c", #mobility term intensity
+                       "mob_c", # mobility term intensity
                        "beta1", "beta2", "beta3", "beta4", "beta5", "beta6",
                        "gamma", "sigma", "theta0", "alpha", "mu", "delta",
                        "nu", "kappa", "pop_0",
@@ -343,9 +353,9 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
       state_names <- c("S", "E", "I", "A", "R", "incid", "foival", "Str0", "Sout", "Sin")
 
       ## parameter names
-      param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", #epidemic
+      param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", # epidemic
                        "rho_end", "sig_sq_end", "tau_end", # endemic
-                       "mob_c", #mobility term intensity
+                       "mob_c", # mobility term intensity
                        "beta1", "beta2", "beta3", "beta4", "beta5", "beta6",
                        "gamma", "sigma", "theta0", "alpha", "mu", "delta",
                        "nu", "kappa", "pop_0",
@@ -365,12 +375,11 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
       barycentric = c("S_0", "E_0", "I_0", "A_0", "R_0")
     )
 
-    params <- haiti1_dep_params %>% dplyr::select(departement)
-    par_names <- rownames(params)
-    params <- unlist(params)
-    names(params) <- par_names
+    params <- MODEL1_INPUT_PARAMETERS$dep_params[[departement]] %>%
+      unlist()
 
     if (vac) {
+      par_names <- names(params)
       params <- c(params, rep(0.0, 5))
       names(params) <- c(par_names, "S1_0", "E1_0", "I1_0", "A1_0", "R1_0")
     }

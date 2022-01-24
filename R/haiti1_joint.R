@@ -329,33 +329,7 @@ haiti1_joint <- function(vacscen = 'id0') {
     barycentric = c("S_0", "E_0", "I_0", "A_0", "R_0")
   )
 
-  ## hand entered for now
-  pars <- c("rho_epi" = 0.4765437,
-            "rho_end" = 0.4496893,
-            "tau_epi" = 688.7796,
-            "tau_end" = 105.3583,
-            "sig_sq_epi" = 0.1105648,
-            "sig_sq_end" = 0.1677307,
-            "beta1" = 4.014758,
-            "beta2" = 2.7089,
-            "beta3" = 2.742331,
-            "beta4" = 3.058927,
-            "beta5" = 3.57466,
-            "beta6" = 2.230872,
-            "nu" = 0.9976078,
-            "gamma" = 3.5,
-            "sigma" = 5.0,
-            "theta0" = 0.0,
-            "alpha" = 0.00239726,
-            "mu" = 0.0004287149,
-            "delta" = 0.000143317,
-            "kappa" = 0.0,
-            "S_0" = 0.9990317,
-            "E_0" = 4.604823e-06,
-            "I_0" = 0.000963733,
-            "A_0" = 0.0,
-            "R_0" = 0.0,
-            "pop_0" = 10911819)
+  pars <- unlist(MODEL1_INPUT_PARAMETERS$joint_pars)
 
   if (depts > 1) {
     par_names <- names(pars)

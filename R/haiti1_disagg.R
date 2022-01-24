@@ -12,7 +12,8 @@
 haiti1_disagg <- function() {
   vacscen <- "id0" # do not need vaccinations
   ## get data
-  dat <- haiti1_data()
+  dat <- haiti1_data() %>%
+    dplyr::select(-1)
   colnames(dat) <- c("cases_Artibonite", "cases_Centre", "cases_Grand_Anse",
                      "cases_Nippes", "cases_Nord", "cases_Nord_Est",
                      "cases_Nord_Ouest", "cases_Ouest", "cases_Sud",
@@ -103,7 +104,12 @@ haiti1_disagg <- function() {
   beta <- paste0(time_check, collapse = "")
 
   # get other_cases for each department
-  all_dat <- haiti1_data()
+  all_dat <- haiti1_data() %>%
+    dplyr::select(-1) %>%
+    dplyr::rename(Grand_Anse = Grand.Anse,
+                  Nord_Est = Nord.Est,
+                  Nord_Ouest = Nord.Ouest,
+                  Sud_Est = Sud.Est)
   other_cases <- all_dat %>%
     dplyr::select(week)
   all_dat <- all_dat %>%
@@ -250,17 +256,17 @@ haiti1_disagg <- function() {
   )
 
   ## names
-    ## state names
-    state_names <- c(paste0("S_", depts_names),
-                     paste0("E_", depts_names),
-                     paste0("I_", depts_names),
-                     paste0("A_", depts_names),
-                     paste0("R_", depts_names),
-                     paste0("incid_", depts_names),
-                     paste0("foival_", depts_names),
-                     paste0("Str0_", depts_names),
-                     paste0("Sout_", depts_names),
-                     paste0("Sin_", depts_names))
+  ## state names
+  state_names <- c(paste0("S_", depts_names),
+                   paste0("E_", depts_names),
+                   paste0("I_", depts_names),
+                   paste0("A_", depts_names),
+                   paste0("R_", depts_names),
+                   paste0("incid_", depts_names),
+                   paste0("foival_", depts_names),
+                   paste0("Str0_", depts_names),
+                   paste0("Sout_", depts_names),
+                   paste0("Sin_", depts_names))
 
   ## accum vars
   accum_names <- c(paste0("incid_", depts_names),
@@ -295,7 +301,8 @@ haiti1_disagg <- function() {
   )
 
   ## hand entered for now
-  pars <- haiti1_dep_params
+  pars <- unlist(MODEL1_INPUT_PARAMETERS$dep_params)
+
   rho_epis <- paste0("rho_epi_", depts_names)
   rho_ends <- paste0("rho_end_", depts_names)
   tau_epis <- paste0("tau_epi_", depts_names)
@@ -322,46 +329,26 @@ haiti1_disagg <- function() {
                  nus, S0s, E0s, I0s, A0s, R0s, pop0s, mob_cs,
                  "gamma", "sigma", "theta0", "alpha", "mu", "delta", "kappa")
 
-  rho_epis <- pars["rho_epi", 1:depts] %>%
-    unlist()
-  rho_ends <- pars["rho_end", 1:depts] %>%
-    unlist()
-  tau_epis <- pars["tau_epi", 1:depts] %>%
-    unlist()
-  tau_ends <- pars["tau_end", 1:depts] %>%
-    unlist()
-  sig_sq_epis <- pars["sig_sq_epi", 1:depts] %>%
-    unlist()
-  sig_sq_ends <- pars["sig_sq_end", 1:depts] %>%
-    unlist()
-  beta1s <- pars["beta1", 1:depts] %>%
-    unlist()
-  beta2s <- pars["beta2", 1:depts] %>%
-    unlist()
-  beta3s <- pars["beta3", 1:depts] %>%
-    unlist()
-  beta4s <- pars["beta4", 1:depts] %>%
-    unlist()
-  beta5s <- pars["beta5", 1:depts] %>%
-    unlist()
-  beta6s <- pars["beta6", 1:depts] %>%
-    unlist()
-  nus <- pars["nu", 1:depts] %>%
-    unlist()
-  S0s <- pars["S_0", 1:depts] %>%
-    unlist()
-  E0s <- pars["E_0", 1:depts] %>%
-    unlist()
-  I0s <- pars["I_0", 1:depts] %>%
-    unlist()
-  A0s <- pars["A_0", 1:depts] %>%
-    unlist()
-  R0s <- pars["R_0", 1:depts] %>%
-    unlist()
-  pop0s <- pars["pop_0", 1:depts] %>%
-    unlist()
-  mob_cs <- pars["mob_c", 1:depts] %>%
-    unlist()
+  rho_epis <- pars[grepl('rho_epi', names(pars))]
+  rho_ends <- pars[grepl('rho_end', names(pars))]
+  tau_epis <- pars[grepl('tau_epi', names(pars))]
+  tau_ends <- pars[grepl('tau_end', names(pars))]
+  sig_sq_epis <- pars[grepl('sig_sq_epi', names(pars))]
+  sig_sq_ends <- pars[grepl('sig_sq_end', names(pars))]
+  beta1s <- pars[grepl('beta1', names(pars))]
+  beta2s <- pars[grepl('beta2', names(pars))]
+  beta3s <- pars[grepl('beta3', names(pars))]
+  beta4s <- pars[grepl('beta4', names(pars))]
+  beta5s <- pars[grepl('beta5', names(pars))]
+  beta6s <- pars[grepl('beta6', names(pars))]
+  nus <- pars[grepl('nu', names(pars))]
+  S0s <- pars[grepl('S_0', names(pars))]
+  E0s <- pars[grepl('E_0', names(pars))]
+  I0s <- pars[grepl('I_0', names(pars))]
+  A0s <- pars[grepl('A_0', names(pars))]
+  R0s <- pars[grepl('R_0', names(pars))]
+  pop0s <- pars[grepl('pop_0', names(pars))]
+  mob_cs <- pars[grepl('mob_c', names(pars))]
 
   par_vals <- c(rho_epis, rho_ends, tau_epis, tau_ends, sig_sq_epis,
                 sig_sq_ends, beta1s, beta2s, beta3s, beta4s, beta5s, beta6s,
