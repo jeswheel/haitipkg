@@ -10,7 +10,7 @@ vac_scen(scen_code)
 \item{scen_code}{Code for vaccination scenario}
 }
 \value{
-A list of codes specific to the gien vaccination scenario
+A list of codes specific to the given vaccination scenario
 }
 \description{
 Generate a data frame containing weekly values for periodic basis splines for the seasonal transmission term beta and vaccination efficacy values

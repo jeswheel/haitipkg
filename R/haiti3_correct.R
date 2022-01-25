@@ -82,7 +82,7 @@ haiti3_correct <- function(dt_yrs = 1 / 365.25 * .5) {
     "VSdd_alt", "VR1dd_alt",
     "VR2dd_alt", "VR3dd_alt",
     "B", "C", "W"
-    # "Mob1", "Mob2" # TODO: Remove this when done.
+    # "MobAI", "MobCases" # TODO: Remove this when done.
   )
 
   # All parameters that are common to each departement (disease specific parameters)
@@ -96,11 +96,12 @@ haiti3_correct <- function(dt_yrs = 1 / 365.25 * .5) {
   params_diff <- c(
     "foi_add", "betaB", "H", "D", "t_vacc_start",
     "t_vacc_end", "p1d_reg", "r_v_year", "t_vacc_start_alt",
-    "t_vacc_end_alt", "p1d_reg_alt", "r_v_year_alt"
+    "t_vacc_end_alt", "p1d_reg_alt", "r_v_year_alt", "B0"
   )
 
   # Load the input parameters
-  t_start <- dateToYears(as.Date(MODEL3_INPUT_PARAMETERS$t_start))
+  # t_start <- dateToYears(as.Date(MODEL3_INPUT_PARAMETERS$t_start))
+  t_start <- dateToYears(as.Date("2010-10-23"))
   t_end   <- dateToYears(as.Date(MODEL3_INPUT_PARAMETERS$t_end))
 
   all_state_names <- c('IncidenceAll', 'DosesAll', 'CasesAll')
@@ -275,7 +276,7 @@ if (A%s + I%s + R1%s + R2%s + R3%s >= H%s) {
 }
 
 S%s   = nearbyint(H%s - A%s - I%s - R1%s - R2%s - R3%s);
-B%s   = (I%s * thetaI/mu_B + A%s * thetaA/mu_B) * D%s * (1 + lambdaR * pow(0.024, r));
+B%s   = (I%s * thetaI/mu_B + A%s * thetaA/mu_B) * D%s * (1 + lambdaR * pow(B0%s, r));
 C%s   = 0;
 W%s   = 0;
 
@@ -305,7 +306,6 @@ VR3dd_alt%s = 0;
 IncidenceAll = 0;
 DosesAll = 0;
 CasesAll = 0;
-double B_acc = 0;
 double thetaA = thetaI * XthetaA;"
 
   for (dp in departements) {
@@ -363,18 +363,32 @@ double thetaA = thetaI * XthetaA;"
   # Every department gets a copy.
   sirb_file <- "
 previous_vacc_campaign = TRUE;
+r_v_wdn = 0;
 dw = 0;
 
-mobility =  (IArtibonite + ICentre + IGrande_Anse + INippes + INord +
+// 2019.029
+if (t <= 0) {
+  other_cases = CasesArtibonite + CasesCentre + CasesGrande_Anse + CasesNippes + CasesNord +
+                CasesNord_Est + CasesNord_Ouest + CasesOuest + CasesSud + CasesSud_Est - Cases%s;
+  if (t >= 2018) {
+    mobility =  (365 * other_cases / (7 * epsilon * cas_def)) * (1 / (mu + alpha + gamma) + (1 - sigma) / (sigma * (mu + gamma)));
+  } else {
+    mobility =  (365 * other_cases / (7 * epsilon)) * (1 / (mu + alpha + gamma) + (1 - sigma) / (sigma * (mu + gamma)));
+  }
+} else {
+  mobility =  (IArtibonite + ICentre + IGrande_Anse + INippes + INord +
              INord_Est + INord_Ouest + IOuest + ISud + ISud_Est - I%s +
              AArtibonite + ACentre + AGrande_Anse + ANippes + ANord +
              ANord_Est + ANord_Ouest + AOuest + ASud + ASud_Est - A%s);
+}
+
 
 // TODO: Remove when done
-// Mob1%s = mobility;
-
-// other_cases = CasesArtibonite + CasesCentre + CasesGrande_Anse + CasesNippes + CasesNord +
-//               CasesNord_Est + CasesNord_Ouest + CasesOuest + CasesSud + CasesSud_Est - Cases%s;
+// MobAI%s = (IArtibonite + ICentre + IGrande_Anse + INippes + INord +
+//              INord_Est + INord_Ouest + IOuest + ISud + ISud_Est - I%s +
+//              AArtibonite + ACentre + AGrande_Anse + ANippes + ANord +
+//              ANord_Est + ANord_Ouest + AOuest + ASud + ASud_Est - A%s);
+// MobCases%s = mobility;
 
 // if (t >= 2018) {
 //   Mob2%s = (other_cases / (cas_def * epsilon * gamma * 7)) * (1 + 1 / sigma) * 365;
@@ -628,7 +642,7 @@ double r_v_wdn = 0.0;   // rate of vaccination: 0 if out of time window, r_v if 
 int previous_vacc_campaign; // flag that indicate if we are on the first or second campain
 int scenario =  cases_ext;
 double t_eff, t_eff_alt;
-// double other_cases; // TODO: remove this when done
+double other_cases; // TODO: remove this when done
 
 double thetaA = thetaI * XthetaA;
 
@@ -868,6 +882,17 @@ return(dB);
   all_params["foi_addNord_Ouest"] =   5.855759e-07
   all_params["foi_addGrande_Anse"] =  8.762740e-07
 
+  all_params["B0Artibonite"] =   0.24
+  all_params["B0Sud_Est"] =      0.24
+  all_params["B0Nippes"] =       0.24
+  all_params["B0Nord_Est"] =     0.24
+  all_params["B0Ouest"] =        0.24
+  all_params["B0Centre"] =       0.24
+  all_params["B0Nord"] =         0.24
+  all_params["B0Sud"] =          0.24
+  all_params["B0Nord_Ouest"] =   0.24
+  all_params["B0Grande_Anse"] =  0.24
+
   cases_df <- all_cases %>%
     dplyr::filter(time > t_start & time < (t_end + 0.01)) %>%
     dplyr::select(
@@ -877,23 +902,35 @@ return(dB);
       casesSud, casesSud_Est, casesNord_Ouest
     )
 
-  # tot_cases <- cases_df %>%
-  #   dplyr::rename(
-  #     CasesArtibonite = casesArtibonite,
-  #     CasesCentre = casesCentre,
-  #     CasesGrande_Anse = casesGrande_Anse,
-  #     CasesNippes = casesNippes,
-  #     CasesNord = casesNord,
-  #     CasesNord_Est = casesNord_Est,
-  #     CasesOuest = casesOuest,
-  #     CasesSud = casesSud,
-  #     CasesSud_Est = casesSud_Est,
-  #     CasesNord_Ouest = casesNord_Ouest
-  #   )
+  tot_cases <- cases_df %>%
+    dplyr::rename(
+      CasesArtibonite = casesArtibonite,
+      CasesCentre = casesCentre,
+      CasesGrande_Anse = casesGrande_Anse,
+      CasesNippes = casesNippes,
+      CasesNord = casesNord,
+      CasesNord_Est = casesNord_Est,
+      CasesOuest = casesOuest,
+      CasesSud = casesSud,
+      CasesSud_Est = casesSud_Est,
+      CasesNord_Ouest = casesNord_Ouest
+    )
 
-  # covars <- dplyr::right_join(all_rain, tot_cases, by = 'time')
-  covars <- all_rain %>%
-    dplyr::select(time, dplyr::starts_with('rain_std'))
+
+  all_rain <- all_rain %>% dplyr::select(time, dplyr::starts_with('rain_std'))
+  covars <- dplyr::full_join(all_rain, tot_cases, by = 'time') %>%
+    tidyr::fill(CasesArtibonite,
+                CasesCentre,
+                CasesGrande_Anse,
+                CasesNippes,
+                CasesNord,
+                CasesNord_Est,
+                CasesOuest,
+                CasesSud,
+                CasesSud_Est,
+                CasesNord_Ouest, .direction = c('updown'))
+  # covars <- all_rain %>%
+  #   dplyr::select(time, dplyr::starts_with('rain_std'))
 
   # %>%
     # tidyr::fill(dplyr::starts_with("Cases"), .direction = 'up')
