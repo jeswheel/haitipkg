@@ -106,7 +106,16 @@ haiti3 <- function() {
   all_matrix_cases_at_t_start.string <- ""
   all_matrix_cases_other.string <- ""
 
-  # MODEL3_CASES is imported from the internal data: R/sysdata.rda
+  # haitiCholera is a saved data.frame in the package
+  MODEL3_CASES <- haitiCholera %>%
+    rename(
+      date = date_saturday, Grande_Anse = Grand.Anse,
+      `Nord-Est` = Nord.Est, `Nord-Ouest` = Nord.Ouest,
+      `Sud-Est` = Sud.Est
+    ) %>%
+    mutate(date = as.Date(date)) %>%
+    select(-report)
+
   all_cases <- MODEL3_CASES %>%
     dplyr::mutate(
       date = as.Date(date, format = '%Y-%m-%d'),
