@@ -547,12 +547,63 @@ t_end: 2019-01-12
 #t_end: 2017-01-01 # that is before peak
 "
 
+model3_vacc_scenarios_txt <- "
+ID,Roll-out,VE,Coverage,Priority
+1,1,1,1,1
+2,2,1,1,1
+3,3,1,1,1
+4,4,1,1,1
+5,1,2,1,0
+6,2,2,1,0
+7,3,2,1,0
+8,4,2,1,0
+9,1,3,1,0
+10,2,3,1,0
+11,3,3,1,0
+12,4,3,1,0
+13,1,1,2,0
+14,2,1,2,0
+15,3,1,2,0
+16,4,1,2,0
+17,1,2,2,0
+18,2,2,2,0
+19,3,2,2,0
+20,4,2,2,0
+21,1,3,2,0
+22,2,3,2,0
+23,3,3,2,0
+24,4,3,2,0
+25,1,1,3,1
+26,2,1,3,0
+27,3,1,3,0
+28,4,1,3,0
+29,1,2,3,0
+30,2,2,3,0
+31,3,2,3,0
+32,4,2,3,0
+33,1,3,3,0
+34,2,3,3,0
+35,3,3,3,0
+36,4,3,3,0
+"
+
+model3_params_text <- '
+betaB,mu_B,XthetaA,thetaI,lambdaR,std_W,epsilon,k,cas_def,foi_add,sigma,r,gammaI,gammaA,rhoA,XrhoI,Rtot_0,H,D,mu,alpha,cases_ext,t_vacc_start,t_vacc_end,p1d_reg,r_v_year
+0.354169973579405,111.359282045485,0.0577953719949065,0.000432765266676422,0.499169039613328,0.01400411832052,0.993716987777945,516.87552896729,0.934120456253182,1.18214116603088e-06,0.25,0.6359411,182.625,182.625,0.125085616438356,1,0.35,1727524,353,0.01586625546,1.461,1,0,0,0,0
+'
+
+
 MODEL1_INPUT_PARAMETERS <- yaml::read_yaml(text = model1_params_yaml)
 MODEL3_INPUT_PARAMETERS <- yaml::read_yaml(text = model3_params_yaml)
+MODEL3_VACC_SCENARIOS   <- read.csv(text = model3_vacc_scenarios_txt)
+MODEL3_PARAMS           <- read.csv(text = model3_params_text)
+
 
 usethis::use_data(
   MODEL1_INPUT_PARAMETERS,
   MODEL3_INPUT_PARAMETERS,
+  MODEL3_VACC_SCENARIOS,
+  MODEL3_PARAMS,
   internal = TRUE,
   overwrite = TRUE
 )

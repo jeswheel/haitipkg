@@ -113,8 +113,8 @@ haiti3 <- function() {
       time = dateToYears(date)
     )
 
-  # MODEL3_RAIN is imported from the internal data: R/sysdata.rda
-  all_rain <- MODEL3_RAIN %>%
+  # haitiRainfall is one of the saved data objects in the package
+  all_rain <- haitiRainfall %>%
     dplyr::mutate(
       date = as.Date(date, format = "%Y-%m-%d"),
       time = dateToYears(date)
@@ -134,7 +134,7 @@ haiti3 <- function() {
         time = dateToYears(date)
       )
 
-    rain <- MODEL3_RAIN %>%
+    rain <- haitiRainfall %>%
       tidyr::gather(dep, rain,-date) %>%
       dplyr::group_by(dep) %>%
       dplyr::ungroup() %>%

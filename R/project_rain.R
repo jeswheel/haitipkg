@@ -36,7 +36,7 @@ project_rain <- function(end_date = as.Date("2029-12-20")) {
     'Nord-Est', 'Nord-Ouest', 'Ouest', 'Sud', 'Sud-Est'
   )
 
-  rf <- MODEL3_RAIN
+  rf <- haitiRainfall
 
   num_days <- 14
   dti <- dplyr::pull(rf[1, 'date'])

@@ -54,7 +54,7 @@ haiti3_dep_data <- function(departement = 'Artibonite', start_time = '2014-03-01
 
   missing_dates <- setdiff(case_dates, cases$date) %>% as.Date(origin = as.Date("1970-01-01"))
 
-  rain <- MODEL3_RAIN  %>%
+  rain <- haitiRainfall  %>%
     tidyr::gather(dep, rain, -date) %>%
     dplyr::group_by(dep) %>%
     dplyr::ungroup() %>%

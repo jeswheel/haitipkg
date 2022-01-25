@@ -68,13 +68,13 @@ run_vacc_scenario3 <- function(scenario_strs = c("S0", "S1", "S2", "S3",
   # Get the times that we would like to forecast
   time_forecast <- dateToYears(seq.Date(yearsToDate(t_start), yearsToDate(t_forecast), by = "1 week"))
 
-  all_rain <- MODEL3_RAIN %>%
+  all_rain <- haitiRainfall %>%
     dplyr::mutate(date = as.Date(date, format = "%Y-%m-%d"),
            time = dateToYears(date)) %>%
     dplyr::filter(time > t_start - 0.01 & time < (t_end + 0.01))
 
   for (dp in DEPARTMENTS) {
-    rain <- MODEL3_RAIN %>%
+    rain <- haitiRainfall %>%
       tidyr::gather(dep, rain,-date) %>%
       dplyr::group_by(dep) %>%
       dplyr::ungroup() %>%
