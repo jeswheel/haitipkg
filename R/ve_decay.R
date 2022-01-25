@@ -2,15 +2,14 @@
 ##'
 ##' @format A data frame with 61 rows and 4 columns
 ##' \describe{
-##'     \item{month} number of months since beginning of vaccinations
-##'     \item{ve_s1} vaccine efficacy in scenario 1 - estimated waning vaccine efficacy
-##'     \item{ve_s2} vaccine efficacy in scenario 2 - constant vaccine efficacy
-##'     \item{ve_s3} vaccine efficacy in scenario 3 - ??
+##'     \item{month}{number of months since beginning of vaccinations}
+##'     \item{ve_s1}{vaccine efficacy in scenario 1 - estimated waning vaccine efficacy}
+##'     \item{ve_s2}{vaccine efficacy in scenario 2 - constant vaccine efficacy}
+##'     \item{ve_s3}{vaccine efficacy in scenario 3 - ??}
 ##' }
 ##'
 ##' This dataset was created by loading the .csv file saved as
 ##' inst/extdata/ve_decay_bymonth.csv.
 ##'
 ##' @source \url{https://zenodo.org/record/3360991#.YNC2Iy1h0ow}
-##'
 "ve_decay"
