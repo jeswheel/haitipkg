@@ -256,6 +256,10 @@ haiti1 <- function(vacscen = 'id0', period = 'epidemic') {
     }
   ")
 
+  ## get parameters
+  epi_pars <- MODEL1_INPUT_PARAMETERS$adj_pars_epi
+  end_pars <- MODEL1_INPUT_PARAMETERS$adj_pars_end
+
   ## names
   if (depts > 1) {
     ## state names
@@ -276,6 +280,13 @@ haiti1 <- function(vacscen = 'id0', period = 'epidemic') {
                      paste0("I", 1:depts, "_0"),
                      paste0("A", 1:depts, "_0"),
                      paste0("R", 1:depts, "_0"))
+
+    ## append extra params
+    extra_inits <- rep(0, 5*depts)
+    epi_pars <- c(unlist(epi_pars), 0, extra_inits)
+    names(epi_pars) <- param_names
+    end_pars <- c(unlist(end_pars), 0, extra_inits)
+    names(end_pars) <- param_names
 
     ## accum vars
     accum_names <- c("incid","incidU","incidV","asymV","newV",
@@ -318,9 +329,7 @@ haiti1 <- function(vacscen = 'id0', period = 'epidemic') {
       rinit = rinit
     )
 
-  epi_pars <- MODEL1_INPUT_PARAMETERS$adj_pars_epi
-  end_pars <- MODEL1_INPUT_PARAMETERS$adj_pars_end
-  if (vacscen == "id0" & period == "endemic") {
+  if (period == "endemic") {
     model1@t0 <- 232
     model1 <- pomp::window(model1, start = 233, end = 430) ## endemic period
     pomp::coef(model1) <- unlist(end_pars) ## endemic period
