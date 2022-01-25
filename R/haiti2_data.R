@@ -10,7 +10,7 @@
 #' @export
 
 haiti2_data <- function(){
-  haiti <- haiti_case_data
+  haiti <- haitiCholera
   haiti <- haiti %>% dplyr::select(-report)
 
   dates <- c("2017-04-22","2018-01-27","2018-09-22","2018-12-01")
@@ -20,9 +20,9 @@ haiti2_data <- function(){
   colnames(final) <- colnames(haiti)
 
   final <- rbind(haiti, final)
-  final <- dplyr::arrange(final, date_sat_orig)
+  final <- dplyr::arrange(final, date_saturday)
 
-  haiti <- reshape2::melt(final, id.vars="date_sat_orig")
+  haiti <- reshape2::melt(final, id.vars="date_saturday")
   colnames(haiti) <- c("year","department","cases")
   haiti$year <- lubridate::decimal_date(lubridate::ymd(haiti$year))
   haiti$department <- as.character(haiti$department)
