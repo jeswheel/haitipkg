@@ -126,17 +126,35 @@ haiti3_correct <- function(dt_yrs = 1 / 365.25 * .5) {
       time = dateToYears(date)
     )
 
-  # haitiRainfall is one of the saved data objects in the package.
+  std_rain <- function(x) {
+    # This function simply standardizes the rain for us.
+    x / max(x)
+  }
+
   all_rain <- haitiRainfall %>%
-    dplyr::mutate(
-      date = as.Date(date, format = "%Y-%m-%d"),
+    summarize(
+      date = date, across(Artibonite:`Sud-Est`, std_rain)
+    ) %>%
+    mutate(
       time = dateToYears(date)
     ) %>%
     dplyr::filter(time > t_start - 0.01 & time < (t_end + 0.01))
 
+
+  colnames(all_rain) <- c(
+    "date",
+    paste0(
+      'rain_std', c(
+        'Artibonite', 'Centre', 'Grande_Anse',
+        'Nippes', 'Nord', 'Nord_Est', 'Nord_Ouest',
+        'Ouest', 'Sud', 'Sud_Est'
+      )
+    ),
+    'time'
+  )
+
   # Loop through each of the departements and:
   # (1) Create a dataset with each departement case count
-  # (2) Create a dataset with each departement rain history
   for (dp in departements) {
 
     cases <- MODEL3_CASES %>%
@@ -146,25 +164,6 @@ haiti3_correct <- function(dt_yrs = 1 / 365.25 * .5) {
         date = as.Date(date, format = "%Y-%m-%d"),
         time = dateToYears(date)
       )
-
-    rain <- haitiRainfall %>%
-      tidyr::gather(dep, rain,-date) %>%
-      dplyr::group_by(dep) %>%
-      dplyr::ungroup() %>%
-      dplyr::filter(dep == dp) %>%
-      dplyr::mutate(
-        date = as.Date(date, format = "%Y-%m-%d"),
-        time = dateToYears(date)
-      ) %>%
-      dplyr::filter(time > t_start - 0.01 & time < (t_end + 0.01)) %>%
-      dplyr::mutate(max_rain = max(rain), rain_std = rain / max_rain)
-
-    all_rain <- cbind(all_rain, placeholder = rain$max_rain)
-    all_rain <- cbind(all_rain, placeholder2 = rain$rain_std)
-    names(all_rain)[names(all_rain) == "placeholder"] <- paste0('max_rain', gsub('-','_',dp))
-    names(all_rain)[names(all_rain) == "placeholder2"] <- paste0('rain_std', gsub('-','_',dp))
-
-
 
     all_cases <- cbind(all_cases, placeholder = cases$cases)
     names(all_cases)[names(all_cases) == "placeholder"] <- paste0('cases', gsub('-','_',dp))

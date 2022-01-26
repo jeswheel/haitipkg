@@ -2,6 +2,7 @@
 
 export(VaccinationScenario3)
 export(covars)
+export(get_vacc_scenario_params3)
 export(haiti1)
 export(haiti1_agg_data)
 export(haiti1_data)

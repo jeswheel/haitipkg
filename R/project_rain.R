@@ -27,9 +27,16 @@
 #'
 #' @param end_date: Date object representing when the projection of rainfall
 #'  should stop.
+#'
+#' @importFrom magrittr %>%
 #' @export
 
 project_rain <- function(end_date = as.Date("2029-12-20")) {
+
+  std_rain <- function(x) {
+    # This function simply standardizes the rain for us.
+    x / max(x)
+  }
 
   departments <- c(
     'Artibonite', 'Centre', 'Grande_Anse', 'Nippes', 'Nord',
@@ -88,14 +95,14 @@ project_rain <- function(end_date = as.Date("2029-12-20")) {
 
   result <- all_rain %>%
     filter(date >= as.Date("2010-10-23") - 7) %>%
-    summarize(
-      date = date, across(Artibonite:`Sud-Est`, std_rain)
+    dplyr::summarize(
+      date = date, dplyr::across(Artibonite:`Sud-Est`, std_rain)
     ) %>%
-    mutate(
+    dplyr::mutate(
       time = dateToYears(date)
     )
 
-  colnames(rain_prj_std) <- c(
+  colnames(result) <- c(
     "date",
     paste0(
       'rain_std', c(
@@ -107,6 +114,6 @@ project_rain <- function(end_date = as.Date("2029-12-20")) {
     'time'
   )
 
-  rain_prj_std
+  result %>% dplyr::select(time, dplyr::starts_with("rain_std"))
 
 }

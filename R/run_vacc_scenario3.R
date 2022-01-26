@@ -68,53 +68,34 @@ run_vacc_scenario3 <- function(scenario_strs = c("S0", "S1", "S2", "S3",
   # Get the times that we would like to forecast
   time_forecast <- dateToYears(seq.Date(yearsToDate(t_start), yearsToDate(t_forecast), by = "1 week"))
 
+  std_rain <- function(x) {
+    # This function simply standardizes the rain for us.
+    x / max(x)
+  }
+
   all_rain <- haitiRainfall %>%
-    dplyr::mutate(date = as.Date(date, format = "%Y-%m-%d"),
-           time = dateToYears(date)) %>%
+    summarize(
+      date = date, across(Artibonite:`Sud-Est`, std_rain)
+    ) %>%
+    mutate(
+      time = dateToYears(date)
+    ) %>%
     dplyr::filter(time > t_start - 0.01 & time < (t_end + 0.01))
 
-  for (dp in DEPARTMENTS) {
-    rain <- haitiRainfall %>%
-      tidyr::gather(dep, rain,-date) %>%
-      dplyr::group_by(dep) %>%
-      dplyr::ungroup() %>%
-      dplyr::filter(dep == dp) %>%
-      dplyr::mutate(date = as.Date(date, format = "%Y-%m-%d"),
-             time = dateToYears(date)) %>%
-      dplyr::filter(time > t_start - 0.01 & time < (t_end + 0.01)) %>%
-      dplyr::mutate(max_rain = max(rain), rain_std = rain / max_rain)
+  colnames(all_rain) <- c(
+    "date",
+    paste0(
+      'rain_std', c(
+        'Artibonite', 'Centre', 'Grande_Anse',
+        'Nippes', 'Nord', 'Nord_Est', 'Nord_Ouest',
+        'Ouest', 'Sud', 'Sud_Est'
+      )
+    ),
+    'time'
+  )
 
-    all_rain <- cbind(all_rain, placeholder = rain$max_rain)
-    all_rain <- cbind(all_rain, placeholder2 = rain$rain_std)
-    names(all_rain)[names(all_rain) == "placeholder"] <- paste0('max_rain', gsub('-','_',dp))
-    names(all_rain)[names(all_rain) == "placeholder2"] <- paste0('rain_std', gsub('-','_',dp))
-
-  }
-
-  all_rain_forecast <- MODEL3_PROJ_RAIN %>%
-    dplyr::mutate(date = as.Date(date, format = "%Y-%m-%d"),
-           time = dateToYears(date)) %>%
+  all_rain_forecast <- project_rain() %>%
     dplyr::filter(time > t_start - 0.01 & time < (t_forecast + 0.01))
-
-  for (dp in DEPARTMENTS) {
-    rain_forecast <- MODEL3_PROJ_RAIN %>%
-      tidyr::gather(dep, rain, -date) %>%
-      dplyr::group_by(dep) %>%
-      dplyr::ungroup() %>%
-      dplyr::filter(dep == dp) %>%
-      dplyr::mutate(date = as.Date(date, format = "%Y-%m-%d"),
-             time = dateToYears(date)) %>%
-      dplyr::filter(time > t_start - 0.01 & time < (t_forecast + 0.01)) %>%
-      dplyr::mutate(max_rain = all_rain[paste0('max_rain',gsub('-','_', dp))][[1]][1],
-             rain_std = rain/all_rain[paste0('max_rain',gsub('-','_', dp))][[1]][1])
-
-    all_rain_forecast <- cbind(all_rain_forecast, placeholder2 = rain_forecast$rain_std)
-    all_rain_forecast <- cbind(all_rain_forecast, placeholder = rain_forecast$max_rain)
-    names(all_rain_forecast)[names(all_rain_forecast) == "placeholder2"] <- paste0('rain_std', gsub('-','_',dp))
-    names(all_rain_forecast)[names(all_rain_forecast) == "placeholder"] <- paste0('max_rain', gsub('-','_',dp))
-  }
-
-  all_rain_forecast$time <- round(all_rain_forecast$time, 3)
 
   # Create list to store vaccination scenarios
   scenarios <- list()
