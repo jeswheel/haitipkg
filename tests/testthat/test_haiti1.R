@@ -71,11 +71,11 @@ test_that("check parameters", {
                      paste0("A", 1:10, "_0"),
                      paste0("R", 1:10, "_0"))
   ## no vacs, epi
-  expect_equal(names(novac_epi@params), novac_params)
+  expect_identical(names(novac_epi@params), novac_params)
   ## no vacs, end
-  expect_equal(names(novac_end@params), novac_params)
+  expect_identical(names(novac_end@params), novac_params)
   ## 3 dept vacs, epi
-  expect_equal(names(vac3_epi@params), vac3_params)
+  expect_identical(names(vac3_epi@params), vac3_params)
   ## nat vacs, end
-  expect_equal(names(vacnat_end@params), vacnat_params)
+  expect_identical(names(vacnat_end@params), vacnat_params)
 })
