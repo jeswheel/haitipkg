@@ -1,6 +1,7 @@
 library(pomp)
 library(haitipkg)
 library(dplyr)
+library(testthat)
 
 #### Build Models ##############################################################
 #### Goal: test an assortment of possible model builds/configurations
@@ -43,32 +44,28 @@ test_that("check initial time", {
 
 #### Test 3: check that models have the appropriate parameters
 test_that("check parameters", {
-  novac_params <- c("rho_epi", "rho_end", "tau_epi", "tau_end", "sig_sq_epi",
-                    "sig_sq_end", "beta1", "beta2", "beta3", "beta4", "beta5",
-                    "beta6", "nu", "gamma", "sigma", "theta0", "alpha", "mu",
-                    "delta", "kappa", "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0")
-  vac3_params <- c("rho_epi", "rho_end", "tau_epi", "tau_end", "sig_sq_epi",
-                   "sig_sq_end", "beta1", "beta2", "beta3", "beta4", "beta5",
-                   "beta6", "nu", "gamma", "sigma", "theta0", "alpha", "mu",
-                   "delta", "kappa", "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0",
-                   paste0("S", 1:3, "_0"),
-                   paste0("E", 1:3, "_0"),
-                   paste0("I", 1:3, "_0"),
-                   paste0("A", 1:3, "_0"),
-                   paste0("R", 1:3, "_0"))
-  vacnat_params <- c("rho_epi", "rho_end", "tau_epi", "tau_end", "sig_sq_epi",
-                     "sig_sq_end", "beta1", "beta2", "beta3", "beta4", "beta5",
-                     "beta6", "nu", "gamma", "sigma", "theta0", "alpha", "mu",
-                     "delta", "kappa", "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0",
-                     paste0("S", 1:10, "_0"),
-                     paste0("E", 1:10, "_0"),
-                     paste0("I", 1:10, "_0"),
-                     paste0("A", 1:10, "_0"),
-                     paste0("R", 1:10, "_0"))
+  novac_params <- unlist(MODEL1_INPUT_PARAMETERS$joint_pars)
+  par_names <- names(novac_params)
+  depts <- 3
+  vac3_params <- c(novac_params, rep(0.0, 5 * depts))
+  names(vac3_params) <- c(par_names,
+                          paste0("S", 1:depts, "_0"),
+                          paste0("E", 1:depts, "_0"),
+                          paste0("I", 1:depts, "_0"),
+                          paste0("A", 1:depts, "_0"),
+                          paste0("R", 1:depts, "_0"))
+  depts <- 10
+  vacnat_params <- c(novac_params, rep(0.0, 5 * depts))
+  names(vacnat_params) <- c(par_names,
+                            paste0("S", 1:depts, "_0"),
+                            paste0("E", 1:depts, "_0"),
+                            paste0("I", 1:depts, "_0"),
+                            paste0("A", 1:depts, "_0"),
+                            paste0("R", 1:depts, "_0"))
   ## no vacs
-  expect_identical(names(novac@params), novac_params)
+  expect_identical(novac@params, novac_params)
   ## 3 dept vacs
-  expect_identical(names(vac3@params), vac3_params)
+  expect_identical(vac3@params, vac3_params)
   ## nat vacs
-  expect_identical(names(vacnat@params), vacnat_params)
+  expect_identical(vacnat@params, vacnat_params)
 })

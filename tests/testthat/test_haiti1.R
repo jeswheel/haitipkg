@@ -1,6 +1,7 @@
 library(pomp)
 library(haitipkg)
 library(dplyr)
+library(testthat)
 
 #### Build Models ##############################################################
 #### Goal: test an assortment of possible model builds/configurations
@@ -51,31 +52,37 @@ test_that("check initial time", {
 
 #### Test 3: check that models have the appropriate parameters
 test_that("check parameters", {
-  novac_params <- c("rho", "tau", "beta1", "beta2", "beta3", "beta4", "beta5",
-                    "beta6", "nu", "gamma", "sigma", "theta0", "alpha", "mu",
-                    "delta", "sig_sq", "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0")
-  vac3_params <- c("rho", "tau", "beta1", "beta2", "beta3", "beta4", "beta5",
-                   "beta6", "nu", "gamma", "sigma", "theta0", "alpha", "mu", "delta",
-                   "sig_sq", "S_0","E_0","I_0","A_0","R_0", "pop_0", "kappa",
-                   paste0("S", 1:3, "_0"),
-                   paste0("E", 1:3, "_0"),
-                   paste0("I", 1:3, "_0"),
-                   paste0("A", 1:3, "_0"),
-                   paste0("R", 1:3, "_0"))
-  vacnat_params <- c("rho", "tau", "beta1", "beta2", "beta3", "beta4", "beta5",
-                     "beta6", "nu", "gamma", "sigma", "theta0", "alpha", "mu", "delta",
-                     "sig_sq", "S_0","E_0","I_0","A_0","R_0", "pop_0", "kappa",
-                     paste0("S", 1:10, "_0"),
-                     paste0("E", 1:10, "_0"),
-                     paste0("I", 1:10, "_0"),
-                     paste0("A", 1:10, "_0"),
-                     paste0("R", 1:10, "_0"))
+  ## get parameter values
+  epi_params <- MODEL1_INPUT_PARAMETERS$adj_pars_epi
+  end_params <- MODEL1_INPUT_PARAMETERS$adj_pars_end
+  ## append extra values for more depts
+  depts <- 3
+  param_names <- names(epi_params)
+  extra_inits <- rep(0, 5*depts)
+  epi3_params <- c(unlist(epi_params), 0, extra_inits)
+  names(epi3_params) <- c(param_names, "kappa",
+                          paste0("S", 1:depts, "_0"),
+                          paste0("E", 1:depts, "_0"),
+                          paste0("I", 1:depts, "_0"),
+                          paste0("A", 1:depts, "_0"),
+                          paste0("R", 1:depts, "_0"))
+  depts <- 10
+  param_names <- names(end_params)
+  extra_inits <- rep(0, 5*depts)
+  endnat_params <- c(unlist(end_params), 0, extra_inits)
+  names(endnat_params) <- c(param_names, "kappa",
+                            paste0("S", 1:depts, "_0"),
+                            paste0("E", 1:depts, "_0"),
+                            paste0("I", 1:depts, "_0"),
+                            paste0("A", 1:depts, "_0"),
+                            paste0("R", 1:depts, "_0"))
+
   ## no vacs, epi
-  expect_identical(names(novac_epi@params), novac_params)
+  expect_identical(novac_epi@params, unlist(epi_params))
   ## no vacs, end
-  expect_identical(names(novac_end@params), novac_params)
+  expect_identical(novac_end@params, unlist(end_params))
   ## 3 dept vacs, epi
-  expect_identical(names(vac3_epi@params), vac3_params)
+  expect_identical(vac3_epi@params, unlist(epi3_params))
   ## nat vacs, end
-  expect_identical(names(vacnat_end@params), vacnat_params)
+  expect_identical(vacnat_end@params, unlist(endnat_params))
 })

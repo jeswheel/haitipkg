@@ -11,9 +11,7 @@
 #' m1 <- haiti1_dep('Artibonite', 'id0')
 #' @export
 
-haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
-    vacscen <- vacscen
-    departement <- departement
+haiti1_dep <- function(dept = 'Artibonite', vacscen = 'id0') {
     ## get data
     dat <- haiti1_data() %>%
       dplyr::select(-1) %>%
@@ -22,7 +20,7 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
                     Nord_Ouest = Nord.Ouest,
                     Sud_Est = Sud.Est)
     dat <- dat %>%
-      dplyr::select(c(departement, "week"))
+      dplyr::select(c(dept, "week"))
     colnames(dat) <- c("cases", "week")
     other_cases <- haiti1_data()  %>%
       dplyr::select(-1) %>%
@@ -30,7 +28,7 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
                     Nord_Est = Nord.Est,
                     Nord_Ouest = Nord.Ouest,
                     Sud_Est = Sud.Est) %>%
-      dplyr::select(-departement)
+      dplyr::select(-dept)
     other_cases$other_cases = rowSums(other_cases[ , c(1,9)])
     other_cases <- other_cases %>%
       dplyr::select(c("week", "other_cases"))
@@ -46,27 +44,27 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
                     settings = fc_set)
     covar <- dplyr::left_join(covar, other_cases, by = c("time" = "week"))
 
-    ## determine if departement is included in vaccination campaign
+    ## determine if dept is included in vaccination campaign
     vac <- FALSE
     if (vacscen == 'id0') { ## no vaccination
       vac <- FALSE
     } else if (vacscen == 'id1') { ## fast national
       vac <- TRUE
-    } else if (vacscen == 'id2') { ## 2-departement
-      if (departement == 'Centre' | departement == 'Artibonite') {
+    } else if (vacscen == 'id2') { ## 2-dept
+      if (dept == 'Centre' | dept == 'Artibonite') {
         vac <- TRUE
       }
     } else if (vacscen == 'id3') { ## slow national
       vac <- TRUE
-    } else if (vacscen == 'id4') { ## 3-departement
-      if (departement == 'Centre' | departement == 'Artibonite' | departement == 'Ouest') {
+    } else if (vacscen == 'id4') { ## 3-dept
+      if (dept == 'Centre' | dept == 'Artibonite' | dept == 'Ouest') {
         vac <- TRUE
       }
     } else { ## fast national high-coverage
       vac <- TRUE
     }
 
-    dept_order <- switch(departement,
+    dept_order <- switch(dept,
                          "Centre" = 1,
                          "Artibonite" = 2,
                          "Ouest" = 3,
@@ -375,7 +373,7 @@ haiti1_dep <- function(departement = 'Artibonite', vacscen = 'id0') {
       barycentric = c("S_0", "E_0", "I_0", "A_0", "R_0")
     )
 
-    params <- MODEL1_INPUT_PARAMETERS$dep_params[[departement]] %>%
+    params <- MODEL1_INPUT_PARAMETERS$dep_params[[dept]] %>%
       unlist()
 
     if (vac) {
