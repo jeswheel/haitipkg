@@ -42,13 +42,13 @@ haiti3_dep_data <- function(departement = 'Artibonite', start_time = '2014-03-01
 
   # haitiCholera is a saved data.frame in the package
   MODEL3_CASES <- haitiCholera %>%
-    rename(
+    dplyr::rename(
       date = date_saturday, Grande_Anse = Grand.Anse,
       `Nord-Est` = Nord.Est, `Nord-Ouest` = Nord.Ouest,
       `Sud-Est` = Sud.Est
     ) %>%
-    mutate(date = as.Date(date)) %>%
-    select(-report)
+    dplyr::mutate(date = as.Date(date)) %>%
+    dplyr::select(-report)
 
   cases <- MODEL3_CASES %>%
     tidyr::gather(dep, cases, -date) %>%

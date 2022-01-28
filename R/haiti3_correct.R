@@ -112,13 +112,13 @@ haiti3_correct <- function(dt_yrs = 1 / 365.25 * .5) {
 
   # haitiCholera is a saved data.frame in the package
   MODEL3_CASES <- haitiCholera %>%
-    rename(
+    dplyr::rename(
       date = date_saturday, Grande_Anse = Grand.Anse,
       `Nord-Est` = Nord.Est, `Nord-Ouest` = Nord.Ouest,
       `Sud-Est` = Sud.Est
     ) %>%
-    mutate(date = as.Date(date)) %>%
-    select(-report)
+    dplyr::mutate(date = as.Date(date)) %>%
+    dplyr::select(-report)
 
   all_cases <- MODEL3_CASES %>%
     dplyr::mutate(
@@ -132,10 +132,10 @@ haiti3_correct <- function(dt_yrs = 1 / 365.25 * .5) {
   }
 
   all_rain <- haitiRainfall %>%
-    summarize(
-      date = date, across(Artibonite:`Sud-Est`, std_rain)
+    dplyr::summarize(
+      date = date, dplyr::across(Artibonite:`Sud-Est`, std_rain)
     ) %>%
-    mutate(
+    dplyr::mutate(
       time = dateToYears(date)
     ) %>%
     dplyr::filter(time > t_start - 0.01 & time < (t_end + 0.01))

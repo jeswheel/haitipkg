@@ -4,12 +4,12 @@
 \alias{haiti1_dep}
 \title{Build pomp object for a single department in Model 1}
 \usage{
-haiti1_dep(departement = "Artibonite", vacscen = "id0")
+haiti1_dep(dept = "Artibonite", vacscen = "id0")
 }
 \arguments{
-\item{departement}{String for which departement to use for the pomp object}
-
 \item{vacscen}{String for what vaccination campaign to do}
+
+\item{departement}{String for which departement to use for the pomp object}
 }
 \value{
 An object of class \sQuote{pomp}.
