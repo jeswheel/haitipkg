@@ -23,7 +23,7 @@ haiti1_panel <- function(vacscen = 'id0') {
   # Loop through each departement
   for (dep in depts) {
     # Using haitipkg, create and save pomp object for each departement
-    pomps[[dep]] <- haiti1_dep(departement = dep, vacscen = vacscen)
+    pomps[[dep]] <- haiti1_dep(dept = dep, vacscen = vacscen)
   }
 
   ## parameters --- from best fit of haiti1_joint()
