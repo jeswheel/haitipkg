@@ -1,6 +1,6 @@
 #' Build pomp object for model 3.
 #'
-#' Generate a \sQuote{pomp} object for fitting to Haiti cholera data.
+#' Generate a \sQuote{spatPomp} object for fitting to Haiti cholera data.
 #'    This model is a stochastic compartmental model applied at the
 #'    level of the ten Haitian departments. It is the stochastic
 #'    translation of a deterministic SIRB model based on Ordinary
@@ -31,13 +31,13 @@
 #' @importFrom foreach foreach
 #' @seealso \code{\link{haiti2}} and \code{\link{haiti1}} for other models used
 #' to fit the cholera epidemic in Haiti.
-#' @return \code{\link[pomp]{pomp}} representation of model 3 described in \href{https://www.sciencedirect.com/science/article/pii/S2214109X20303107}{Lee, Elizabeth et. al.} and it's accompanying \href{https://ars.els-cdn.com/content/image/1-s2.0-S2214109X20303107-mmc3.pdf}{Supplemental Material}.
+#' @return \code{\link[spatPomp]{spatPomp}} representation of model 3 described in \href{https://www.sciencedirect.com/science/article/pii/S2214109X20303107}{Lee, Elizabeth et. al.} and it's accompanying \href{https://ars.els-cdn.com/content/image/1-s2.0-S2214109X20303107-mmc3.pdf}{Supplemental Material}.
 #'
 #' @examples
-#' mod3 <- haiti3_correct()
+#' mod3 <- haiti3_spatPomp()
 #' @export
 
-haiti3_correct <- function(dt_yrs = 1 / 365.25 * .5) {
+haiti3_spatPomp <- function(dt_years = 1/365.25) {
 
   # Create vector of departement names
   departements = c(
@@ -124,7 +124,14 @@ haiti3_correct <- function(dt_yrs = 1 / 365.25 * .5) {
     dplyr::mutate(
       date = as.Date(date, format = '%Y-%m-%d'),
       time = dateToYears(date)
-    )
+    ) %>%
+    tidyr::pivot_longer(
+      data = .,
+      cols = 2:11,
+      names_to = "departement",
+      values_to = "cases"
+    ) %>%
+    dplyr::arrange(departement, time)
 
   std_rain <- function(x) {
     # This function simply standardizes the rain for us.
@@ -152,6 +159,17 @@ haiti3_correct <- function(dt_yrs = 1 / 365.25 * .5) {
     ),
     'time'
   )
+
+  all_rain <- all_rain %>%
+    tidyr::pivot_longer(
+      data = .,
+      cols = 2:11,
+      names_to = "departement",
+      values_to = "rain_std",
+      names_prefix = "rain_std"
+    ) %>%
+    dplyr::arrange(departement, time)
+
 
   # Loop through each of the departements and:
   # (1) Create a dataset with each departement case count
@@ -310,23 +328,23 @@ VR3dd_alt%s = 0;
 
 "
 
-  initalizeStatesAll <- "double R0[2] = {0,0};
+initalizeStatesAll <- "double R0[2] = {0,0};
 IncidenceAll = 0;
 DosesAll = 0;
 CasesAll = 0;
 double thetaA = thetaI * XthetaA;"
 
-  for (dp in departements) {
-    initalizeStatesAll = paste0(initalizeStatesAll, gsub('%s', gsub('-', '_', dp), initalizeStatesTemplate))
-  }
+for (dp in departements) {
+  initalizeStatesAll = paste0(initalizeStatesAll, gsub('%s', gsub('-', '_', dp), initalizeStatesTemplate))
+}
 
-  initalizeStates <- pomp::Csnippet(initalizeStatesAll)
+initalizeStates <- pomp::Csnippet(initalizeStatesAll)
 
-  ###
-  ### rmeas
-  ###
+###
+### rmeas
+###
 
-  rmeasTemplate <- "
+rmeasTemplate <- "
   if (t > 2018) {
     cases%s = rnbinom_mu(k, epsilon * C%s * cas_def);
   } else {
@@ -334,18 +352,18 @@ double thetaA = thetaI * XthetaA;"
   }
   "
 
-  rmeasAll = ""
-  for (dp in departements) {
-    rmeasAll = paste0(rmeasAll, gsub('%s', gsub('-', '_', dp), rmeasTemplate))
-  }
+rmeasAll = ""
+for (dp in departements) {
+  rmeasAll = paste0(rmeasAll, gsub('%s', gsub('-', '_', dp), rmeasTemplate))
+}
 
-  rmeas <- pomp::Csnippet(rmeasAll)
+rmeas <- pomp::Csnippet(rmeasAll)
 
-  ###
-  ### dmeas
-  ###
+###
+### dmeas
+###
 
-  dmeasTemplate <- "
+dmeasTemplate <- "
     if (ISNA(cases%s)) {
        lik += (give_log) ? 0 : 1;
     } else {
@@ -357,19 +375,19 @@ double thetaA = thetaI * XthetaA;"
     }
 "
 
-  dmeasAll = "lik = 0;"
-  for (dp in departements) {
-    dmeasAll = paste0(dmeasAll, gsub('%s', gsub('-', '_', dp), dmeasTemplate))
-  }
+dmeasAll = "lik = 0;"
+for (dp in departements) {
+  dmeasAll = paste0(dmeasAll, gsub('%s', gsub('-', '_', dp), dmeasTemplate))
+}
 
-  dmeas <- pomp::Csnippet(dmeasAll)
+dmeas <- pomp::Csnippet(dmeasAll)
 
-  ###
-  ### rproc
-  ###
+###
+### rproc
+###
 
-  # Every department gets a copy.
-  sirb_file <- "
+# Every department gets a copy.
+sirb_file <- "
 previous_vacc_campaign = TRUE;
 r_v_wdn = 0;
 dw = 0;
@@ -659,16 +677,16 @@ double thetaA = thetaI * XthetaA;
 
   "
 
-  final_rproc <- ""
-  for (dp in departements) {
-    final_rproc <- paste0(final_rproc, gsub('%s', gsub('-', '_', dp), sirb_file))
-  }
+final_rproc <- ""
+for (dp in departements) {
+  final_rproc <- paste0(final_rproc, gsub('%s', gsub('-', '_', dp), sirb_file))
+}
 
-  final_rproc <- paste0(rproc_main, final_rproc)
-  final_rproc_c <- pomp::Csnippet(final_rproc)
+final_rproc <- paste0(rproc_main, final_rproc)
+final_rproc_c <- pomp::Csnippet(final_rproc)
 
-  # C function to compute the time-derivative of bacterial concentration OK
-  derivativeBacteria.c <- " double fB(int I, int A, double B,
+# C function to compute the time-derivative of bacterial concentration OK
+derivativeBacteria.c <- " double fB(int I, int A, double B,
 double mu_B, double thetaI, double XthetaA, double lambdaR, double rain, double r, double D) {
 double thetaA = thetaI * XthetaA;
 double dB;
@@ -677,7 +695,7 @@ return(dB);
 };
   "
 
-  eff_v.c <- "
+eff_v.c <- "
 
  double eff_v_2d(double t_since_vacc, int scenario) {
   double eff_v_2d = 0.0;
@@ -823,170 +841,171 @@ return(dB);
                   };
   "
 
-  zeronameTemplate = c("C", "W")
-  zeronameAll = c('IncidenceAll', 'CasesAll')
-  for (dp in departements){
-    zeronameAll = append(zeronameAll, lapply(zeronameTemplate, paste0, gsub('-', '_', dp)))
+zeronameTemplate = c("C", "W")
+zeronameAll = c('IncidenceAll', 'CasesAll')
+for (dp in departements){
+  zeronameAll = append(zeronameAll, lapply(zeronameTemplate, paste0, gsub('-', '_', dp)))
 
-  }
-  zeronameAll <- unlist(zeronameAll)
-
-  # dt_yrs <- 1 / 365.25 * .2
-
-  pt <- pomp::parameter_trans(
-    log = c(
-      "mu_B", "thetaI", "lambdaR", "r", "std_W", "k",
-      "betaBArtibonite", "foi_addArtibonite", "betaBCentre",
-      "foi_addCentre", "betaBGrande_Anse", "foi_addGrande_Anse",
-      "betaBNippes", "foi_addNippes", "betaBNord", "foi_addNord",
-      "betaBNord_Est", "foi_addNord_Est", "betaBNord_Ouest",
-      "foi_addNord_Ouest", "betaBOuest", "foi_addOuest",
-      "betaBSud", "foi_addSud", "betaBSud_Est", "foi_addSud_Est"
-    ),
-    logit = c(
-      "XthetaA",
-      "epsilon",
-      "cas_def"
-    )
-  )
-
-  all_params["sigma"] <- .25               # Fixed
-  all_params["rho"] <- 1 / (365 * 8) * 365.25   # Fixed  \rho in table 14
-  all_params["gamma"] <- 182.625          # TODO: where does this number come from? I think this is a mistake by the authors. Fixed  divide by 365 to get \gamma in table 14
-  all_params["Rtot_0"] <- 0.35             # Useless
-
-
-  all_params['cases_ext'] <- 1
-  all_params['mu'] <-  0.01586625546  # divide by 365 to get \mu in table 14
-  all_params['alpha'] <- 1.461  # divide by 365 to get \alpha in table 14
-
-  # From calibration
-  all_params["mu_B"] <-  133.19716102404308  # This value mu_B / 365 matches calibrated \mu_B in table
-  all_params["XthetaA"] <- 0.0436160721505241  # This multiplies thetaI to get \theta_A in table S15
-  all_params["thetaI"] <- 3.4476623459780395e-4  # matches \theta_I in table S15
-  all_params["lambdaR"] <- 0.2774237712085347  # matches \lambda in table S15
-  all_params["r"] <- 0.31360358752214235  # Matches table S15
-  all_params["std_W"] <- 0.008172280355938182  # Matches table S15
-  all_params["epsilon"] <- 0.9750270707877388  # Matches table S15
-  all_params["k"] <- 101.2215999283583  # Matches p in table S15
-  all_params["cas_def"] <- 0.10  # TODO: It is clear this wasn't fit using MIF, but the authors say that it was. Matches \epsilon_2 in table S15
-
-  all_params["betaBArtibonite"] =   0.516191
-  all_params["betaBSud_Est"] =      1.384372
-  all_params["betaBNippes"] =       2.999928
-  all_params["betaBNord_Est"] =     3.248645
-  all_params["betaBOuest"] =        0.090937
-  all_params["betaBCentre"] =       1.977686
-  all_params["betaBNord"] =         0.589541
-  all_params["betaBSud"] =          1.305966
-  all_params["betaBNord_Ouest"] =   1.141691
-  all_params["betaBGrande_Anse"] =  2.823539
-
-  all_params["foi_addArtibonite"] =    1.530994e-06
-  all_params["foi_addSud_Est"] =     6.105491e-07
-  all_params["foi_addNippes"] =       3.056857e-07
-  all_params["foi_addNord_Est"] =     8.209611e-07
-  all_params["foi_addOuest"] =       1.070717e-06
-  all_params["foi_addCentre"] =      0.0000106504579266415
-  all_params["foi_addNord"] =         5.319736e-07
-  all_params["foi_addSud"] =          1.030357e-06
-  all_params["foi_addNord_Ouest"] =   5.855759e-07
-  all_params["foi_addGrande_Anse"] =  8.762740e-07
-
-  all_params["B0Artibonite"] =   0.24
-  all_params["B0Sud_Est"] =      0.24
-  all_params["B0Nippes"] =       0.24
-  all_params["B0Nord_Est"] =     0.24
-  all_params["B0Ouest"] =        0.24
-  all_params["B0Centre"] =       0.24
-  all_params["B0Nord"] =         0.24
-  all_params["B0Sud"] =          0.24
-  all_params["B0Nord_Ouest"] =   0.24
-  all_params["B0Grande_Anse"] =  0.24
-
-  cases_df <- all_cases %>%
-    dplyr::filter(time > t_start & time < (t_end + 0.01)) %>%
-    dplyr::select(
-      time, casesArtibonite, casesCentre,
-      casesGrande_Anse, casesNippes,
-      casesNord, casesNord_Est, casesOuest,
-      casesSud, casesSud_Est, casesNord_Ouest
-    )
-
-  tot_cases <- cases_df %>%
-    dplyr::rename(
-      CasesArtibonite = casesArtibonite,
-      CasesCentre = casesCentre,
-      CasesGrande_Anse = casesGrande_Anse,
-      CasesNippes = casesNippes,
-      CasesNord = casesNord,
-      CasesNord_Est = casesNord_Est,
-      CasesOuest = casesOuest,
-      CasesSud = casesSud,
-      CasesSud_Est = casesSud_Est,
-      CasesNord_Ouest = casesNord_Ouest
-    )
-
-
-  all_rain <- all_rain %>% dplyr::select(time, dplyr::starts_with('rain_std'))
-  covars <- dplyr::full_join(all_rain, tot_cases, by = 'time') %>%
-    tidyr::fill(CasesArtibonite,
-                CasesCentre,
-                CasesGrande_Anse,
-                CasesNippes,
-                CasesNord,
-                CasesNord_Est,
-                CasesOuest,
-                CasesSud,
-                CasesSud_Est,
-                CasesNord_Ouest, .direction = c('updown'))
-  # covars <- all_rain %>%
-  #   dplyr::select(time, dplyr::starts_with('rain_std'))
-
-  # %>%
-    # tidyr::fill(dplyr::starts_with("Cases"), .direction = 'up')
-
-  sirb_cholera <- pomp::pomp(
-    # set data
-    data = cases_df,
-    # time column
-    times = "time",
-    # initialization time
-    t0 = t_start - dt_yrs,
-    # paramter vector
-    params = all_params,
-
-    # process simulator
-    rprocess = pomp::euler(step.fun = final_rproc_c, delta.t = dt_yrs),
-    # measurement model simulator
-    rmeasure =  rmeas,
-    # measurement model density
-    dmeasure = dmeas,
-    # covariates
-    covar = pomp::covariate_table(covars, times = 'time'),
-    # names of state variables
-    statenames = all_state_names,
-    # names of accumulator variables to be re-initalized at each observation timestep
-    # (C for cases, W for the white noise just for plotting)
-    accumvars = zeronameAll,
-    # names of paramters
-    paramnames = all_param_names,
-    # names of covariates
-    rinit = initalizeStates,
-    partrans = pt,
-    # global C definitions
-    globals = stringr::str_c(
-      sprintf("int n_cases_start = %i;",  nrow(cases_at_t_start)),
-      sprintf("int n_cases_other = %i;",  nrow(cases_other_dept)), # TODO: Check if this can be removed
-      sprintf("double t_start = %f;",  t_start),
-      sprintf("double t_end = %f;",  t_end),
-      derivativeBacteria.c,
-      all_matrix_cases_at_t_start.string,
-      all_matrix_cases_other.string,  # TODO: Problably don't need these either
-      eff_v.c,
-      sep = " "
-    )
-  )
-
-  return(sirb_cholera)
 }
+zeronameAll <- unlist(zeronameAll)
+
+# dt_yrs <- 1 / 365.25 * .2
+
+pt <- pomp::parameter_trans(
+  log = c(
+    "mu_B", "thetaI", "lambdaR", "r", "std_W", "k",
+    "betaBArtibonite", "foi_addArtibonite", "betaBCentre",
+    "foi_addCentre", "betaBGrande_Anse", "foi_addGrande_Anse",
+    "betaBNippes", "foi_addNippes", "betaBNord", "foi_addNord",
+    "betaBNord_Est", "foi_addNord_Est", "betaBNord_Ouest",
+    "foi_addNord_Ouest", "betaBOuest", "foi_addOuest",
+    "betaBSud", "foi_addSud", "betaBSud_Est", "foi_addSud_Est"
+  ),
+  logit = c(
+    "XthetaA",
+    "epsilon",
+    "cas_def"
+  )
+)
+
+all_params["sigma"] <- .25               # Fixed
+all_params["rho"] <- 1 / (365 * 8) * 365.25   # Fixed  \rho in table 14
+all_params["gamma"] <- 182.625          # TODO: where does this number come from? I think this is a mistake by the authors. Fixed  divide by 365 to get \gamma in table 14
+all_params["Rtot_0"] <- 0.35             # Useless
+
+
+all_params['cases_ext'] <- 1
+all_params['mu'] <-  0.01586625546  # divide by 365 to get \mu in table 14
+all_params['alpha'] <- 1.461  # divide by 365 to get \alpha in table 14
+
+# From calibration
+all_params["mu_B"] <-  133.19716102404308  # This value mu_B / 365 matches calibrated \mu_B in table
+all_params["XthetaA"] <- 0.0436160721505241  # This multiplies thetaI to get \theta_A in table S15
+all_params["thetaI"] <- 3.4476623459780395e-4  # matches \theta_I in table S15
+all_params["lambdaR"] <- 0.2774237712085347  # matches \lambda in table S15
+all_params["r"] <- 0.31360358752214235  # Matches table S15
+all_params["std_W"] <- 0.008172280355938182  # Matches table S15
+all_params["epsilon"] <- 0.9750270707877388  # Matches table S15
+all_params["k"] <- 101.2215999283583  # Matches p in table S15
+all_params["cas_def"] <- 0.10  # TODO: It is clear this wasn't fit using MIF, but the authors say that it was. Matches \epsilon_2 in table S15
+
+all_params["betaBArtibonite"] =   0.516191
+all_params["betaBSud_Est"] =      1.384372
+all_params["betaBNippes"] =       2.999928
+all_params["betaBNord_Est"] =     3.248645
+all_params["betaBOuest"] =        0.090937
+all_params["betaBCentre"] =       1.977686
+all_params["betaBNord"] =         0.589541
+all_params["betaBSud"] =          1.305966
+all_params["betaBNord_Ouest"] =   1.141691
+all_params["betaBGrande_Anse"] =  2.823539
+
+all_params["foi_addArtibonite"] =    1.530994e-06
+all_params["foi_addSud_Est"] =     6.105491e-07
+all_params["foi_addNippes"] =       3.056857e-07
+all_params["foi_addNord_Est"] =     8.209611e-07
+all_params["foi_addOuest"] =       1.070717e-06
+all_params["foi_addCentre"] =      0.0000106504579266415
+all_params["foi_addNord"] =         5.319736e-07
+all_params["foi_addSud"] =          1.030357e-06
+all_params["foi_addNord_Ouest"] =   5.855759e-07
+all_params["foi_addGrande_Anse"] =  8.762740e-07
+
+all_params["B0Artibonite"] =   0.24
+all_params["B0Sud_Est"] =      0.24
+all_params["B0Nippes"] =       0.24
+all_params["B0Nord_Est"] =     0.24
+all_params["B0Ouest"] =        0.24
+all_params["B0Centre"] =       0.24
+all_params["B0Nord"] =         0.24
+all_params["B0Sud"] =          0.24
+all_params["B0Nord_Ouest"] =   0.24
+all_params["B0Grande_Anse"] =  0.24
+
+cases_df <- all_cases %>%
+  dplyr::filter(time > t_start & time < (t_end + 0.01)) %>%
+  dplyr::select(
+    time, casesArtibonite, casesCentre,
+    casesGrande_Anse, casesNippes,
+    casesNord, casesNord_Est, casesOuest,
+    casesSud, casesSud_Est, casesNord_Ouest
+  )
+
+tot_cases <- cases_df %>%
+  dplyr::rename(
+    CasesArtibonite = casesArtibonite,
+    CasesCentre = casesCentre,
+    CasesGrande_Anse = casesGrande_Anse,
+    CasesNippes = casesNippes,
+    CasesNord = casesNord,
+    CasesNord_Est = casesNord_Est,
+    CasesOuest = casesOuest,
+    CasesSud = casesSud,
+    CasesSud_Est = casesSud_Est,
+    CasesNord_Ouest = casesNord_Ouest
+  )
+
+
+all_rain <- all_rain %>% dplyr::select(time, dplyr::starts_with('rain_std'))
+covars <- dplyr::full_join(all_rain, tot_cases, by = 'time') %>%
+  tidyr::fill(CasesArtibonite,
+              CasesCentre,
+              CasesGrande_Anse,
+              CasesNippes,
+              CasesNord,
+              CasesNord_Est,
+              CasesOuest,
+              CasesSud,
+              CasesSud_Est,
+              CasesNord_Ouest, .direction = c('updown'))
+# covars <- all_rain %>%
+#   dplyr::select(time, dplyr::starts_with('rain_std'))
+
+# %>%
+# tidyr::fill(dplyr::starts_with("Cases"), .direction = 'up')
+
+sirb_cholera <- pomp::pomp(
+  # set data
+  data = cases_df,
+  # time column
+  times = "time",
+  # initialization time
+  t0 = t_start - dt_yrs,
+  # paramter vector
+  params = all_params,
+
+  # process simulator
+  rprocess = pomp::euler(step.fun = final_rproc_c, delta.t = dt_yrs),
+  # measurement model simulator
+  rmeasure =  rmeas,
+  # measurement model density
+  dmeasure = dmeas,
+  # covariates
+  covar = pomp::covariate_table(covars, times = 'time'),
+  # names of state variables
+  statenames = all_state_names,
+  # names of accumulator variables to be re-initalized at each observation timestep
+  # (C for cases, W for the white noise just for plotting)
+  accumvars = zeronameAll,
+  # names of paramters
+  paramnames = all_param_names,
+  # names of covariates
+  rinit = initalizeStates,
+  partrans = pt,
+  # global C definitions
+  globals = stringr::str_c(
+    sprintf("int n_cases_start = %i;",  nrow(cases_at_t_start)),
+    sprintf("int n_cases_other = %i;",  nrow(cases_other_dept)),
+    sprintf("double t_start = %f;",  t_start),
+    sprintf("double t_end = %f;",  t_end),
+    derivativeBacteria.c,
+    all_matrix_cases_at_t_start.string,
+    all_matrix_cases_other.string,
+    eff_v.c,
+    sep = " "
+  )
+)
+
+return(sirb_cholera)
+}
+
