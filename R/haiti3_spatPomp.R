@@ -42,8 +42,8 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
   # Create vector of departement names
   departements = c(
     'Artibonite', 'Centre', 'Grande_Anse',
-    'Nippes', 'Nord', 'Nord-Est', 'Nord-Ouest',
-    'Ouest', 'Sud', 'Sud-Est'
+    'Nippes', 'Nord', 'Nord_Est', 'Nord_Ouest',
+    'Ouest', 'Sud', 'Sud_Est'
   )
 
   # First Define some helper functions:
@@ -73,17 +73,16 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
   }
 
   # List all state-names in pomp object:
-  state_names <- c(
+  unit_state_names <- c(
     "S", "I", "A", "R1", "R2", "R3",
     "VSd", "VR1d", "VR2d", "VR3d",
     "VSdd", "VR1dd", "VR2dd", "VR3dd",
-    # "VAd", "VAdd", "VAd_alt", "VAdd_alt",
     "VSd_alt", "VR1d_alt", "VR2d_alt", "VR3d_alt",
     "VSdd_alt", "VR1dd_alt",
-    "VR2dd_alt", "VR3dd_alt",
-    "B", "C", "W",
-    "MobAI", "MobCases" # TODO: Remove this when done.
+    "VR2dd_alt", "VR3dd_alt", "C"
   )
+
+  unit_state_names <- c(paste0(rep(unit_state_names, each = 10), 1:10), 'B')
 
   # All parameters that are common to each departement (disease specific parameters)
   params_common <- c(
@@ -99,23 +98,27 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
     "t_vacc_end_alt", "p1d_reg_alt", "r_v_year_alt", "B0"
   )
 
+  all_params_names <- c(params_common, params_diff)
+  all_unit_params_names <- paste0(rep(all_params_names, each = 10), 1:10)
+  all_unit_params <- rep(0, length(all_unit_params_names))
+  names(all_unit_params) <- all_unit_params_names
+
   # Load the input parameters
   # t_start <- dateToYears(as.Date(MODEL3_INPUT_PARAMETERS$t_start))
   t_start <- dateToYears(as.Date("2010-10-23"))
-  t_end   <- dateToYears(as.Date(MODEL3_INPUT_PARAMETERS$t_end))
+  t_end   <- dateToYears(as.Date(haitipkg:::MODEL3_INPUT_PARAMETERS$t_end))
 
-  all_state_names <- c('IncidenceAll', 'DosesAll', 'CasesAll')
-  all_param_names <- params_common
+  # all_state_names <- c('IncidenceAll', 'DosesAll', 'CasesAll')
+  # all_param_names <- params_common
 
   all_matrix_cases_at_t_start.string <- ""
-  all_matrix_cases_other.string <- ""
 
   # haitiCholera is a saved data.frame in the package
   MODEL3_CASES <- haitiCholera %>%
     dplyr::rename(
       date = date_saturday, Grande_Anse = Grand.Anse,
-      `Nord-Est` = Nord.Est, `Nord-Ouest` = Nord.Ouest,
-      `Sud-Est` = Sud.Est
+      Nord_Est = Nord.Est, Nord_Ouest = Nord.Ouest,
+      Sud_Est = Sud.Est
     ) %>%
     dplyr::mutate(date = as.Date(date)) %>%
     dplyr::select(-report)
@@ -131,7 +134,8 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
       names_to = "departement",
       values_to = "cases"
     ) %>%
-    dplyr::arrange(departement, time)
+    dplyr::arrange(departement, time) %>%
+    dplyr::select(-date)
 
   std_rain <- function(x) {
     # This function simply standardizes the rain for us.
@@ -168,337 +172,311 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
       values_to = "rain_std",
       names_prefix = "rain_std"
     ) %>%
-    dplyr::arrange(departement, time)
+    dplyr::arrange(departement, time) %>%
+    dplyr::select(-date)
 
 
-  # Loop through each of the departements and:
-  # (1) Create a dataset with each departement case count
-  for (dp in departements) {
+  all_cases_at_t_start.string <- ""
+  for (i in 1:10) {  # Loop through data to get starting observations in each dep.
 
-    cases <- MODEL3_CASES %>%
-      tidyr::gather(dep, cases, -date) %>%
-      dplyr::filter(dep == dp) %>%
-      dplyr::mutate(
-        date = as.Date(date, format = "%Y-%m-%d"),
-        time = dateToYears(date)
+    # Select the departement
+    dp <- departements[i]
+    dep_cases <- all_cases %>%
+      dplyr::filter(departement == dp)
+
+    # Look at all observations prior to t_start
+    cases_at_t_start <- dep_cases %>% dplyr::filter(time <= t_start)
+
+    # Loop through each of the rows in the remaining data, and write the row
+    # as an array in C.
+    cases_at_t_start.string <- foreach::foreach(
+      r = iterators::iter(cases_at_t_start, by = "row"),
+      .combine = c
+    ) %do% {
+      sprintf("{%f, %f}", r$time, r$cases)
+    } %>%
+      stringr::str_c(collapse = ", \n") %>%
+      paste0(" {", ., '}')  # Wrap all rows in {}, so single object for each dep
+
+    # special cases for starting the array, ending it, or just in the middle.
+    if (i == 1) {  # Start
+      cases_at_t_start.string <- paste0(
+        sprintf(
+          "double cases_at_t_start[10][%i][%i] = {\n",
+          nrow(cases_at_t_start),
+          2
+        ), cases_at_t_start.string, ',\n'
       )
-
-    all_cases <- cbind(all_cases, placeholder = cases$cases)
-    names(all_cases)[names(all_cases) == "placeholder"] <- paste0('cases', gsub('-','_',dp))
-
-    cases_other_dept <- MODEL3_CASES  %>%
-      tidyr::gather(dep, cases,-date) %>%
-      dplyr::filter(dep != dp) %>%
-      dplyr::mutate(
-        date = as.Date(date, format = "%Y-%m-%d"),
-        time = dateToYears(date)
+    } else if (i == 10) {  # End
+      cases_at_t_start.string <- paste0(
+        cases_at_t_start.string, "\n};"
       )
+    } else {  # Middle
+      cases_at_t_start.string <- paste0(
+        cases_at_t_start.string, ",\n"
+      )
+    }
 
-    cases_other_dept <- aggregate(
-      cases_other_dept$cases,
-      by = list(Category = cases_other_dept$time),
-      FUN = sum,
-      na.rm = TRUE,
-      na.action = NULL
-    ) %>%
-      dplyr::mutate(time = Category) %>%
-      dplyr::mutate(cases = x)
-
-
-    cases_at_t_start <- cases %>% dplyr::filter(dateToYears(date) <= t_start)
-    cases_at_t_start.string <- foreach::foreach(r = iterators::iter(cases_at_t_start, by = "row"),
-                                                .combine = c) %do% {
-                                                  sprintf(" {%f, %f} ", r$time, r$cases)
-                                                } %>%
-      stringr::str_c(collapse = ", \n")
-
-    matrix_cases_at_t_start.string <- stringr::str_c(
-      sprintf(
-        "double cases_at_t_start%s[%i][%i] = {\n",
-        gsub('-', '_', dp),
-        nrow(cases_at_t_start),
-        2
-      ),
-      cases_at_t_start.string,
-      " \n };"
-    )
-
-    # Cases from other departement as a mobility rational
-    cases_other.string <-
-      foreach::foreach(r = iterators::iter(cases_other_dept, by = "row"),
-                       .combine = c) %do% {
-                         sprintf(" {%f, %f} ", r$time, r$cases)
-                       } %>%
-      stringr::str_c(collapse = ", \n")
-
-    matrix_cases_other.string <-
-      stringr::str_c(sprintf("double cases_other%s[%i][%i] = {\n", gsub('-', '_', dp), nrow(cases_other_dept), 2),
-                     cases_other.string,
-                     " \n };")
-
-    all_matrix_cases_at_t_start.string <- stringr::str_c(all_matrix_cases_at_t_start.string, matrix_cases_at_t_start.string)
-    all_matrix_cases_other.string <- stringr::str_c(all_matrix_cases_other.string, matrix_cases_other.string)
-
-    all_state_names <- append(all_state_names, lapply(state_names, paste0, gsub('-', '_',dp)))
-    all_param_names <- append(all_param_names, lapply(params_diff, paste0, gsub('-', '_',dp)))
-
-    all_state_names <- unlist(all_state_names)
-    all_param_names <- unlist(all_param_names)
-
-    all_params <- purrr::set_names(seq_along(all_param_names) * 0, all_param_names)
-
+    # all_matrix_cases_at_t_start.string <- stringr::str_c(all_matrix_cases_at_t_start.string, matrix_cases_at_t_start.string)
+    all_cases_at_t_start.string <- paste0(all_cases_at_t_start.string, cases_at_t_start.string)
   }
 
-  for (dp in departements) {
-    populations <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS["population"]))
-    densities <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS["density"]))
-    all_params[paste0('H', gsub('-', '_', dp))] <- populations[dp]
-    all_params[paste0('D', gsub('-', '_', dp))] <- densities[dp]
-    p1d_alt_year <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS['p1d_alt_year']))
-    nb_doses_alt_year <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS['nb_doses_alt_year']))
-    t_vacc_start_alt  <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS["t_vacc_start_alt"]))
-    t_vacc_end_alt <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS["t_vacc_end_alt"]))
+  MODEL3_INPUT_PARAMETERS <- haitipkg:::MODEL3_INPUT_PARAMETERS
+
+  populations <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS["population"]))
+  densities <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS["density"]))
+  p1d_alt_year <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS['p1d_alt_year']))
+  nb_doses_alt_year <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS['nb_doses_alt_year']))
+  t_vacc_start_alt  <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS["t_vacc_start_alt"]))
+  t_vacc_end_alt <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS["t_vacc_end_alt"]))
+
+  names(populations) <- gsub("-", "_", names(populations))
+  names(densities) <- gsub("-", "_", names(densities))
+  names(p1d_alt_year) <- gsub("-", "_", names(p1d_alt_year))
+  names(nb_doses_alt_year) <- gsub("-", "_", names(nb_doses_alt_year))
+  names(t_vacc_start_alt) <- gsub("-", "_", names(t_vacc_start_alt))
+  names(t_vacc_end_alt) <- gsub("-", "_", names(t_vacc_end_alt))
+
+  for (i in 1:10) {
+    dp <- departements[i]
+
+    all_unit_params[paste0('H', i)] <- populations[dp]
+    all_unit_params[paste0('D', i)] <- densities[dp]
+
     # Vaccination information:
-    t_vacc_start_alt = dateToYears(as.Date(t_vacc_start_alt[dp]))
-    t_vacc_end_alt   = dateToYears(as.Date(t_vacc_end_alt[dp]))
-    r_v_alt_year = nb_doses_alt_year[dp] / (t_vacc_end_alt - t_vacc_start_alt)
-    p1d_alt = p1d_alt_year[dp]
+    t_vacc_start_alt_dep = dateToYears(as.Date(t_vacc_start_alt[dp]))
+    t_vacc_end_alt_dep   = dateToYears(as.Date(t_vacc_end_alt[dp]))
+    r_v_alt_year_dep = nb_doses_alt_year[dp] / (t_vacc_end_alt_dep - t_vacc_start_alt_dep)
+    p1d_alt_dep = p1d_alt_year[dp]
 
-    all_params[paste0("t_vacc_start_alt", gsub('-','_',dp))] = t_vacc_start_alt
-    all_params[paste0("t_vacc_end_alt",gsub('-','_',dp))] = t_vacc_end_alt
-    all_params[paste0("p1d_reg_alt", gsub('-','_',dp))] = p1d_alt
-    all_params[paste0("r_v_year_alt", gsub('-','_',dp))] = r_v_alt_year
+    all_unit_params[paste0("t_vacc_start_alt", i)] = t_vacc_start_alt_dep
+    all_unit_params[paste0("t_vacc_end_alt", i)] = t_vacc_end_alt_dep
+    all_unit_params[paste0("p1d_reg_alt", i)] = p1d_alt_dep
+    all_unit_params[paste0("r_v_year_alt", i)] = r_v_alt_year_dep
   }
-
 
   initalizeStatesTemplate =   "
-A%s = nearbyint((1-sigma)/sigma * 1/epsilon * cases_at_t_start%s[n_cases_start-1][1]/7 * 365 /(mu + gamma));
-I%s = nearbyint(1/epsilon * cases_at_t_start%s[n_cases_start-1][1]/7 * 365 /(mu + alpha + gamma))  ;  // Steady state, DP says its correct.
+  double *S = &S1;
+  double *I = &I1;
+  double *A = &A1;
+  double *R1 = &R11;
+  double *R2 = &R21;
+  double *R3 = &R31;
+  double *VSd = &VSd1;
+  double *VR1d = &VR1d1;
+  double *VR2d = &VR2d1;
+  double *VR3d = &VR3d1;
+  double *VSdd = &VSdd1;
+  double *VR1dd = &VR1dd1;
+  double *VR2dd = &VR2dd1;
+  double *VR3dd = &VR3dd1;
+  double *VSd_alt = &VSd_alt1;
+  double *VR1d_alt = &VR1d_alt1;
+  double *VR2d_alt = &VR2d_alt1;
+  double *VR3d_alt = &VR3d_alt1;
+  double *VSdd_alt = &VSdd_alt1;
+  double *VR1dd_alt = &VR1dd_alt1;
+  double *VR2dd_alt = &VR2dd_alt1;
+  double *VR3dd_alt = &VR3dd_alt1;
+  double *C = &C1;
 
-// Reset R0 vector
-R0[0] = 0;
-R0[1] = 0;
+  double R0[2] = {0,0};
+  IncidenceAll = 0;
+  DosesAll = 0;
+  CasesAll = 0;
 
-for(int i = 0; i < n_cases_start; i++){
-  R0[0] +=                   cases_at_t_start%s[i][1]/epsilon  * exp((cases_at_t_start%s[i][0] - t_start)  * (rho + mu)); /* because t_i in past so t_ - t_0 negative */
-  R0[1] += (1-sigma)/sigma * cases_at_t_start%s[i][1]/epsilon  * exp((cases_at_t_start%s[i][0] - t_start)  * (rho + mu));
-}
+  for (u = 0; u < U; u++) {
 
-R1%s = nearbyint((R0[0] + R0[1]) / 3);
-R2%s = nearbyint((R0[0] + R0[1]) / 3);
-R3%s = nearbyint((R0[0] + R0[1]) / 3);
+    double thetaA = thetaI[u] * XthetaA[u];
 
-if (A%s + I%s + R1%s + R2%s + R3%s >= H%s) {
-  double R_tot = H%s - A%s - I%s - 100.0;
-  if (R_tot <= 0)
-  {
-  I%s     = nearbyint(H%s - 100);
-  A%s     = nearbyint(0);
-  R_tot = nearbyint(0);
+    A[u] = nearbyint((1-sigma)/sigma * 1/epsilon * cases_at_t_start[u][n_cases_start-1][1]/7 * 365 /(mu + gamma));
+    I[u] = nearbyint(1/epsilon * cases_at_t_start[u][n_cases_start-1][1]/7 * 365 /(mu + alpha + gamma));  // Steady state
+
+    // Reset R0 vector
+    R0[0] = 0;
+    R0[1] = 0;
+
+    for(int i = 0; i < n_cases_start; i++){
+      R0[0] +=                   cases_at_t_start[u][i][1]/epsilon  * exp((cases_at_t_start[u][i][0] - t_start)  * (rho + mu)); /* because t_i in past so t_ - t_0 negative */
+      R0[1] += (1-sigma)/sigma * cases_at_t_start[u][i][1]/epsilon  * exp((cases_at_t_start[u][i][0] - t_start)  * (rho + mu));
+    }
+
+    R1[u] = nearbyint((R0[0] + R0[1]) / 3);
+    R2[u] = nearbyint((R0[0] + R0[1]) / 3);
+    R3[u] = nearbyint((R0[0] + R0[1]) / 3);
+
+    if (A[u] + I[u] + R1[u] + R2[u] + R3[u] >= H[u]) {
+      double R_tot = H[u] - A[u] - I[u] - 100.0;
+      if (R_tot <= 0)
+      {
+      I[u]     = nearbyint(H[u] - 100);
+      A[u]     = nearbyint(0);
+      R_tot = nearbyint(0);
+      }
+      R1[u] = nearbyint(R_tot / 3);
+      R2[u] = nearbyint(R_tot / 3);
+      R3[u] = nearbyint(R_tot / 3);
+    }
+
+    S[u]   = nearbyint(H[u] - A[u] - I[u] - R1[u] - R2[u] - R3[u]);
+    B[u]   = (I[u] * thetaI/mu_B + A[u] * thetaA/mu_B) * D[u] * (1 + lambdaR * pow(B0[u], r));
+    C[u]   = 0;
+
+    VSd[u] = 0;
+    VR1d[u] = 0;
+    VR2d[u] = 0;
+    VR3d[u] = 0;
+
+    VSdd[u] = 0;
+    VR1dd[u] = 0;
+    VR2dd[u] = 0;
+    VR3dd[u] = 0;
+
+    VSd_alt[u] = 0;
+    VR1d_alt[u] = 0;
+    VR2d_alt[u] = 0;
+    VR3d_alt[u] = 0;
+
+    VSdd_alt[u] = 0;
+    VR1dd_alt[u] = 0;
+    VR2dd_alt[u] = 0;
+    VR3dd_alt[u] = 0;
+
   }
-  R1%s = nearbyint(R_tot / 3);
-  R2%s = nearbyint(R_tot / 3);
-  R3%s = nearbyint(R_tot / 3);
-}
-
-S%s   = nearbyint(H%s - A%s - I%s - R1%s - R2%s - R3%s);
-B%s   = (I%s * thetaI/mu_B + A%s * thetaA/mu_B) * D%s * (1 + lambdaR * pow(B0%s, r));
-C%s   = 0;
-W%s   = 0;
-
-VSd%s = 0;
-VR1d%s = 0;
-VR2d%s = 0;
-VR3d%s = 0;
-
-VSdd%s = 0;
-VR1dd%s = 0;
-VR2dd%s = 0;
-VR3dd%s = 0;
-
-VSd_alt%s = 0;
-VR1d_alt%s = 0;
-VR2d_alt%s = 0;
-VR3d_alt%s = 0;
-
-VSdd_alt%s = 0;
-VR1dd_alt%s = 0;
-VR2dd_alt%s = 0;
-VR3dd_alt%s = 0;
-
 "
 
-initalizeStatesAll <- "double R0[2] = {0,0};
-IncidenceAll = 0;
-DosesAll = 0;
-CasesAll = 0;
-double thetaA = thetaI * XthetaA;"
-
-for (dp in departements) {
-  initalizeStatesAll = paste0(initalizeStatesAll, gsub('%s', gsub('-', '_', dp), initalizeStatesTemplate))
-}
-
-initalizeStates <- pomp::Csnippet(initalizeStatesAll)
+initalizeStates <- pomp::Csnippet(initalizeStatesTemplate)
 
 ###
 ### rmeas
 ###
 
 rmeasTemplate <- "
-  if (t > 2018) {
-    cases%s = rnbinom_mu(k, epsilon * C%s * cas_def);
-  } else {
-    cases%s = rnbinom_mu(k, epsilon * C%s);
+  const double *C = &C1;
+  double *cases = &cases1;
+  int u;
+
+  for (u = 0; u < U; u++) {
+    if (t > 2018) {
+      cases[u] = rnbinom_mu(k, epsilon * C[u] * cas_def);
+    } else {
+      cases[u] = rnbinom_mu(k, epsilon * C[u]);
+    }
   }
   "
 
-rmeasAll = ""
-for (dp in departements) {
-  rmeasAll = paste0(rmeasAll, gsub('%s', gsub('-', '_', dp), rmeasTemplate))
-}
-
-rmeas <- pomp::Csnippet(rmeasAll)
+rmeas <- pomp::Csnippet(rmeasTemplate)
 
 ###
 ### dmeas
 ###
 
 dmeasTemplate <- "
-    if (ISNA(cases%s)) {
-       lik += (give_log) ? 0 : 1;
+int u;
+
+lik = 0;
+for (u = 0; u < U; u++) {
+  if (ISNA(cases[u])) {
+      lik += (give_log) ? 0 : 1;
+  } else {
+    if (t > 2018) {
+      lik += dnbinom_mu(cases[u], k, epsilon * C[u] * cas_def, give_log);
     } else {
-      if (t > 2018) {
-        lik += dnbinom_mu(cases%s, k, epsilon * C%s * cas_def, give_log);
-      } else {
-        lik += dnbinom_mu(cases%s, k, epsilon * C%s, give_log);
+      lik += dnbinom_mu(cases[u], k, epsilon * C[u], give_log);
+      }
+    }
+}
+"
+
+dmeas <- pomp::Csnippet(dmeasTemplate)
+
+
+unit_dmeasTemplate <- "
+  if (ISNA(cases)) {
+      lik += (give_log) ? 0 : 1;
+  } else {
+    if (t > 2018) {
+      lik += dnbinom_mu(cases, k, epsilon * C * cas_def, give_log);
+    } else {
+      lik += dnbinom_mu(cases, k, epsilon * C, give_log);
       }
     }
 "
 
-dmeasAll = "lik = 0;"
-for (dp in departements) {
-  dmeasAll = paste0(dmeasAll, gsub('%s', gsub('-', '_', dp), dmeasTemplate))
-}
-
-dmeas <- pomp::Csnippet(dmeasAll)
+unit_dmeas <- pomp::Csnippet(unit_dmeasTemplate)
 
 ###
 ### rproc
 ###
 
 # Every department gets a copy.
-sirb_file <- "
-previous_vacc_campaign = TRUE;
-r_v_wdn = 0;
-dw = 0;
+rprocTemplate <- "
 
-other_cases = CasesArtibonite + CasesCentre + CasesGrande_Anse + CasesNippes + CasesNord +
-                CasesNord_Est + CasesNord_Ouest + CasesOuest + CasesSud + CasesSud_Est - Cases%s;
+double *S = &S1;
+double *I = &I1;
+double *A = &A1;
+double *R1 = &R11;
+double *R2 = &R21;
+double *R3 = &R31;
+double *VSd = &VSd1;
+double *VR1d = &VR1d1;
+double *VR2d = &VR2d1;
+double *VR3d = &VR3d1;
+double *VSdd = &VSdd1;
+double *VR1dd = &VR1dd1;
+double *VR2dd = &VR2dd1;
+double *VR3dd = &VR3dd1;
+double *VSd_alt = &VSd_alt1;
+double *VR1d_alt = &VR1d_alt1;
+double *VR2d_alt = &VR2d_alt1;
+double *VR3d_alt = &VR3d_alt1;
+double *VSdd_alt = &VSdd_alt1;
+double *VR1dd_alt = &VR1dd_alt1;
+double *VR2dd_alt = &VR2dd_alt1;
+double *VR3dd_alt = &VR3dd_alt1;
+double *C = &C1;
 
-// 2019.029
-if (t <= 0) {
-  other_cases = CasesArtibonite + CasesCentre + CasesGrande_Anse + CasesNippes + CasesNord +
-                CasesNord_Est + CasesNord_Ouest + CasesOuest + CasesSud + CasesSud_Est - Cases%s;
-  if (t >= 2018) {
-    mobility =  (365 * other_cases / (7 * epsilon * cas_def)) * (1 / (mu + alpha + gamma) + (1 - sigma) / (sigma * (mu + gamma)));
-  } else {
-    mobility =  (365 * other_cases / (7 * epsilon)) * (1 / (mu + alpha + gamma) + (1 - sigma) / (sigma * (mu + gamma)));
-  }
-} else {
-  mobility =  (IArtibonite + ICentre + IGrande_Anse + INippes + INord +
-             INord_Est + INord_Ouest + IOuest + ISud + ISud_Est - I%s +
-             AArtibonite + ACentre + AGrande_Anse + ANippes + ANord +
-             ANord_Est + ANord_Ouest + AOuest + ASud + ASud_Est - A%s);
-}
+double foi, foi_stoc;   // force of infection and its stochastic version
+double dw;              // extra-demographic stochasticity on foi
+double dB;              // deterministic forward time difference of bacteria in the environment
+double k1, k2, k3, k4;  // coefficients of  the Runge-Kutta method
+double rate[48];        // vector of all rates in model
+double dN[60];          // vector of transitions between classes during integration timestep
+double mobility;
+double p1d, pdd;
+double r_v_wdn = 0.0;   // rate of vaccination: 0 if out of time window, r_v if not
+int previous_vacc_campaign; // flag that indicate if we are on the first or second campain
+double t_eff, t_eff_alt;
 
 
-// TODO: Remove when done
-MobAI%s = (IArtibonite + ICentre + IGrande_Anse + INippes + INord +
-             INord_Est + INord_Ouest + IOuest + ISud + ISud_Est - I%s +
-             AArtibonite + ACentre + AGrande_Anse + ANippes + ANord +
-             ANord_Est + ANord_Ouest + AOuest + ASud + ASud_Est - A%s);
-MobCases%s = (365 * other_cases / (7 * epsilon)) * (1 / (mu + alpha + gamma) + (1 - sigma) / (sigma * (mu + gamma)));
-
-// if (t >= 2018) {
-//   Mob2%s = (other_cases / (cas_def * epsilon * gamma * 7)) * (1 + 1 / sigma) * 365;
-// } else {
-//   Mob2%s = (other_cases / (epsilon * gamma * 7)) * (1 + 1 / sigma) * 365;
-// }
-
-
-
-// force of infection
-foi = betaB%s * (B%s / (1 + B%s)) + foi_add%s * mobility;
-
-if(std_W > 0.0) {
-  dw = rgammawn(std_W, dt);   // white noise (extra-demographic stochasticity)
-  foi_stoc = foi * dw/dt;     // apply stochasticity
-} else {
-  foi_stoc = foi;
-}
-
-if (t <= (t_vacc_end_alt%s + dt)){
-	previous_vacc_campaign = TRUE;
-	if (t >= t_vacc_start_alt%s && t <= (t_vacc_end_alt%s + dt)) {
-    	r_v_wdn = (r_v_year_alt%s / (S%s + A%s + R1%s + R2%s + R3%s));
-	}
-	p1d = p1d_reg_alt%s;
-} else {
-	previous_vacc_campaign = FALSE;
-	if (t >= t_vacc_start%s && t <= (t_vacc_end%s + dt)) {
-    	r_v_wdn = (r_v_year%s / (S%s + A%s + R1%s + R2%s + R3%s));
-	}
-	p1d = p1d_reg%s;
-}
-
-pdd = 1 - p1d;
-
-// time in the vacc_eff referential. We assume different timing for 1d and 2d
-t_eff =     t - (t_vacc_start%s + (t_vacc_end%s - t_vacc_start%s)/2);
-t_eff_alt = t - (t_vacc_start_alt%s + (t_vacc_end_alt%s - t_vacc_start_alt%s)/2);
-
-// define transition rates for each type of event (i.e what multplies the thing)
+// Define rates that are constant for all units (departements):
 
 // S compartment
-rate[0] = sigma * foi_stoc;         // infections
-rate[1] = (1 - sigma) * foi_stoc;   // asymptomatic infections
-rate[2] = p1d * r_v_wdn;            // S -> VSd
-rate[3] = pdd * r_v_wdn;            // S -> VSdd
-rate[4] = mu;                       // S -> natural death
+rate[4] = mu;           // S -> natural death
 
 // I compartment
-rate[5] = mu;            // natural deaths
-rate[6] = alpha;         // cholera-induced deaths
-rate[7] = gamma;         // I -> R
+rate[5] = mu;           // natural deaths
+rate[6] = alpha;        // cholera-induced deaths
+rate[7] = gamma;        // I -> R
 
 // A compartment
-rate[8] = mu;               // natural death
-rate[9] = gamma;            // A -> R1
-rate[10] = p1d * r_v_wdn;   // A -> VR1d
-rate[11] = pdd * r_v_wdn;   // A -> VR1dd
+rate[8] = mu;           // natural death
+rate[9] = gamma;        // A -> R1
 
 // R1
-rate[12] = 3 * rho;        // loss of natural immunity; R1 -> R2
-rate[13] = mu;             // natural death R1 -> death
-rate[14] = p1d * r_v_wdn;  // R1 -> VR1d
-rate[15] = pdd * r_v_wdn;  // R1 -> VR1dd
+rate[12] = 3 * rho;     // loss of natural immunity; R1 -> R2
+rate[13] = mu;          // natural death R1 -> death
 
 // R2
-rate[16] = 3 * rho;        // loss of natural immunity; R2 -> R3
-rate[17] = mu;             // natural death R2 -> death
-rate[18] = p1d * r_v_wdn;  // R2 -> VR2d
-rate[19] = pdd * r_v_wdn;  // R2 -> VR2dd
+rate[16] = 3 * rho;     // loss of natural immunity; R2 -> R3
+rate[17] = mu;          // natural death R2 -> death
 
 // R3
-rate[20] = 3 * rho;        // loss of natural immunity; R3 -> S
-rate[21] = mu;             // natural death R3 -> death
-rate[22] = p1d * r_v_wdn;  // R3 -> VR3d
-rate[23] = pdd * r_v_wdn;  // R3 -> VR3dd
+rate[20] = 3 * rho;     // loss of natural immunity; R3 -> S
+rate[21] = mu;          // natural death R3 -> death
 
 // VSd
-rate[24] = sigma * (1 - eff_v_1d(t_eff, scenario)) * foi_stoc;       // VSd -> I
-rate[25] = (1 - sigma) * (1 - eff_v_1d(t_eff, scenario)) * foi_stoc; // VSd -> A
-rate[26] = mu;                                                       // VSd -> death
+rate[26] = mu;          // VSd -> death
 
 // VR1d
 rate[27] = mu;          // natural death:    VR1d -> death
@@ -513,9 +491,7 @@ rate[31] = mu;          // natural death:    VR3d -> death
 rate[32] = 3 * rho;     // loss of immunity: VR3d -> VSd
 
 // VSdd
-rate[33] = sigma * (1 - eff_v_2d(t_eff, scenario)) * foi_stoc;       // VSdd -> I
-rate[34] = (1 - sigma) * (1 - eff_v_2d(t_eff, scenario)) * foi_stoc; // VSdd -> A
-rate[35] = mu;                                                       // natural death
+rate[35] = mu;          // natural death
 
 // VR1dd
 rate[36] = mu;          // natural death:    VR1dd -> death
@@ -529,169 +505,233 @@ rate[39] = 3 * rho;     // loss of immunity: VR2dd -> VR3dd
 rate[40] = mu;          // natural death:    VR3dd -> death
 rate[41] = 3 * rho;     // loss of immunity: VR3dd -> VSdd
 
-
-/* For previous vacc campagain */
-
 // VSd_alt
-rate[42] = sigma       * (1 - eff_v_1d(t_eff_alt, scenario)) * foi_stoc; // VSd -> I
-rate[43] = (1 - sigma) * (1 - eff_v_1d(t_eff_alt, scenario)) * foi_stoc; // VSd -> A
-rate[44] = mu;                                                           // natural death
+rate[44] = mu;          // natural death
 
 // VSdd_alt
-rate[45] = sigma       * (1 - eff_v_2d(t_eff_alt, scenario)) * foi_stoc; // VSdd -> I
-rate[46] = (1 - sigma) * (1 - eff_v_2d(t_eff_alt, scenario)) * foi_stoc; // VSdd -> A
-rate[47] = mu;                                                           // natural death
+rate[47] = mu;          // natural death
 
-// All other alts already defined.
+// Loop through each unit (departement)
+for (u = 0; u < U; u++) {
+  int scenario =  cases_ext[u];
+  double thetaA = thetaI[u] * XthetaA[u];
 
-// simulate all transitions
-reulermultinom(5, S%s,     &rate[0],  dt, &dN[0]);
-reulermultinom(3, I%s,     &rate[5],  dt, &dN[5]);
-reulermultinom(4, A%s,     &rate[8],  dt, &dN[8]);
-reulermultinom(4, R1%s,    &rate[12], dt, &dN[12]);
-reulermultinom(4, R2%s,    &rate[16], dt, &dN[16]);
-reulermultinom(4, R3%s,    &rate[20], dt, &dN[20]);
+  previous_vacc_campaign = TRUE;
+  r_v_wdn = 0;
+  dw = 0;
 
-// Vaccinated 1 dose
-reulermultinom(3,  VSd%s,   &rate[24], dt, &dN[24]);
-reulermultinom(2, VR1d%s,   &rate[27], dt, &dN[27]);
-reulermultinom(2, VR2d%s,   &rate[29], dt, &dN[29]);
-reulermultinom(2, VR3d%s,   &rate[31], dt, &dN[31]);
+  mobility = I[0] + I[1] + I[2] + I[3] + I[4] + I[5] + I[6] + I[7] + I[8] + I[9] +
+             A[0] + A[1] + A[2] + A[3] + A[4] + A[5] + A[6] + A[7] + A[8] + A[9] -
+             (I[u] + A[u])
 
-// Vaccinated 2 doses
-reulermultinom(3,  VSdd%s,   &rate[33], dt, &dN[33]);
-reulermultinom(2, VR1dd%s,   &rate[36], dt, &dN[36]);
-reulermultinom(2, VR2dd%s,   &rate[38], dt, &dN[38]);
-reulermultinom(2, VR3dd%s,   &rate[40], dt, &dN[40]);
+  // force of infection
+  foi = betaB[u] * (B[u] / (1 + B[u])) + foi_add[u] * mobility;
 
-/* For the previous vaccination campain */
+  if(std_W > 0.0) {
+    dw = rgammawn(std_W, dt);   // white noise (extra-demographic stochasticity)
+    foi_stoc = foi * dw/dt;     // apply stochasticity
+  } else {
+    foi_stoc = foi;
+  }
 
-// Alt Vaccinated 1 dose
-reulermultinom(3,  VSd_alt%s,   &rate[42], dt, &dN[42]);
-reulermultinom(2, VR1d_alt%s,   &rate[27], dt, &dN[45]);
-reulermultinom(2, VR2d_alt%s,   &rate[29], dt, &dN[47]);
-reulermultinom(2, VR3d_alt%s,   &rate[31], dt, &dN[49]);
 
-// Alt Vaccinated 2 doses
-reulermultinom(3,  VSdd_alt%s,   &rate[45], dt, &dN[51]);
-reulermultinom(2, VR1dd_alt%s,   &rate[27], dt, &dN[54]);
-reulermultinom(2, VR2dd_alt%s,   &rate[29], dt, &dN[56]);
-reulermultinom(2, VR3dd_alt%s,   &rate[31], dt, &dN[58]);
+  if (t <= (t_vacc_end_alt[u] + dt)){
+	  previous_vacc_campaign = TRUE;
 
-// bacteria as continous state variable
-// implement Runge-Kutta integration assuming S, I, R, V* stay constant during dt
-k1 = dt * fB(I%s, A%s, B%s, mu_B, thetaI, thetaA, lambdaR, rain_std%s, r, D%s);
-k2 = dt * fB(I%s, A%s, B%s, mu_B, thetaI, thetaA, lambdaR, rain_std%s, r, D%s);
-k3 = dt * fB(I%s, A%s, B%s, mu_B, thetaI, thetaA, lambdaR, rain_std%s, r, D%s);
-k4 = dt * fB(I%s, A%s, B%s, mu_B, thetaI, thetaA, lambdaR, rain_std%s, r, D%s);
+	  if (t >= t_vacc_start_alt[u] && t <= (t_vacc_end_alt[u] + dt)) {
+	    r_v_wdn = (r_v_year_alt[u] / (S[u] + A[u] + R1[u] + R2[u] + R3[u]));
+	  }
 
-// bacteria increment
-dB = (k1 + 2*k2 + 2*k3 + k4) / 6.0;
+	  p1d = p1d_reg_alt[u];
+  } else {
+	  previous_vacc_campaign = FALSE;
 
-// Update States
-I%s  += dN[0] + dN[24] + dN[33] + dN[42] + dN[51] - dN[7] - dN[6] - dN[5];            // S -> I, VSd -> I, VSdd -> I, VSd_alt -> I, VSdd_alt -> I, I -> R, I-> death, I -> death
-A%s  += dN[1] + dN[25] + dN[34] + dN[43] + dN[52] - dN[9] - dN[10] - dN[11] - dN[8];  // S -> A, VSd -> A, VSdd -> A, VSd_alt -> A, VSdd_alt -> A, A -> R1, A -> VR1d, A -> VR1dd, natural death.
-R1%s += dN[7] + dN[9] - dN[12] - dN[14] - dN[15] - dN[13];  // I-> R1, A -> R1, R1 -> R2, R1 -> VR1d, R1 -> VR1dd, R1 -> death
-R2%s += dN[12] - dN[16] - dN[18] - dN[19] - dN[17]; // R1 -> R2, R2 -> R3, R2 -> VR2d, R2 -> VR2dd, R2 -> death
-R3%s += dN[16] - dN[20] - dN[22] - dN[23] - dN[21]; // R2 -> R3, R3 -> S , R3 -> VR3d, R3 -> VR3dd, R3 -> death
+	  if (t >= t_vacc_start[u] && t <= (t_vacc_end[u] + dt)) {
+    	r_v_wdn = (r_v_year[u] / (S[u] + A[u] + R1[u] + R2[u] + R3[u]));
+	  }
+	  p1d = p1d_reg[u];
+  }
 
-if (previous_vacc_campaign){
-	VSd_alt%s    +=  dN[2];            // S -> VSd_alt
-	VR1d_alt%s   +=  dN[14] + dN[10];  // R1 -> VR1d_alt, A -> VR1d_alt
-	VR2d_alt%s   +=  dN[18];           // R2 -> VR2d_alt
-	VR3d_alt%s   +=  dN[22];           // R3 -> VR3d_alt
+  pdd = 1 - p1d;
 
-	VSdd_alt%s   += dN[3];             // S -> VSdd_alt
-	VR1dd_alt%s  += dN[15] + dN[11];   // R1 -> VR1dd_alt, A -> VR1dd_alt
-	VR2dd_alt%s  += dN[19];            // R2 -> VR2dd_alt
-	VR3dd_alt%s  += dN[23];            // R3 -> VR3dd_alt
+  // time in the vacc_eff referential. We assume different timing for 1d and 2d
+  t_eff =     t - (t_vacc_start[u] + (t_vacc_end[u] - t_vacc_start[u])/2);
+  t_eff_alt = t - (t_vacc_start_alt[u] + (t_vacc_end_alt[u] - t_vacc_start_alt[u])/2);
 
-} else {
-	VSd%s    += dN[2];                 // S -> VSd
-	VR1d%s   += dN[14] + dN[10];       // R1 -> VR1d, A -> VR1d
-	VR2d%s   += dN[18];                // R2 -> VR2d
-	VR3d%s   += dN[22];                // R3 -> VR3d
 
-	VSdd%s   += dN[3];                 // S -> VSdd
-	VR1dd%s  += dN[15] + dN[11];       // R1 -> VR1dd, A -> VR1dd
-	VR2dd%s  += dN[19];                // R2 -> VR2dd
-	VR3dd%s  += dN[23];                // R3 -> VR3dd
-}
+  // define transition rates for each type of event (i.e what multplies the thing)
 
-VSd%s   += dN[32] - dN[24] - dN[25] - dN[26]; // VR3d -> VSd, VSd -> I, VSd -> A, VSd -> death
-VR1d%s  += - dN[27] - dN[28];                 // VR1d -> death, VR1d -> VR2d
-VR2d%s  += dN[28] - dN[29] - dN[30];          // VR1d -> VR2d, VR2d -> death, VR2d -> VR3d
-VR3d%s  += dN[30] - dN[31] - dN[32];          // VR2d -> VR3d, VR3d -> death, VR3d -> VSd
+  // TODO: Some of these rates are the same for each departement. Save time
+  // by setting them just once instead of resetting them all the time. Eg: rate[4] = mu;
 
-VSdd%s   +=  dN[41] - dN[33] - dN[34] - dN[35]; // VR3dd -> VSdd, VSdd -> I, VSdd -> A, VSdd -> death
-VR1dd%s  += - dN[36] - dN[37];                  // VR1dd -> death, VR1dd -> VR2dd
-VR2dd%s  +=  dN[37] - dN[38] - dN[39];          // VR1dd -> VR2dd, VR2dd -> death, VR2dd -> VR3dd
-VR3dd%s  +=  dN[39] - dN[40] - dN[41];          // VR2dd -> VR3dd, VR3dd -> death, VR3dd -> VSdd
+  // S compartment
+  rate[0] = sigma * foi_stoc;         // infections
+  rate[1] = (1 - sigma) * foi_stoc;   // asymptomatic infections
+  rate[2] = p1d * r_v_wdn;            // S -> VSd
+  rate[3] = pdd * r_v_wdn;            // S -> VSdd
 
-// previous vacccination campain
-VSd_alt%s   += dN[50] - dN[42] - dN[43] - dN[44]; // VR3d_alt -> VSd_alt, VSd_alt -> I, VSd_alt -> A, VSd_alt -> death
-VR1d_alt%s  += - dN[45] - dN[46];                 // death, VR1d_alt -> VR2d_alt
-VR2d_alt%s  += dN[46] - dN[47] - dN[48];          // VR1d_alt -> VR2d_alt, death, VR2d_alt -> VR3d_alt
-VR3d_alt%s  += dN[48] - dN[49] - dN[50];          // VR2d_alt -> VR3d_alt, death, VR3d_alt -> VSd_alt
+  // A compartment
+  rate[10] = p1d * r_v_wdn;   // A -> VR1d
+  rate[11] = pdd * r_v_wdn;   // A -> VR1dd
 
-VSdd_alt%s   +=  dN[59] - dN[51] - dN[52] - dN[53]; // VR3dd_alt -> VSdd_alt, VSdd_alt -> I, VSdd_alt -> A, VSdd_alt -> death
-VR1dd_alt%s  += - dN[54] - dN[55];
-VR2dd_alt%s  +=  dN[55] - dN[56] - dN[57] ;
-VR3dd_alt%s  +=  dN[57] - dN[58] - dN[59];
+  // R1
+  rate[14] = p1d * r_v_wdn;  // R1 -> VR1d
+  rate[15] = pdd * r_v_wdn;  // R1 -> VR1dd
 
-C%s   +=  dN[0] + dN[24] + dN[33] + dN[42] + dN[51]; // S -> I, VSd -> I, VSdd -> I, VSd_alt -> I, VSdd_alt -> I
-W%s   +=  (dw - dt) / std_W;  // standardized i.i.d. white noise
-B%s   += (((dB) < -B%s) ? (-B%s + 1.0e-3) : (dB)); // condition to ensure B>0
+  // R2
+  rate[18] = p1d * r_v_wdn;  // R2 -> VR2d
+  rate[19] = pdd * r_v_wdn;  // R2 -> VR2dd
 
-// susceptibles so as to match total population
-S%s = nearbyint(H%s - I%s - A%s - R1%s - R2%s - R3%s -
-	VSd%s - VR1d%s - VR2d%s - VR3d%s -
-	VSdd%s- VR1dd%s -VR2dd%s -VR3dd%s -
-	VSd_alt%s - VR1d_alt%s - VR2d_alt%s - VR3d_alt%s -
-	VSdd_alt%s - VR1dd_alt%s - VR2dd_alt%s - VR3dd_alt%s);
+  // R3
+  rate[22] = p1d * r_v_wdn;  // R3 -> VR3d
+  rate[23] = pdd * r_v_wdn;  // R3 -> VR3dd
 
-IncidenceAll +=  dN[0] + dN[24] + dN[33] + dN[42] + dN[51] + dN[1] + dN[25] + dN[34] + dN[43] + dN[52];
-if (!previous_vacc_campaign)
-{
-	DosesAll  += dN[2] + dN[10] + dN[14] + dN[18] + dN[22] + 2 * (dN[3] + dN[11] + dN[15] + dN[19] + dN[23]);
-}
-CasesAll  +=  dN[0] + dN[24] + dN[33] + dN[42] + dN[51];
+  // VSd
+  rate[24] = sigma * (1 - eff_v_1d(t_eff, scenario)) * foi_stoc;       // VSd -> I
+  rate[25] = (1 - sigma) * (1 - eff_v_1d(t_eff, scenario)) * foi_stoc; // VSd -> A
+
+  // VSdd
+  rate[33] = sigma * (1 - eff_v_2d(t_eff, scenario)) * foi_stoc;       // VSdd -> I
+  rate[34] = (1 - sigma) * (1 - eff_v_2d(t_eff, scenario)) * foi_stoc; // VSdd -> A
+
+  /* For previous vacc campagain */
+
+  // VSd_alt
+  rate[42] = sigma       * (1 - eff_v_1d(t_eff_alt, scenario)) * foi_stoc; // VSd -> I
+  rate[43] = (1 - sigma) * (1 - eff_v_1d(t_eff_alt, scenario)) * foi_stoc; // VSd -> A
+
+  // VSdd_alt
+  rate[45] = sigma       * (1 - eff_v_2d(t_eff_alt, scenario)) * foi_stoc; // VSdd -> I
+  rate[46] = (1 - sigma) * (1 - eff_v_2d(t_eff_alt, scenario)) * foi_stoc; // VSdd -> A
+
+  // All other alts already defined.
+
+  // simulate all transitions
+  reulermultinom(5,  S[u],     &rate[0],  dt, &dN[0]);
+  reulermultinom(3,  I[u],     &rate[5],  dt, &dN[5]);
+  reulermultinom(4,  A[u],     &rate[8],  dt, &dN[8]);
+  reulermultinom(4, R1[u],    &rate[12], dt, &dN[12]);
+  reulermultinom(4, R2[u],    &rate[16], dt, &dN[16]);
+  reulermultinom(4, R3[u],    &rate[20], dt, &dN[20]);
+
+  // Vaccinated 1 dose
+  reulermultinom(3,  VSd[u],   &rate[24], dt, &dN[24]);
+  reulermultinom(2, VR1d[u],   &rate[27], dt, &dN[27]);
+  reulermultinom(2, VR2d[u],   &rate[29], dt, &dN[29]);
+  reulermultinom(2, VR3d[u],   &rate[31], dt, &dN[31]);
+
+  // Vaccinated 2 doses
+  reulermultinom(3,  VSdd[u],   &rate[33], dt, &dN[33]);
+  reulermultinom(2, VR1dd[u],   &rate[36], dt, &dN[36]);
+  reulermultinom(2, VR2dd[u],   &rate[38], dt, &dN[38]);
+  reulermultinom(2, VR3dd[u],   &rate[40], dt, &dN[40]);
+
+  /* For the previous vaccination campain */
+
+  // Alt Vaccinated 1 dose
+  reulermultinom(3,  VSd_alt[u],   &rate[42], dt, &dN[42]);
+  reulermultinom(2, VR1d_alt[u],   &rate[27], dt, &dN[45]);
+  reulermultinom(2, VR2d_alt[u],   &rate[29], dt, &dN[47]);
+  reulermultinom(2, VR3d_alt[u],   &rate[31], dt, &dN[49]);
+
+  // Alt Vaccinated 2 doses
+  reulermultinom(3,  VSdd_alt[u],   &rate[45], dt, &dN[51]);
+  reulermultinom(2, VR1dd_alt[u],   &rate[27], dt, &dN[54]);
+  reulermultinom(2, VR2dd_alt[u],   &rate[29], dt, &dN[56]);
+  reulermultinom(2, VR3dd_alt[u],   &rate[31], dt, &dN[58]);
+
+  // bacteria as continous state variable
+  // implement Runge-Kutta integration assuming S, I, R, V* stay constant during dt
+  k1 = dt * fB(I[u], A[u], B[u], mu_B, thetaI, thetaA, lambdaR, rain_std[u], r, D[u]);
+  k2 = dt * fB(I[u], A[u], B[u], mu_B, thetaI, thetaA, lambdaR, rain_std[u], r, D[u]);
+  k3 = dt * fB(I[u], A[u], B[u], mu_B, thetaI, thetaA, lambdaR, rain_std[u], r, D[u]);
+  k4 = dt * fB(I[u], A[u], B[u], mu_B, thetaI, thetaA, lambdaR, rain_std[u], r, D[u]);
+
+  // bacteria increment
+  dB = (k1 + 2*k2 + 2*k3 + k4) / 6.0;
+
+  // Update States
+  I[u]  += dN[0] + dN[24] + dN[33] + dN[42] + dN[51] - dN[7] - dN[6] - dN[5];            // S -> I, VSd -> I, VSdd -> I, VSd_alt -> I, VSdd_alt -> I, I -> R, I-> death, I -> death
+  A[u]  += dN[1] + dN[25] + dN[34] + dN[43] + dN[52] - dN[9] - dN[10] - dN[11] - dN[8];  // S -> A, VSd -> A, VSdd -> A, VSd_alt -> A, VSdd_alt -> A, A -> R1, A -> VR1d, A -> VR1dd, natural death.
+  R1[u] += dN[7] + dN[9] - dN[12] - dN[14] - dN[15] - dN[13];                            // I-> R1, A -> R1, R1 -> R2, R1 -> VR1d, R1 -> VR1dd, R1 -> death
+  R2[u] += dN[12] - dN[16] - dN[18] - dN[19] - dN[17];                                   // R1 -> R2, R2 -> R3, R2 -> VR2d, R2 -> VR2dd, R2 -> death
+  R3[u] += dN[16] - dN[20] - dN[22] - dN[23] - dN[21];                                   // R2 -> R3, R3 -> S , R3 -> VR3d, R3 -> VR3dd, R3 -> death
+
+
+  if (previous_vacc_campaign){
+  	VSd_alt[u]    +=  dN[2];            // S -> VSd_alt
+  	VR1d_alt[u]   +=  dN[14] + dN[10];  // R1 -> VR1d_alt, A -> VR1d_alt
+  	VR2d_alt[u]   +=  dN[18];           // R2 -> VR2d_alt
+  	VR3d_alt[u]   +=  dN[22];           // R3 -> VR3d_alt
+
+  	VSdd_alt[u]   += dN[3];             // S -> VSdd_alt
+  	VR1dd_alt[u]  += dN[15] + dN[11];   // R1 -> VR1dd_alt, A -> VR1dd_alt
+  	VR2dd_alt[u]  += dN[19];            // R2 -> VR2dd_alt
+  	VR3dd_alt[u]  += dN[23];            // R3 -> VR3dd_alt
+
+  } else {
+  	VSd[u]    += dN[2];                 // S -> VSd
+  	VR1d[u]   += dN[14] + dN[10];       // R1 -> VR1d, A -> VR1d
+  	VR2d[u]   += dN[18];                // R2 -> VR2d
+  	VR3d[u]   += dN[22];                // R3 -> VR3d
+
+  	VSdd[u]   += dN[3];                 // S -> VSdd
+  	VR1dd[u]  += dN[15] + dN[11];       // R1 -> VR1dd, A -> VR1dd
+  	VR2dd[u]  += dN[19];                // R2 -> VR2dd
+  	VR3dd[u]  += dN[23];                // R3 -> VR3dd
+  }
+
+  VSd[u]   += dN[32] - dN[24] - dN[25] - dN[26]; // VR3d -> VSd, VSd -> I, VSd -> A, VSd -> death
+  VR1d[u]  += - dN[27] - dN[28];                 // VR1d -> death, VR1d -> VR2d
+  VR2d[u]  += dN[28] - dN[29] - dN[30];          // VR1d -> VR2d, VR2d -> death, VR2d -> VR3d
+  VR3d[u]  += dN[30] - dN[31] - dN[32];          // VR2d -> VR3d, VR3d -> death, VR3d -> VSd
+
+  VSdd[u]   +=  dN[41] - dN[33] - dN[34] - dN[35]; // VR3dd -> VSdd, VSdd -> I, VSdd -> A, VSdd -> death
+  VR1dd[u]  += - dN[36] - dN[37];                  // VR1dd -> death, VR1dd -> VR2dd
+  VR2dd[u]  +=  dN[37] - dN[38] - dN[39];          // VR1dd -> VR2dd, VR2dd -> death, VR2dd -> VR3dd
+  VR3dd[u]  +=  dN[39] - dN[40] - dN[41];          // VR2dd -> VR3dd, VR3dd -> death, VR3dd -> VSdd
+
+  // previous vacccination campain
+  VSd_alt[u]   += dN[50] - dN[42] - dN[43] - dN[44]; // VR3d_alt -> VSd_alt, VSd_alt -> I, VSd_alt -> A, VSd_alt -> death
+  VR1d_alt[u]  += - dN[45] - dN[46];                 // death, VR1d_alt -> VR2d_alt
+  VR2d_alt[u]  += dN[46] - dN[47] - dN[48];          // VR1d_alt -> VR2d_alt, death, VR2d_alt -> VR3d_alt
+  VR3d_alt[u]  += dN[48] - dN[49] - dN[50];          // VR2d_alt -> VR3d_alt, death, VR3d_alt -> VSd_alt
+
+  VSdd_alt[u]   +=  dN[59] - dN[51] - dN[52] - dN[53]; // VR3dd_alt -> VSdd_alt, VSdd_alt -> I, VSdd_alt -> A, VSdd_alt -> death
+  VR1dd_alt[u]  += - dN[54] - dN[55];
+  VR2dd_alt[u]  +=  dN[55] - dN[56] - dN[57] ;
+  VR3dd_alt[u]  +=  dN[57] - dN[58] - dN[59];
+
+  C[u]   +=  dN[0] + dN[24] + dN[33] + dN[42] + dN[51]; // S -> I, VSd -> I, VSdd -> I, VSd_alt -> I, VSdd_alt -> I
+  B[u]   += (((dB) < -B[u]) ? (-B[u] + 1.0e-3) : (dB)); // condition to ensure B>0
+
+  // susceptibles so as to match total population
+  S[u] = nearbyint(H[u] - I[u] - A[u] - R1[u] - R2[u] - R3[u] -
+  	VSd[u] - VR1d[u] - VR2d[u] - VR3d[u] -
+  	VSdd[u] - VR1dd[u] -VR2dd[u] -VR3dd[u] -
+  	VSd_alt[u] - VR1d_alt[u] - VR2d_alt[u] - VR3d_alt[u] -
+  	VSdd_alt[u] - VR1dd_alt[u] - VR2dd_alt[u] - VR3dd_alt[u]);
+
+  IncidenceAll +=  dN[0] + dN[24] + dN[33] + dN[42] + dN[51] + dN[1] + dN[25] + dN[34] + dN[43] + dN[52];
+
+  if (!previous_vacc_campaign) {
+  	DosesAll  += dN[2] + dN[10] + dN[14] + dN[18] + dN[22] + 2 * (dN[3] + dN[11] + dN[15] + dN[19] + dN[23]);
+  }
+
+  CasesAll  +=  dN[0] + dN[24] + dN[33] + dN[42] + dN[51];
+
+}  // end of u-loop
   "
 
-rproc_main <- "
-double foi, foi_stoc;   // force of infection and its stochastic version
-double dw;              // extra-demographic stochasticity on foi
-double dB;              // deterministic forward time difference of bacteria in the environment
-double k1, k2, k3, k4;  // coefficients of  the Runge-Kutta method
-double rate[48];        // vector of all rates in model
-double dN[60];          // vector of transitions between classes during integration timestep
-double mobility;
-double p1d, pdd;
-double r_v_wdn = 0.0;   // rate of vaccination: 0 if out of time window, r_v if not
-int previous_vacc_campaign; // flag that indicate if we are on the first or second campain
-int scenario =  cases_ext;
-double t_eff, t_eff_alt;
-double other_cases; // TODO: remove this when done
-
-double thetaA = thetaI * XthetaA;
-
-  "
-
-final_rproc <- ""
-for (dp in departements) {
-  final_rproc <- paste0(final_rproc, gsub('%s', gsub('-', '_', dp), sirb_file))
-}
-
-final_rproc <- paste0(rproc_main, final_rproc)
-final_rproc_c <- pomp::Csnippet(final_rproc)
+final_rproc_c <- pomp::Csnippet(rprocTemplate)
 
 # C function to compute the time-derivative of bacterial concentration OK
 derivativeBacteria.c <- " double fB(int I, int A, double B,
 double mu_B, double thetaI, double XthetaA, double lambdaR, double rain, double r, double D) {
-double thetaA = thetaI * XthetaA;
-double dB;
-dB = -mu_B * B +  (1 + lambdaR * pow(rain, r)) * D * (thetaI * (double) I + thetaA * (double) A);
-return(dB);
+  double thetaA = thetaI * XthetaA;
+  double dB;
+  dB = -mu_B * B +  (1 + lambdaR * pow(rain, r)) * D * (thetaI * (double) I + thetaA * (double) A);
+  return(dB);
 };
   "
 
@@ -841,32 +881,22 @@ eff_v.c <- "
                   };
   "
 
-zeronameTemplate = c("C", "W")
-zeronameAll = c('IncidenceAll', 'CasesAll')
-for (dp in departements){
-  zeronameAll = append(zeronameAll, lapply(zeronameTemplate, paste0, gsub('-', '_', dp)))
-
-}
-zeronameAll <- unlist(zeronameAll)
-
-# dt_yrs <- 1 / 365.25 * .2
+zeronameUnit = paste0(c("C"), 1:10)
+zeronameAll = c(zeronameUnit, 'IncidenceAll', 'CasesAll')
 
 pt <- pomp::parameter_trans(
-  log = c(
+  log = paste0(rep(c(
     "mu_B", "thetaI", "lambdaR", "r", "std_W", "k",
-    "betaBArtibonite", "foi_addArtibonite", "betaBCentre",
-    "foi_addCentre", "betaBGrande_Anse", "foi_addGrande_Anse",
-    "betaBNippes", "foi_addNippes", "betaBNord", "foi_addNord",
-    "betaBNord_Est", "foi_addNord_Est", "betaBNord_Ouest",
-    "foi_addNord_Ouest", "betaBOuest", "foi_addOuest",
-    "betaBSud", "foi_addSud", "betaBSud_Est", "foi_addSud_Est"
-  ),
-  logit = c(
+    "betaB", "foi_add"
+  ), each = 10), 1:10),
+  logit = paste0(rep(c(
     "XthetaA",
     "epsilon",
     "cas_def"
-  )
+  ), each = 10), 1:10)
 )
+
+# TODO: Fix the parameters below
 
 all_params["sigma"] <- .25               # Fixed
 all_params["rho"] <- 1 / (365 * 8) * 365.25   # Fixed  \rho in table 14
