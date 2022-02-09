@@ -416,17 +416,17 @@ dmeas <- pomp::Csnippet(dmeasTemplate)
 
 # TODO: Below assumes that k, epsilon, and cas_def constant across units.
 unit_dmeasTemplate <- "
-  const double *epsilon = &epsilon1;
-  const double *k = &k1;
-  const double *cas_def = &cas_def1;
+  double k = k1;
+  double epsilon = epsilon1;
+  double cas_def = cas_def1;
 
   if (ISNA(cases)) {
-      lik += (give_log) ? 0 : 1;
+      lik = (give_log) ? 0 : 1;
   } else {
     if (t > 2018) {
-      lik += dnbinom_mu(cases, k[1], epsilon[1] * C * cas_def[1], give_log);
+      lik = dnbinom_mu(cases, k, epsilon * C * cas_def, give_log);
     } else {
-      lik += dnbinom_mu(cases, k[1], epsilon[1] * C, give_log);
+      lik = dnbinom_mu(cases, k, epsilon * C, give_log);
       }
     }
 "
