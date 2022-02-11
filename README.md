@@ -1,1 +1,35 @@
 # haitipkg
+
+## TODO: 
+
+- [ ] Always check/update function documentation. 
+- [ ] Fix package dependencies:
+  - [ ] Make sure that the package depends on `pomp`, but possibly also `panelPomp`, and `spatPomp`.
+- [ ] Make sure error of installing package from `GitHub` using `devtools::install_github()` is fixed (in particular, this error was primarily when trying to view the function documentation in `R-studio`. 
+- [ ] When installing the package, there is the following warning that should be addressed: 
+``` 
+Warning: replacing previous import ‘pomp::mcap’ by ‘spatPomp::mcap’ when loading ‘haitipkg’
+```
+I don't think anyone is using either of these functions, but it should be looked at more closely so that other users don't get this warning. 
+
+### Model 1:
+
+- [ ] Create function `fit_haiti1()` that will fit Model 3 from scratch. 
+- [ ] Create function `est_logLik1()` that will estimate the log-likelihood for model 1.
+
+### Model 2: 
+
+- [ ] Create function `fit_haiti2()` that will fit Model 3 from scratch. 
+- [ ] Create function `est_logLik2()` that will estimate the log-likelihood for model 2.
+
+### Model 3:
+
+- [ ] Create function `fit_haiti3()` that will fit Model 3 from scratch. 
+- [ ] Create function `est_logLik3()` that will estimate the log-likelihood for model 3.
+- [ ] Combine `fit_haiti{i}()` and `est_logLik{i}()` for each $i$ into single functions `fit_haiti()` and `est_logLik()`, respectively. 
+
+
+
+### Complete: 
+
+- [x] Create TODO list
