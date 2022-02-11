@@ -10,7 +10,8 @@
 ``` 
 Warning: replacing previous import ‘pomp::mcap’ by ‘spatPomp::mcap’ when loading ‘haitipkg’
 ```
-I don't think anyone is using either of these functions, but it should be looked at more closely so that other users don't get this warning. 
+I don't think anyone is using either of these functions, but it should be looked at more closely so that other users don't get this warning.
+- [ ] Document the datasets in the pakage.
 
 ### Model 1:
 
