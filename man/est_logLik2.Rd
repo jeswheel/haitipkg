@@ -8,7 +8,8 @@ est_logLik2(model)
 }
 \arguments{
 \item{model}{Input is a spatPomp object of the model whose Log-likelihood
-is to be estimated.}
+is to be estimated. The spatPomp object should already have parameter values
+stored in it.}
 }
 \description{
 This function estimates the log-likelihood for model 2.

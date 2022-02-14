@@ -3,7 +3,8 @@
 #' This function estimates the log-likelihood for model 2.
 #'
 #' @param model Input is a spatPomp object of the model whose Log-likelihood
-#' is to be estimated.
+#' is to be estimated. The spatPomp object should already have parameter values
+#' stored in it.
 #'
 #' @export
 est_logLik2 <- function(model) {
