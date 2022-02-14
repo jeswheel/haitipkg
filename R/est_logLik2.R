@@ -6,6 +6,8 @@
 #' is to be estimated. The spatPomp object should already have parameter values
 #' stored in it.
 #'
+#' @return The negative log likelihood of the model.
+#'
 #' @export
 est_logLik2 <- function(model) {
 

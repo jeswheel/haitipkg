@@ -11,6 +11,9 @@ est_logLik2(model)
 is to be estimated. The spatPomp object should already have parameter values
 stored in it.}
 }
+\value{
+The negative log likelihood of the model.
+}
 \description{
 This function estimates the log-likelihood for model 2.
 }
