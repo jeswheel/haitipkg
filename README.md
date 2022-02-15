@@ -15,13 +15,12 @@ I don't think anyone is using either of these functions, but it should be looked
 
 ### Model 1:
 
-- [ ] Create function `fit_haiti1()` that will fit Model 3 from scratch. 
+- [ ] Create function `fit_haiti1()` that will fit Model 1 from scratch. 
 - [ ] Create function `est_logLik1()` that will estimate the log-likelihood for model 1.
 
 ### Model 2: 
 
-- [ ] Create function `fit_haiti2()` that will fit Model 3 from scratch. 
-- [ ] Create function `est_logLik2()` that will estimate the log-likelihood for model 2.
+- [ ] Refine `fit_haiti2()` and `est_logLik2()` as needed.
 
 ### Model 3:
 
@@ -34,3 +33,5 @@ I don't think anyone is using either of these functions, but it should be looked
 ### Complete: 
 
 - [x] Create TODO list
+- [x] Create function `fit_haiti2()` that will fit Model 3 from scratch. 
+- [x] Create function `est_logLik2()` that will estimate the log-likelihood for model 2.
