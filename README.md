@@ -25,7 +25,6 @@ I don't think anyone is using either of these functions, but it should be looked
 ### Model 3:
 
 - [ ] Create function `fit_haiti3()` that will fit Model 3 from scratch. 
-- [ ] Create function `est_logLik3()` that will estimate the log-likelihood for model 3.
 - [ ] Combine `fit_haiti{i}()` and `est_logLik{i}()` for each $i$ into single functions `fit_haiti()` and `est_logLik()`, respectively. 
 
 
@@ -35,3 +34,4 @@ I don't think anyone is using either of these functions, but it should be looked
 - [x] Create TODO list
 - [x] Create function `fit_haiti2()` that will fit Model 3 from scratch. 
 - [x] Create function `est_logLik2()` that will estimate the log-likelihood for model 2.
+- [x] Create function `est_logLik3()` that will estimate the log-likelihood for model 3.
