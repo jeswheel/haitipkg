@@ -12,6 +12,7 @@ Warning: replacing previous import ‘pomp::mcap’ by ‘spatPomp::mcap’ when
 ```
 I don't think anyone is using either of these functions, but it should be looked at more closely so that other users don't get this warning.
 - [ ] Document the datasets in the package.
+- [ ] Some parameters missing from documentation of the function `covars`
 
 ### Model 1:
 
