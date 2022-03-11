@@ -2,6 +2,7 @@
 
 ## TODO: 
 
+- [ ] Make project_from_filtering compatable with spatPomp/panelPomp models.
 - [ ] Always check/update function documentation. 
 - [ ] Fix package dependencies:
   - [ ] Make sure that the package depends on `pomp`, but possibly also `panelPomp`, and `spatPomp`.
