@@ -153,6 +153,12 @@ project_from_filter <- function(mod, PF, covarGen = NULL,
     sim_df$time <- new_times
     sim_df$.id  <- i
     results <- dplyr::bind_cols(sim_df, measures)
+
+    rm(
+      samp_end_state, cov_df, proc_sim, measures, sim_df
+    )
+    gc()
+
     results %>%
       dplyr::select(time, .id, dplyr::everything())
   }

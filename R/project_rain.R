@@ -33,6 +33,24 @@
 
 project_rain <- function(end_date = as.Date("2029-12-20")) {
 
+  # Define helper functions
+  dateToYears <- function(date, origin = as.Date("2014-01-01"), yr_offset = 2014) {
+    # This function converts a date to a decimal representation
+    #
+    # ex: "1976-03-01" -> 1976.163
+
+    julian(date, origin = origin) / 365.25 + yr_offset
+  }
+
+  yearsToDate <- function(year_frac, origin = as.Date("2014-01-01"), yr_offset = 2014.0) {
+    # This function is the inverse function of dateToYears; it takes
+    # a decimal representation of a date and converts it into a Date.
+    #
+    # ex: 1976.163 -> "1976-03-01"
+
+    as.Date((year_frac - yr_offset) * 365.25, origin = origin)
+  }
+
   std_rain <- function(x) {
     # This function simply standardizes the rain for us.
     x / max(x)
