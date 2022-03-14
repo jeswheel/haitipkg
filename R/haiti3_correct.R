@@ -81,8 +81,8 @@ haiti3_correct <- function(dt_yrs = 1 / 365.25 * .5) {
     "VSd_alt", "VR1d_alt", "VR2d_alt", "VR3d_alt",
     "VSdd_alt", "VR1dd_alt",
     "VR2dd_alt", "VR3dd_alt",
-    "B", "C", "W",
-    "MobAI", "MobCases" # TODO: Remove this when done.
+    "B", "C", "W"
+    # "MobAI", "MobCases" # TODO: Remove this when done.
   )
 
   # All parameters that are common to each departement (disease specific parameters)
@@ -374,32 +374,37 @@ previous_vacc_campaign = TRUE;
 r_v_wdn = 0;
 dw = 0;
 
-other_cases = CasesArtibonite + CasesCentre + CasesGrande_Anse + CasesNippes + CasesNord +
-                CasesNord_Est + CasesNord_Ouest + CasesOuest + CasesSud + CasesSud_Est - Cases%s;
+// other_cases = CasesArtibonite + CasesCentre + CasesGrande_Anse + CasesNippes + CasesNord +
+//                CasesNord_Est + CasesNord_Ouest + CasesOuest + CasesSud + CasesSud_Est - Cases%s;
 
 // 2019.029
-if (t <= 0) {
-  other_cases = CasesArtibonite + CasesCentre + CasesGrande_Anse + CasesNippes + CasesNord +
-                CasesNord_Est + CasesNord_Ouest + CasesOuest + CasesSud + CasesSud_Est - Cases%s;
-  if (t >= 2018) {
-    mobility =  (365 * other_cases / (7 * epsilon * cas_def)) * (1 / (mu + alpha + gamma) + (1 - sigma) / (sigma * (mu + gamma)));
-  } else {
-    mobility =  (365 * other_cases / (7 * epsilon)) * (1 / (mu + alpha + gamma) + (1 - sigma) / (sigma * (mu + gamma)));
-  }
-} else {
-  mobility =  (IArtibonite + ICentre + IGrande_Anse + INippes + INord +
+// if (t <= 0) {
+//   other_cases = CasesArtibonite + CasesCentre + CasesGrande_Anse + CasesNippes + CasesNord +
+//                 CasesNord_Est + CasesNord_Ouest + CasesOuest + CasesSud + CasesSud_Est - Cases%s;
+//   if (t >= 2018) {
+//     mobility =  (365 * other_cases / (7 * epsilon * cas_def)) * (1 / (mu + alpha + gamma) + (1 - sigma) / (sigma * (mu + gamma)));
+//   } else {
+//     mobility =  (365 * other_cases / (7 * epsilon)) * (1 / (mu + alpha + gamma) + (1 - sigma) / (sigma * (mu + gamma)));
+//   }
+// } else {
+//   mobility =  (IArtibonite + ICentre + IGrande_Anse + INippes + INord +
+//              INord_Est + INord_Ouest + IOuest + ISud + ISud_Est - I%s +
+//              AArtibonite + ACentre + AGrande_Anse + ANippes + ANord +
+//              ANord_Est + ANord_Ouest + AOuest + ASud + ASud_Est - A%s);
+// }
+
+mobility =  (IArtibonite + ICentre + IGrande_Anse + INippes + INord +
              INord_Est + INord_Ouest + IOuest + ISud + ISud_Est - I%s +
              AArtibonite + ACentre + AGrande_Anse + ANippes + ANord +
              ANord_Est + ANord_Ouest + AOuest + ASud + ASud_Est - A%s);
-}
 
 
 // TODO: Remove when done
-MobAI%s = (IArtibonite + ICentre + IGrande_Anse + INippes + INord +
-             INord_Est + INord_Ouest + IOuest + ISud + ISud_Est - I%s +
-             AArtibonite + ACentre + AGrande_Anse + ANippes + ANord +
-             ANord_Est + ANord_Ouest + AOuest + ASud + ASud_Est - A%s);
-MobCases%s = (365 * other_cases / (7 * epsilon)) * (1 / (mu + alpha + gamma) + (1 - sigma) / (sigma * (mu + gamma)));
+// MobAI%s = (IArtibonite + ICentre + IGrande_Anse + INippes + INord +
+//              INord_Est + INord_Ouest + IOuest + ISud + ISud_Est - I%s +
+//              AArtibonite + ACentre + AGrande_Anse + ANippes + ANord +
+//              ANord_Est + ANord_Ouest + AOuest + ASud + ASud_Est - A%s);
+// MobCases%s = (365 * other_cases / (7 * epsilon)) * (1 / (mu + alpha + gamma) + (1 - sigma) / (sigma * (mu + gamma)));
 
 // if (t >= 2018) {
 //   Mob2%s = (other_cases / (cas_def * epsilon * gamma * 7)) * (1 + 1 / sigma) * 365;
@@ -929,19 +934,19 @@ return(dB);
 
 
   all_rain <- all_rain %>% dplyr::select(time, dplyr::starts_with('rain_std'))
-  covars <- dplyr::full_join(all_rain, tot_cases, by = 'time') %>%
-    tidyr::fill(CasesArtibonite,
-                CasesCentre,
-                CasesGrande_Anse,
-                CasesNippes,
-                CasesNord,
-                CasesNord_Est,
-                CasesOuest,
-                CasesSud,
-                CasesSud_Est,
-                CasesNord_Ouest, .direction = c('updown'))
-  # covars <- all_rain %>%
-  #   dplyr::select(time, dplyr::starts_with('rain_std'))
+  # covars <- dplyr::full_join(all_rain, tot_cases, by = 'time') %>%
+  #   tidyr::fill(CasesArtibonite,
+  #               CasesCentre,
+  #               CasesGrande_Anse,
+  #               CasesNippes,
+  #               CasesNord,
+  #               CasesNord_Est,
+  #               CasesOuest,
+  #               CasesSud,
+  #               CasesSud_Est,
+  #               CasesNord_Ouest, .direction = c('updown'))
+  covars <- all_rain %>%
+    dplyr::select(time, dplyr::starts_with('rain_std'))
 
   # %>%
     # tidyr::fill(dplyr::starts_with("Cases"), .direction = 'up')
