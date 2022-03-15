@@ -79,13 +79,17 @@ project_from_filter <- function(mod, PF, covarGen = NULL,
   # Save a vector of the times we want to simulate in the future. We
   # start one week after the last day of available data, because the
   # last day of available data becomes t0.
-  new_times <- dateToYears(
-    seq.Date(
-      yearsToDate(max(mod@times)) + 7,
-      as.Date("2029-12-20"),
-      by = "1 week"
+  if (mod@timename == "week") {
+    new_times <- (max(mod@times) + 1):(max(mod@times) + 570)
+  } else {
+    new_times <- dateToYears(
+      seq.Date(
+        yearsToDate(max(mod@times)) + 7,
+        as.Date("2029-12-20"),
+        by = "1 week"
+      )
     )
-  )
+  }
 
   foreach::foreach(
     i = 1:nsims,
@@ -135,14 +139,30 @@ project_from_filter <- function(mod, PF, covarGen = NULL,
           params = mod@params
         )
 
-      measures <- mod %>%
-        rmeasure(
-          object = .,
-          x = proc_sim,
-          times = new_times,
-          params = mod@params
-        ) %>%
-        drop() %>% t() %>% as.data.frame()
+      # TODO: This is a hack to make the function work for model 1.
+      # Basically it's because the dimension of the rmeasure of
+      # model 1 is 1, and dimension of model 3 is 10.
+
+      if (mod@timename == 'week') {
+        measures <- mod %>%
+          rmeasure(
+            object = .,
+            x = proc_sim,
+            times = new_times,
+            params = mod@params
+          ) %>%
+          drop() %>% as.data.frame()
+        colnames(measures) <- "cases"
+      } else {
+        measures <- mod %>%
+          rmeasure(
+            object = .,
+            x = proc_sim,
+            times = new_times,
+            params = mod@params
+          ) %>%
+          drop() %>% t() %>% as.data.frame()
+      }
     }
 
 
