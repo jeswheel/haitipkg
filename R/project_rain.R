@@ -31,7 +31,8 @@
 #' @importFrom magrittr %>%
 #' @export
 
-project_rain <- function(end_date = as.Date("2029-12-20")) {
+project_rain <- function(end_date = as.Date("2029-12-20"),
+                         include_data = FALSE) {
 
   # Define helper functions
   dateToYears <- function(date, origin = as.Date("2014-01-01"), yr_offset = 2014) {
@@ -109,10 +110,17 @@ project_rain <- function(end_date = as.Date("2029-12-20")) {
 
   colnames(rain_prj) <- c('date', departments)
 
-  all_rain <- dplyr::bind_rows(rf, rain_prj)
+  if (include_data) {
+    rf$is_data <- TRUE
+    rain_prj$is_data <- FALSE
+    all_rain <- dplyr::bind_rows(rf, rain_prj)
+  } else {
+    all_rain <- rain_prj
+  }
+
 
   result <- all_rain %>%
-    filter(date >= as.Date("2010-10-23") - 7) %>%
+    dplyr::filter(date >= as.Date("2010-10-23") - 7) %>%
     dplyr::summarize(
       date = date, dplyr::across(Artibonite:`Sud-Est`, std_rain)
     ) %>%
@@ -132,6 +140,7 @@ project_rain <- function(end_date = as.Date("2029-12-20")) {
     'time'
   )
 
-  result %>% dplyr::select(time, dplyr::starts_with("rain_std"))
+  result %>% dplyr::select(time, dplyr::starts_with("rain_std")) %>%
+    as.matrix()
 
 }

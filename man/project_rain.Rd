@@ -4,7 +4,7 @@
 \alias{project_rain}
 \title{Project Rainfall}
 \usage{
-project_rain(end_date = as.Date("2029-12-20"))
+project_rain(end_date = as.Date("2029-12-20"), include_data = FALSE)
 }
 \arguments{
 \item{end_date:}{Date object representing when the projection of rainfall
