@@ -2,6 +2,7 @@
 
 ## TODO: 
 
+- [ ] Make [R/get_elimProbs.R](R/get_elimProbs.R) to work for model 2.
 - [ ] Make project_from_filtering compatable with spatPomp/panelPomp models.
 - [ ] Always check/update function documentation. 
 - [ ] Fix package dependencies:
