@@ -60,8 +60,8 @@ fit_haiti1 <- function(version = "basic", run_level = 1) {
     pop_haiti_end <- MODEL1_INPUT_PARAMETERS$adj_pars_end[22] %>% unlist()
 
     ## starting states
-    E0 <- 10/pop_haiti ## rpois(nsamps, 10)/pop
-    I0 <- 10/pop_haiti ## rpois(nsamps, 10)/pop
+    E0 <- 10/pop_haiti_epi ## rpois(nsamps, 10)/pop
+    I0 <- 10/pop_haiti_epi ## rpois(nsamps, 10)/pop
     A0 <- 0.0
     R0 <- 0.0
     S0 <- 1-R0-I0-E0-A0
@@ -110,7 +110,7 @@ fit_haiti1 <- function(version = "basic", run_level = 1) {
     starts <- dplyr::bind_rows(rhosamps, tausamps, betasamps, nusamps, sigsqsamps) %>%
       dplyr::mutate(parid = seq_along(rho)) %>%
       dplyr::mutate(theta0 = theta0,mu = mu, delta = delta, nu = nu, sigma = sigma, alpha = alpha,
-             gamma = gamma, S_0 = S0, E_0 = E0, I_0 = I0, A_0 = A0, R_0 = R0, pop_0 = pop_haiti) %>%
+             gamma = gamma, S_0 = S0, E_0 = E0, I_0 = I0, A_0 = A0, R_0 = R0, pop_0 = pop_haiti_epi) %>%
       dplyr::select(parid, rho, tau, beta1, beta2, beta3, beta4, beta5,
              beta6, nu, gamma, sigma, theta0, alpha, mu, delta, sig_sq,
              S_0, E_0, I_0, A_0, R_0, pop_0)
