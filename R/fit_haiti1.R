@@ -251,12 +251,12 @@ fit_haiti1 <- function(version = "basic", run_level = 1) {
     } ->  fits
 
     epi_best <- fits %>%
-      dplyr::arrange(-logLik_epi) %>%
+      dplyr::arrange(-loglik_epi) %>%
       dplyr::slice_head(n = 1) %>%
       dplyr::pull(which)
 
     end_best <- fits %>%
-      dplyr::arrange(-logLik_end) %>%
+      dplyr::arrange(-loglik_end) %>%
       dplyr::slice_head(n = 1) %>%
       dplyr::pull(which)
 
@@ -384,8 +384,8 @@ fit_haiti1 <- function(version = "basic", run_level = 1) {
 
         ## record parameter estimates
         dummy <- data.frame(as.list(coef(mf.mod)),
-                            logLik = ll[1],
-                            logLik.se = ll[2])
+                            loglik = ll[1],
+                            loglik.se = ll[2])
 
         rm(mf.mod, ll)
         gc()
@@ -393,7 +393,7 @@ fit_haiti1 <- function(version = "basic", run_level = 1) {
       } -> fits
 
     res <- fits %>%
-      dplyr::arrange(-logLik) %>%
+      dplyr::arrange(-loglik) %>%
       dplyr::slice_head(n = 1) %>%
       dplyr::pull(which)
 
