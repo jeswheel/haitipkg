@@ -7,7 +7,7 @@
 est_logLik1(version = NULL, model = NULL, Np = 100, nreps = 10, ncores = 1)
 }
 \arguments{
-\item{version}{In c("basic", "joint").}
+\item{version}{In c("basic", "joint", "panel").}
 
 \item{model}{A \code{pomp} or \code{panelPomp} object matching the specified model version.}
 
@@ -31,7 +31,7 @@ As of Feb 20, 2022, Model 1 can be written in 4 different forms:
 \item Panel: disaggregated \code{panelPomp} object (\code{haiti1_disagg()}).
 }
 
-Currently, this function supports estimation for the first two forms: Basic, Joint
+Currently, this function supports estimation for the following forms: Basic, Joint, Panel
 }
 \examples{
 m1 <- haiti1_joint()
