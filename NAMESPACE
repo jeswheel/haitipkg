@@ -2,8 +2,10 @@
 
 export(VaccinationScenario3)
 export(covars)
+export(est_logLik1)
 export(est_logLik2)
 export(est_logLik3)
+export(fit_haiti1)
 export(fit_haiti2)
 export(fit_haiti3)
 export(get_elimProbs)
