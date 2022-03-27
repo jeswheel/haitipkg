@@ -9,7 +9,7 @@ haiti1(vacscen = "id0", period = "epidemic")
 \arguments{
 \item{vacscen}{ID code for vaccination scenario}
 
-\item{period}{either "epidemic" or "endemic", used to determine parameter values}
+\item{period}{either "epidemic" or "endemic" or "start-end" (weeks), used to determine parameter values}
 }
 \value{
 An object of class \sQuote{pomp}

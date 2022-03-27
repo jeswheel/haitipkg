@@ -333,7 +333,7 @@ haiti1 <- function(vacscen = 'id0', period = 'epidemic') {
     model1@t0 <- 232
     model1 <- pomp::window(model1, start = 233, end = 430) ## endemic period
     pomp::coef(model1) <- unlist(end_pars) ## endemic period
-  } elseif (period == "epidemic") {
+  } else if (period == "epidemic") {
     model1 <- pomp::window(model1, start = 1, end = 232) ## epidemic period
     model1@t0 <- 0
     pomp::coef(model1) <- unlist(epi_pars) ## epidemic period
