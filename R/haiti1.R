@@ -3,7 +3,7 @@
 #' Generate a class \sQuote{pomp} object for fitting to epidemic/endemic Haiti cholera data.
 #'
 #' @param vacscen ID code for vaccination scenario
-#' @param period either "epidemic" or "endemic", used to determine parameter values
+#' @param period either "epidemic" or "endemic" or "start-end" (weeks), used to determine parameter values
 #' @importFrom pomp Csnippet
 #' @return An object of class \sQuote{pomp}
 #' @examples
@@ -333,10 +333,17 @@ haiti1 <- function(vacscen = 'id0', period = 'epidemic') {
     model1@t0 <- 232
     model1 <- pomp::window(model1, start = 233, end = 430) ## endemic period
     pomp::coef(model1) <- unlist(end_pars) ## endemic period
-  } else {
+  } elseif (period == "epidemic") {
     model1 <- pomp::window(model1, start = 1, end = 232) ## epidemic period
     model1@t0 <- 0
     pomp::coef(model1) <- unlist(epi_pars) ## epidemic period
+  } else {
+    weeks <- strsplit(period, "-")
+    start <- as.numeric(weeks[[1]][1])
+    end <- as.numeric(weeks[[1]][2])
+    model1 <- pomp::window(model1, start = start, end = end) ## epidemic period
+    model1@t0 <- start - 1
+    pomp::coef(model1) <- unlist(epi_pars) ## epidemic period by default
   }
 
   return(model1)
