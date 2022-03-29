@@ -17,7 +17,8 @@
 #' @export
 
 
-haiti2 <- function(cutoff=2014.161, region="before", measure="linear",joint=FALSE){
+haiti2 <- function(cutoff=2014.161, region="before", measure="linear",
+                   joint=FALSE){
   cholera_unit_statenames <- c("S","E","I","A","R","RA","C",
                                "VOD","EOD","IOD","AOD","ROD","RAOD",
                                "VTD","ETD","ITD","ATD","RTD","RATD",
@@ -28,7 +29,7 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear",joint=FALS
   cholera_RPnames <- c("sigma","gammaE","k","gamma","Beta","Omega1",
                        "Omega2","VE1","VE2","Delta","Mu","AlphaS","ps",
                        "Sat","BetaW","sigmaSE","VR","WR","Psi","Rho",
-                       "scenario","f","v")
+                       "scenario","f","v","phase")
   cholera_paramnames <- c(cholera_RPnames,cholera_IVPnames)
 
   # make components of spatPomp object
@@ -431,7 +432,7 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear",joint=FALS
            redb*Beta*(A[u]+AOD[u]+ATD[u]+AODu5[u]+ATDu5[u]);
 
       // water effect
-      foi += 0.5*(1 + AlphaS*cos(2*pi*t/ps))*(BetaW*W[u])/(Sat+W[u]);
+      foi += 0.5*(1 + AlphaS*cos(2*pi*t/ps + phase))*(BetaW*W[u])/(Sat+W[u]);
 
       // white noise (extrademographic stochasticity)
       dw = rgammawn(sigmaSE,dt);
@@ -746,7 +747,7 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear",joint=FALS
       foi = Beta*(I[u]+IOD[u]+ITD[u]) + redb*Beta*(A[u]+AOD[u]+ATD[u]);
 
       // water effect
-      foi += 0.5*(1 + AlphaS*cos(2*pi*t/ps))*(BetaW*W[u])/(Sat+W[u]);
+      foi += 0.5*(1 + AlphaS*cos(2*pi*t/ps + phase))*(BetaW*W[u])/(Sat+W[u]);
 
       // transitions between classes
       trans[0] = foi*S[u]; // S to E
@@ -905,7 +906,7 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear",joint=FALS
                     Omega1=1, Omega2=5, VE1=0.43, VE2=0.52, Delta=52/3, Mu=4.6612e3,
                     AlphaS=0.4, ps=1.05, Sat=1e5, BetaW=4.544, sigmaSE=0.01,
                     VR=1.7889e-11, WR=5, Psi=0.5, Rho=0.2, scenario=0,
-                    f=0.75, v=5.371e2)
+                    f=0.75, v=5.371e2, phase=0)
   # MLE for endemic model
   if (region=="after") {
     start_params[c("VR","Mu","v")] <- c(1.304e-9, 1.897e2, 8.201e1)
