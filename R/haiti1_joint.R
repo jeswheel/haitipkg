@@ -3,13 +3,19 @@
 #' Generate a class \sQuote{pomp} object for fitting to epidemic/endemic Haiti cholera data jointly.
 #'
 #' @param vacscen ID code for vaccination scenario
+#' @param breakpoint the week number at which to start re-estimation
+#' @param rho_flag boolean indicating whether to re-estimate \eqn{\rho} at the breakpoint
+#' @param tau_flag boolean indicating whether to re-estimate \eqn{\tau} at the breakpoint
+#' @param sig_sq_flag boolean indicating whether to re-estimate \eqn{\sigma^2} at the breakpoint
+#' @param beta_flag boolean indicating whether to re-estimate \eqn{\beta's} at the breakpoint
+#' @param nu_flag boolean indicating whether to re-estimate \eqn{\nu} at the breakpoint
 #' @importFrom pomp Csnippet
 #' @return An object of class \sQuote{pomp}
 #' @examples
-#' m1 <- haiti1_joint(vacscen = "id0")
+#' m1 <- haiti1_joint(vacscen = "id0", breakpoint = 232, rho_flag = T, tau_flag = F, sig_sq_flag = T, beta_flag = F, nu_flag = F)
 #' @export
 
-haiti1_joint <- function(vacscen = 'id0') {
+haiti1_joint <- function(vacscen = 'id0', breakpoint = 232, rho_flag = T, tau_flag = T, sig_sq_flag = T, beta_flag = F, nu_flag = F) {
   vacscen <- vacscen
   ## get data
   dat <- haiti1_agg_data()
@@ -110,10 +116,41 @@ haiti1_joint <- function(vacscen = 'id0') {
   }
 
   # seasonal beta and foi
-  time_check <- c(
-    "double mybeta = beta1*seas1 + beta2*seas2 + beta3*seas3 + beta4*seas4 + beta5*seas5 + beta6*seas6; \n "
+  beta_check <- paste0(
+    "double beta1, beta2, beta3, beta4, beta5, beta6; \n",
+    "if (t < bp) { \n",
+    "beta1 = beta1_epi; \n",
+    "beta2 = beta2_epi; \n",
+    "beta3 = beta3_epi; \n",
+    "beta4 = beta4_epi; \n",
+    "beta5 = beta5_epi; \n",
+    "beta6 = beta6_epi; \n",
+    "} else { \n",
+    "beta1 = beta1_end; \n",
+    "beta2 = beta2_end; \n",
+    "beta3 = beta3_end; \n",
+    "beta4 = beta4_end; \n",
+    "beta5 = beta5_end; \n",
+    "beta6 = beta6_end; \n",
+    "} \n"
   )
-  beta <- paste0(time_check, collapse = "")
+  time_check <- c("double bp = ", breakpoint, "; \n",
+    "double mybeta = beta1*seas1 + beta2*seas2 + beta3*seas3 + beta4*seas4 + beta5*seas5 + beta6*seas6; \n ")
+  if (beta_flag) {
+    beta <- paste0(beta_check, time_check, collapse = "")
+  } else {
+    beta <- paste0(time_check, collapse = "")
+  }
+
+  if (nu_flag) {
+    beta <- c(beta,
+              "double nu; \n",
+              "if (t < bp) { \n",
+              "nu = nu_epi; \n",
+              "} else { \n",
+              "nu = nu_end; \n",
+              "} \n")
+  }
   if (depts > 1) {
     foi_i <- c("I", paste0("+I", 1:depts)) %>%
       paste(collapse = "")
@@ -125,14 +162,19 @@ haiti1_joint <- function(vacscen = 'id0') {
     foi <- "double foi = pow(I, nu) * mybeta / pop; \n "
   }
 
-  foi <- paste0(foi,
-                "double sig_sq; \n ",
-                "if (t < 233) { \n ",
-                "sig_sq = sig_sq_epi; \n ",
-                "} else { \n ",
-                "sig_sq = sig_sq_end; \n ",
-                "} \n ",
-                "\n dgamma = rgammawn(sig_sq, dt); \n foi = foi * dgamma/dt; \n ")
+  if (sig_sq_flag) {
+    foi <- paste0(foi,
+                  "double sig_sq; \n ",
+                  "if (t < bp) { \n ",
+                  "sig_sq = sig_sq_epi; \n ",
+                  "} else { \n ",
+                  "sig_sq = sig_sq_end; \n ",
+                  "} \n ",
+                  "\n dgamma = rgammawn(sig_sq, dt); \n foi = foi * dgamma/dt; \n ")
+  } else {
+    foi <- paste0(foi,
+                  "dgamma = rgammawn(sig_sq, dt); \n foi = foi * dgamma/dt; \n ")
+  }
 
   # theta_k
   if (vacscen != "id0") {
@@ -248,38 +290,107 @@ haiti1_joint <- function(vacscen = 'id0') {
     rproc_paste
   )
 
+  dmeas <- c("double bp = ", breakpoint, "; \n",
+             "if (ISNA(cases)) { \n",
+             "lik = (give_log) ? 0 : 1; \n",
+             "} else { \n")
+  rmeas <- c("double bp = ", breakpoint, "; \n")
+
+  if (tau_flag) {
+    dmeas <- c(dmeas,
+               "double tau; \n",
+               "if (t < bp) { \n",
+               "tau = tau_epi; \n",
+               "} else { \n",
+               "tau = tau_end; \n",
+               "} \n")
+    rmeas <- c(rmeas,
+               "double tau; \n",
+               "if (t < bp) { \n",
+               "tau = tau_epi; \n",
+               "} else { \n",
+               "tau = tau_end; \n",
+               "} \n")
+  }
+  if (rho_flag) {
+    dmeas <- c(dmeas,
+               "double rho; \n",
+               "if (t < bp) { \n",
+               "rho = rho_epi; \n",
+               "} else { \n",
+               "rho = rho_end; \n",
+               "} \n")
+    rmeas <- c(rmeas,
+               "double rho; \n",
+               "if (t < bp) { \n",
+               "rho = rho_epi; \n",
+               "} else { \n",
+               "rho = rho_end; \n",
+               "} \n")
+  }
+  dmeas <- c(dmeas,
+             "lik = dnbinom_mu(cases, tau, rho*incid, give_log); \n",
+             "} \n")
+
   ## dmeasure
-  dmeas <- Csnippet("
-    if (ISNA(cases)) {
-      lik = (give_log) ? 0 : 1;
-    } else {
-      double rho = rho_epi;
-      double tau = tau_epi;
-      if (t > 232) {
-        rho = rho_end;
-        tau = tau_end;
-      }
-      lik = dnbinom_mu(cases, tau, rho*incid, give_log);
-    }
-  ")
+  dmeas <- Csnippet(paste(dmeas, collapse = ""))
 
   ## rmeasure
-  rmeas <- Csnippet("
-    double rho = rho_epi;
-    double tau = tau_epi;
-    if (t > 232) {
-      rho = rho_end;
-      tau = tau_end;
-    }
-    cases = rnbinom_mu(tau, rho*incid);
-    if (cases > 0.0) {
-      cases = nearbyint(cases);
-    } else {
-      cases = 0.0;
-    }
-  ")
+  rmeas <- c(rmeas,
+             "cases = rnbinom_mu(tau, rho*incid); \n",
+             "if (cases > 0.0) { \n",
+             "cases = nearbyint(cases); \n",
+             "} else { \n",
+             "cases = 0.0; \n",
+             "} \n")
+  rmeas <- Csnippet(paste(rmeas, collapse = ""))
 
-  ## names
+  ## parameters and names
+  pars <- unlist(MODEL1_INPUT_PARAMETERS$joint_pars)
+  param_names <- c()
+  log_pars <- c()
+  logit_pars <- c()
+  if (rho_flag) {
+    param_names <- c(param_names, "rho_epi", "rho_end")
+    logit_pars <- c(logit_pars, "rho_epi", "rho_end")
+  } else {
+    param_names <- c(param_names, "rho")
+    logit_pars <- c(logit_pars, "rho")
+  }
+  if (sig_sq_flag) {
+    param_names <- c(param_names, "sig_sq_epi", "sig_sq_end")
+    log_pars <- c(log_pars, "sig_sq_epi", "sig_sq_end")
+  } else {
+    param_names <- c(param_names, "sig_sq")
+    log_pars <- c(log_pars, "sig_sq")
+  }
+  if (tau_flag) {
+    param_names <- c(param_names, "tau_epi", "tau_end")
+    log_pars <- c(log_pars, "tau_epi", "tau_end")
+  } else {
+    param_names <- c(param_names, "tau")
+    log_pars <- c(log_pars, "tau")
+  }
+  if (beta_flag) {
+    param_names <- c(param_names,
+                     paste0("beta", 1:6, "_epi"),
+                     paste0("beta", 1:6, "_end"))
+    log_pars <- c(log_pars,
+                  paste0("beta", 1:6, "_epi"),
+                  paste0("beta", 1:6, "_end"))
+  } else {
+    param_names <- c(param_names, paste0("beta", 1:6))
+    log_pars <- c(log_pars,
+                  paste0("beta", 1:6))
+  }
+  if (nu_flag) {
+    param_names <- c(param_names, "nu_epi", "nu_end")
+    logit_pars <- c(logit_pars, "nu_epi", "nu_end")
+  } else {
+    param_names <- c(param_names, "nu")
+    logit_pars <- c(logit_pars, "nu")
+  }
+
   if (depts > 1) {
     ## state names
     state_names <- c("S", paste0("S", 1:depts),
@@ -291,11 +402,9 @@ haiti1_joint <- function(vacscen = 'id0') {
                      "foival", "Str0", "Sout", "Sin")
 
     ## parameter names
-    param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", #epidemic
-                     "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0", # epidemic
-                     "rho_end", "sig_sq_end", "tau_end", # endemic
-                     "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", # shared
-                     "mu", "gamma", "sigma", "theta0", "alpha", "delta", "kappa", "nu",# shared
+    param_names <- c(param_names,
+                     "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0",
+                     "mu", "gamma", "sigma", "theta0", "alpha", "delta", "kappa",
                      paste0("S", 1:depts, "_0"),
                      paste0("E", 1:depts, "_0"),
                      paste0("I", 1:depts, "_0"),
@@ -310,11 +419,9 @@ haiti1_joint <- function(vacscen = 'id0') {
     state_names <- c("S", "E", "I", "A", "R", "incid", "foival", "Str0", "Sout", "Sin")
 
     ## parameter names
-    param_names <- c("rho_epi", "sig_sq_epi", "tau_epi", #epidemic
-                     "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0", # epidemic
-                     "rho_end", "sig_sq_end", "tau_end", # endemic
-                     "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", # shared
-                     "mu", "gamma", "sigma", "theta0", "alpha", "delta", "kappa", "nu") # shared
+    param_names <- c(param_names,
+                     "S_0", "E_0", "I_0", "A_0", "R_0", "pop_0",
+                     "mu", "gamma", "sigma", "theta0", "alpha", "delta", "kappa")
 
     ## accum vars
     accum_names <- c("incid", "foival","Str0","Sout","Sin")
@@ -322,14 +429,10 @@ haiti1_joint <- function(vacscen = 'id0') {
 
   ## partrans
   param_trans <- pomp::parameter_trans(
-    log = c("beta1", "beta2", "beta3", "beta4", "beta5", "beta6", # shared
-            "sigma", "gamma", "mu", "delta", "alpha",
-            "sig_sq_end", "sig_sq_epi", "tau_end", "tau_epi"),
-    logit = c("rho_epi", "rho_end", "nu", "theta0"),
+    log = c(log_pars, "sigma", "gamma", "mu", "delta", "alpha"),
+    logit = c(logit_pars, "theta0"),
     barycentric = c("S_0", "E_0", "I_0", "A_0", "R_0")
   )
-
-  pars <- unlist(MODEL1_INPUT_PARAMETERS$joint_pars)
 
   if (depts > 1) {
     par_names <- names(pars)
