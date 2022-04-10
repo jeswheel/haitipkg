@@ -457,7 +457,7 @@ haiti1_joint <- function(vacscen = 'id0', breakpoint = 232, rho_flag = T, tau_fl
       partrans = param_trans,
       statenames = state_names,
       paramnames = param_names,
-      params = pars,
+      #params = pars,
       accumvars = accum_names,
       rinit = rinit
     )
