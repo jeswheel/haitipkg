@@ -11,10 +11,11 @@
 #' }
 #'
 #' The Basic version is the closest to the model described and used by Lee et al.
-#' in that it only has an additional overdispersion term. We currently
-#' provide methods for fitting both the Basic and Joint forms.
+#' in that it only has an additional overdispersion term. Basic-Full is the same
+#' as Basic but fitting through all 430 weeks of data (not split between endemic
+#' and epidemic). We currently provide methods for fitting both the Basic and Joint forms.
 #'
-#' @param version In c("basic", "joint").
+#' @param version In c("basic", "basic-full", "joint").
 #' @param run_level in c(1, 2, 3)
 #'
 #' @examples
@@ -51,13 +52,19 @@ fit_haiti1 <- function(version = "basic", run_level = 1) {
   ## sigma_se parameter settings
   sigsqlo <- 1E-9; sigsqup <- 5
 
-  if (version == 'basic') {
+  if (version == 'basic' || version == 'basic-full') {
     ## make models
-    epi_mod <- haiti1()
-    end_mod <- haiti1(period = "endemic")
+    if (version == 'basic') { ## separate periods
+      epi_mod <- haiti1(period = "epidemic")
+      end_mod <- haiti1(period = "endemic")
+      pop_haiti_epi <- MODEL1_INPUT_PARAMETERS$adj_pars_epi[22] %>% unlist()
+      pop_haiti_end <- MODEL1_INPUT_PARAMETERS$adj_pars_end[22] %>% unlist()
+    } else { ## basic-full
+      full_mod <- haiti1(period = "1-430")
+      pop_haiti_epi <- MODEL1_INPUT_PARAMETERS$adj_pars_epi[22] %>% unlist()
+    }
+
     haiti.dat <- haiti1_agg_data() ## get case data (country-wide)
-    pop_haiti_epi <- MODEL1_INPUT_PARAMETERS$adj_pars_epi[22] %>% unlist()
-    pop_haiti_end <- MODEL1_INPUT_PARAMETERS$adj_pars_end[22] %>% unlist()
 
     ## starting states
     E0 <- 10/pop_haiti_epi ## rpois(nsamps, 10)/pop
@@ -116,15 +123,18 @@ fit_haiti1 <- function(version = "basic", run_level = 1) {
              S_0, E_0, I_0, A_0, R_0, pop_0)
 
     est_params_epi <- c(paste0("beta", 1:6), "rho", "tau", "nu", "sig_sq", "E_0", "I_0")
-    rw_sds_epi <- pomp::rw.sd(beta1 = .02, beta2 = .02, beta3 = .02,
-                              beta4 = .02, beta5 = .02, beta6 = .02,
+    rw_sds_epi <- pomp::rw.sd(beta1 = 0.02, beta2 = 0.02, beta3 = 0.02,
+                              beta4 = 0.02, beta5 = 0.02, beta6 = 0.02,
                               tau = 0.02, rho = 0.02, nu = 0.02,
                               sig_sq = 0.02, E_0 = ivp(0.2), I_0 = ivp(0.2))
 
-    est_params_end <- c(paste0("beta", 1:6), "rho", "tau", "nu", "sig_sq")
-    rw_sds_end <- pomp::rw.sd(beta1 = .02, beta2 = .02, beta3 = .02,
-                              beta4 = .02, beta5 = .02, beta6 = .02,
-                              tau = 0.02, rho = 0.02, nu = 0.02, sig_sq = 0.02)
+    if (version == 'basic') { ## separate periods
+      est_params_end <- c(paste0("beta", 1:6), "rho", "tau", "nu", "sig_sq")
+      rw_sds_end <- pomp::rw.sd(beta1 = 0.02, beta2 = 0.02, beta3 = 0.02,
+                                beta4 = 0.02, beta5 = 0.02, beta6 = 0.02,
+                                tau = 0.02, rho = 0.02, nu = 0.02, sig_sq = 0.02)
+      full_mod <- epi_mod
+    }
 
     foreach(start = iterators::iter(starts, by = 'row'),
            .combine = rbind, .inorder = FALSE,
@@ -135,7 +145,7 @@ fit_haiti1 <- function(version = "basic", run_level = 1) {
            .noexport = c(),
            .verbose = TRUE) %dopar%
     {
-         po <- epi_mod
+         po <- full_mod
          allpars <- c("rho","tau","beta1","beta2","beta3","beta4","beta5","beta6",
                       "gamma","sigma","theta0","alpha","mu","delta","nu", "sig_sq",
                       "S_0","E_0","I_0","A_0","R_0", "pop_0")
@@ -165,106 +175,123 @@ fit_haiti1 <- function(version = "basic", run_level = 1) {
          ll_epi <- est_logLik1(version = "basic", model = mf.mod_epi,
                                Np = num_parts, nreps = num_iters)
 
-         sims <- pomp::simulate(po, params = po@params,
-                                nsim = 25, format = "data.frame") %>%
-           dplyr::mutate(pop = S + E + I + A + R) %>%
-           dplyr::select(week, S, E, I, A, R, incid, pop, cases)
+         if (version == 'basic') { ## separate periods
+           sims <- pomp::simulate(po, params = po@params,
+                                  nsim = 25, format = "data.frame") %>%
+             dplyr::mutate(pop = S + E + I + A + R) %>%
+             dplyr::select(week, S, E, I, A, R, incid, pop, cases)
 
-         states <- sims %>%
-           dplyr::group_by(week) %>%
-           dplyr::summarise(S_med = median(S), E_med = median(E), I_med = median(I),
-                            A_med = median(A), R_med = median(R),
-                            incid_med = median(incid), pop_med = median(pop),
-                            cases_med = median(cases),
-                            S_mean = mean(S), E_mean = mean(E), I_mean = mean(I),
-                            A_mean = mean(A), R_mean = mean(R),
-                            incid_mean = mean(incid), pop_mean = mean(pop),
-                            cases_mean = mean(cases),
-                            S_lo = quantile(S, probs = c(.025)),
-                            E_lo = quantile(E, probs = c(.025)),
-                            I_lo = quantile(I, probs = c(.025)),
-                            A_lo = quantile(A, probs = c(.025)),
-                            R_lo = quantile(R, probs = c(.025)),
-                            incid_lo = quantile(incid, probs = c(.025)),
-                            pop_lo = quantile(pop, probs = c(.025)),
-                            cases_lo = quantile(cases, probs = c(.025)),
-                            S_hi = quantile(S, probs = c(.975)),
-                            E_hi = quantile(E, probs = c(.975)),
-                            I_hi = quantile(I, probs = c(.975)),
-                            A_hi = quantile(A, probs = c(.975)),
-                            R_hi = quantile(R, probs = c(.975)),
-                            incid_hi = quantile(incid, probs = c(.975)),
-                            pop_hi = quantile(pop, probs = c(.975)),
-                            cases_hi = quantile(cases, probs = c(.975))) %>%
-           dplyr::mutate(date = lubridate::ymd("2010-10-16") + lubridate::weeks(week))
+           states <- sims %>%
+             dplyr::group_by(week) %>%
+             dplyr::summarise(S_med = median(S), E_med = median(E), I_med = median(I),
+                              A_med = median(A), R_med = median(R),
+                              incid_med = median(incid), pop_med = median(pop),
+                              cases_med = median(cases),
+                              S_mean = mean(S), E_mean = mean(E), I_mean = mean(I),
+                              A_mean = mean(A), R_mean = mean(R),
+                              incid_mean = mean(incid), pop_mean = mean(pop),
+                              cases_mean = mean(cases),
+                              S_lo = quantile(S, probs = c(.025)),
+                              E_lo = quantile(E, probs = c(.025)),
+                              I_lo = quantile(I, probs = c(.025)),
+                              A_lo = quantile(A, probs = c(.025)),
+                              R_lo = quantile(R, probs = c(.025)),
+                              incid_lo = quantile(incid, probs = c(.025)),
+                              pop_lo = quantile(pop, probs = c(.025)),
+                              cases_lo = quantile(cases, probs = c(.025)),
+                              S_hi = quantile(S, probs = c(.975)),
+                              E_hi = quantile(E, probs = c(.975)),
+                              I_hi = quantile(I, probs = c(.975)),
+                              A_hi = quantile(A, probs = c(.975)),
+                              R_hi = quantile(R, probs = c(.975)),
+                              incid_hi = quantile(incid, probs = c(.975)),
+                              pop_hi = quantile(pop, probs = c(.975)),
+                              cases_hi = quantile(cases, probs = c(.975))) %>%
+             dplyr::mutate(date = lubridate::ymd("2010-10-16") + lubridate::weeks(week))
 
-         end_starts <- states %>%
-           dplyr::filter(week == max(week)) %>%
-           dplyr::mutate(S_0 = S_med/pop_med, E_0 = E_med/pop_med,
-                         I_0 = I_med/pop_med, A_0 = A_med/pop_med,
-                         incid_0 = incid_med) %>%
-           dplyr::mutate(R_0 = 1-(S_0+E_0+I_0+A_0), pop_0 = pop_med) %>%
-           dplyr::select(S_0, E_0, I_0, A_0, R_0, incid_0, pop_0)
+           end_starts <- states %>%
+             dplyr::filter(week == max(week)) %>%
+             dplyr::mutate(S_0 = S_med/pop_med, E_0 = E_med/pop_med,
+                           I_0 = I_med/pop_med, A_0 = A_med/pop_med,
+                           incid_0 = incid_med) %>%
+             dplyr::mutate(R_0 = 1-(S_0+E_0+I_0+A_0), pop_0 = pop_med) %>%
+             dplyr::select(S_0, E_0, I_0, A_0, R_0, incid_0, pop_0)
 
-         epi_coef <- coef(po) %>%
-           t() %>%
-           data.frame()
-         epi_coef <- epi_coef %>%
-           dplyr::select("rho","tau","beta1","beta2","beta3","beta4","beta5","beta6",
-                         "gamma","sigma","theta0","alpha","mu","delta","nu", "sig_sq")
-         end_coef <- c(epi_coef, end_starts)
+           epi_coef <- coef(po) %>%
+             t() %>%
+             data.frame()
+           epi_coef <- epi_coef %>%
+             dplyr::select("rho","tau","beta1","beta2","beta3","beta4","beta5","beta6",
+                           "gamma","sigma","theta0","alpha","mu","delta","nu", "sig_sq")
+           end_coef <- c(epi_coef, end_starts)
 
-         po <- end_mod
-         timezero(po) <- po@times[1] - 1
-         coef(po) <- unlist(end_coef)
+           po <- end_mod
+           timezero(po) <- po@times[1] - 1
+           coef(po) <- unlist(end_coef)
 
-         ## if no Exposed/Infectious, make it small but nonzero
-         if (coef(po, "E_0") == 0.0 ) {
-           coef(po, "E_0") <- 1e-9
+           ## if no Exposed/Infectious, make it small but nonzero
+           if (coef(po, "E_0") == 0.0 ) {
+             coef(po, "E_0") <- 1e-9
+           }
+           if (coef(po, "I_0") == 0.0) {
+             coef(po, "I_0") <- 1e-9
+           }
+
+           ## perform iterated filtering
+           mf.mod_end <- pomp::mif2(po, Nmif = num_iters,
+                                    rw.sd = rw_sds_end,
+                                    Np = num_parts,
+                                    cooling.type = "hyperbolic",
+                                    cooling.fraction.50 = 0.5,
+                                    verbose = FALSE)
+
+           ## get likelihood estimate
+           ll_end <- est_logLik1(version = "basic", model = mf.mod_end,
+                                 Np = num_parts, nreps = num_iters)
+
+           ## record parameter estimates
+           dummy <- data.frame(as.list(coef(mf.mod_epi)),
+                               as.list(coef(mf.mod_end)),
+                               loglik_epi = ll_epi[1],
+                               loglik.se_epi = ll_epi[2],
+                               loglik_end = ll_end[1],
+                               loglik.se_end = ll_end[2])
+
+           rm(mf.mod_epi, mf.mod_end, ll_epi, ll_end, sims)
+         } else {
+           dummy <- data.frame(as.list(coef(mf.mod_epi)),
+                               loglik_full = ll_epi[1],
+                               loglik.se_full = ll_epi[2])
+           rm(mf.mod_epi, ll_epi)
          }
-         if (coef(po, "I_0") == 0.0) {
-           coef(po, "I_0") <- 1e-9
-         }
-
-         ## perform iterated filtering
-         mf.mod_end <- pomp::mif2(po, Nmif = num_iters,
-                                  rw.sd = rw_sds_end,
-                                  Np = num_parts,
-                                  cooling.type = "hyperbolic",
-                                  cooling.fraction.50 = 0.5,
-                                  verbose = FALSE)
-
-         ## get likelihood estimate
-         ll_end <- est_logLik1(version = "basic", model = mf.mod_end,
-                               Np = num_parts, nreps = num_iters)
-
-         ## record parameter estimates
-         dummy <- data.frame(as.list(coef(mf.mod_epi)),
-                             as.list(coef(mf.mod_end)),
-                             loglik_epi = ll_epi[1],
-                             loglik.se_epi = ll_epi[2],
-                             loglik_end = ll_end[1],
-                             loglik.se_end = ll_end[2])
-         rm(mf.mod_epi, mf.mod_end, ll_epi, ll_end, sims)
          gc()
          dummy
     } ->  fits
 
-    epi_best <- fits %>%
-      dplyr::arrange(-loglik_epi) %>%
-      dplyr::slice_head(n = 1) %>%
-      dplyr::pull(which)
+    if (version == 'basic') { ## separate periods
+      epi_best <- fits %>%
+        dplyr::arrange(-loglik_epi) %>%
+        dplyr::slice_head(n = 1) %>%
+        dplyr::pull(which)
 
-    end_best <- fits %>%
-      dplyr::arrange(-loglik_end) %>%
-      dplyr::slice_head(n = 1) %>%
-      dplyr::pull(which)
+      end_best <- fits %>%
+        dplyr::arrange(-loglik_end) %>%
+        dplyr::slice_head(n = 1) %>%
+        dplyr::pull(which)
 
-    res <- list("epidemic_fit" = epi_best,
-                "endemic_fit" = end_best)
+      res <- list("epidemic_fit" = epi_best,
+                  "endemic_fit" = end_best)
+    } else {
+      best <- fits %>%
+        dplyr::arrange(-loglik_full) %>%
+        dplyr::slice_head(n = 1) %>%
+        dplyr::pull(which)
+
+      res <- list("full_fit" = best)
+    }
   } else if (version == 'joint') {
     ## make model
-    mod <- haiti1_joint()
+    mod <- haiti1_joint(rho_flag = T, tau_flag = T, sig_sq_flag = T, beta_flag = F, nu_flag = F)
     haiti.dat <- haiti1_agg_data() ## get case data (country-wide)
     pop_haiti <- MODEL1_INPUT_PARAMETERS$adj_pars_epi[22] %>% unlist()
 
