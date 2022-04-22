@@ -61,12 +61,18 @@ project_from_filter2 <- function(mod, PF, covarGen = NULL,
   )
 
   # Check if there are saved states, otherwise everything below fails
-  if (length(saved.states(PF)) == 0) {
+  if (class(PF) == "bpfilterd_spatPomp") {
+    if (length(PF@saved.states) == 0) stop("bpfilterd_spatPomp object must have saved.states.")
+  } else if (length(saved.states(PF)) == 0) {
     stop("pfilter object must have saved.states.")
   }
 
   # Get the saved states from filtering distribution.
-  ss <- pomp::saved.states(PF)
+  if (class(PF) == 'bpfilterd_spatPomp') {
+    ss <- PF@saved.states
+  } else {
+    ss <- pomp::saved.states(PF)  # This function doesn't yet exist for bpfiltered_spatPomp
+  }
 
   end_states <- ss[[length(ss)]]
 
@@ -91,7 +97,145 @@ project_from_filter2 <- function(mod, PF, covarGen = NULL,
   }
 
 
-  if (!is.null(covarGen)) {
+  if (class(mod) == 'spatPomp') {
+
+
+    N_future_covar <- nrow(covarGen(include_data = FALSE))
+
+    # Get the observed rainfall first
+    covar_data <- haitiRainfall %>%
+      dplyr::filter(date >= as.Date("2010-10-23") - 7) %>%
+      dplyr::summarize(
+        date = date, dplyr::across(Artibonite:`Sud-Est`, std_rain)
+      ) %>%
+      dplyr::mutate(
+        time = dateToYears(date)
+      )
+
+    colnames(covar_data) <- c(
+      "date",
+      paste0(
+        'rain_std', c(
+          'Artibonite', 'Centre', 'Grande_Anse',
+          'Nippes', 'Nord', 'Nord-Est', 'Nord-Ouest',
+          'Ouest', 'Sud', 'Sud-Est'
+        )
+      ),
+      'time'
+    )
+
+    covar_data <- covar_data %>% dplyr::select(time, dplyr::starts_with("rain_std")) %>%
+      as.matrix()
+
+    pb_covar <- progress_bar$new(format = "Creating Covariates: [:bar] :percent [:elapsedfull]",
+                                 total = nsims - 1,
+                                 complete = "=",   # Completion bar character
+                                 incomplete = "-", # Incomplete bar character
+                                 current = ">",    # Current bar character
+                                 clear = FALSE,    # If TRUE, clears the bar when finish
+                                 width = 75)      # Width of the progress bar
+
+    covar_matrix <- covarGen(include_data = FALSE)
+    for (i in 1:(nsims - 1)) {
+      pb_covar$tick()
+      covar_matrix <- rbind(covar_matrix, covarGen(include_data = FALSE))
+    }
+
+    pb_sims <- progress_bar$new(format = "Simulating Model   : [:bar] :percent [:elapsedfull]",
+                                total = nsims,
+                                complete = "=",   # Completion bar character
+                                incomplete = "-", # Incomplete bar character
+                                current = ">",    # Current bar character
+                                clear = FALSE,    # If TRUE, clears the bar when finish
+                                width = 75)      # Width of the progress bar
+
+    foreach::foreach(
+      i = 1:nsims,
+      .combine = dplyr::bind_rows
+    ) %do% {
+
+      pb_sims$tick()
+
+      future_covar <- covar_matrix[((i-1)*N_future_covar + 1):(i*N_future_covar), ]
+      covar_df <- as.data.frame(rbind(covar_data, future_covar)) %>%
+        tidyr::pivot_longer(
+          data = .,
+          cols = 2:11,
+          names_to = "departement",
+          values_to = "rain_std",
+          names_prefix = "rain_std"
+        ) %>%
+        dplyr::arrange(time, departement) %>%
+        dplyr::mutate(
+          departement = gsub('-', '_', departement)
+        )
+
+      proc_sim <- mod %>%
+        spatPomp::spatPomp(
+          covar = as.data.frame(covar_df)
+        ) %>%
+        pomp::rprocess(
+          .,
+          x0 = end_states[, sample(ncol(end_states), size = 1)],
+          t0 = max(mod@times),
+          times = new_times,
+          params = mod@params
+        )
+
+      measures <- mod %>%
+        spatPomp::spatPomp(
+          covar = as.data.frame(covar_df)
+        ) %>%
+        rmeasure(
+          object = .,
+          x = proc_sim,
+          times = new_times,
+          params = mod@params
+        ) %>%
+        drop() %>% t() %>% as.data.frame()
+
+
+      # One of the dimensions in the array is empty, so we drop it. After, the
+      # rows are the states, and columns are the times, but it is more natural
+      # to have this transposed.
+      sim_df <- as.data.frame(t(drop(proc_sim)))
+      sim_df$time <- new_times
+      sim_df$.id  <- i
+      results <- dplyr::bind_cols(sim_df, measures)
+
+      rm(
+        proc_sim, measures, sim_df
+      )
+      gc()
+
+      get_unit_index_from_statename <- function(statename){
+        stringr::str_extract(statename, "[[:digit:]]+$")
+      }
+      get_state_obs_type_from_statename <- function(statename) {
+        gsub("[[:digit:]]+$", "", statename)
+      }
+
+      results %>%
+        dplyr::select(time, .id, dplyr::everything()) %>%
+        tidyr::pivot_longer(
+          cols = -c(time, .id),
+          names_to = 'stateobs',
+          values_to = 'val'
+        ) %>%
+        dplyr::mutate(
+          ui = get_unit_index_from_statename(stateobs),
+          unit = unit_names(mod)[as.integer(ui)]
+        ) %>%
+        dplyr::select(
+          time, .id, unit, stateobs, val
+        ) %>%
+        dplyr::arrange(.id, time, unit, stateobs) %>%
+        dplyr::mutate(stateobstype = get_state_obs_type_from_statename(stateobs)) %>%
+        dplyr::select(-stateobs) %>%
+        tidyr::pivot_wider(names_from = stateobstype, values_from = 'val') %>%
+        dplyr::rename(unitname = unit)
+    }
+  } else if (!is.null(covarGen)) { ################################### POMP ##################
 
     N_future_covar <- nrow(covarGen(include_data = FALSE))
 

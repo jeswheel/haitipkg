@@ -27,6 +27,7 @@ I don't think anyone is using either of these functions, but it should be looked
 
 ### Model 3:
 
+- [ ] Refine and test `project_from_filter2`, and delete `project_from_filter`.
 - [ ] Combine `fit_haiti{i}()` and `est_logLik{i}()` for each $i$ into single functions `fit_haiti()` and `est_logLik()`, respectively. 
 
 
