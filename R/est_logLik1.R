@@ -36,7 +36,7 @@ est_logLik1 <- function(version = NULL, model = NULL, Np = 100, nreps = 10, ncor
     logliks <- foreach(i=1:nreps, .combine = rbind, .packages = "panelPomp") %dopar% {
       panelPomp::unitlogLik(panelPomp::pfilter(model, Np = Np))
     }
-    logliks <- panel_logmeanexp(logliks, MARGIN = 2, se = TRUE)
+    logliks <- panelPomp::panel_logmeanexp(logliks, MARGIN = 2, se = TRUE)
     return(logliks)
 
   } else if (version == 'joint' || version == 'basic' || version == 'disagg') {
@@ -44,7 +44,7 @@ est_logLik1 <- function(version = NULL, model = NULL, Np = 100, nreps = 10, ncor
       model %>% pfilter(Np = Np)
     }
     logliks <- sapply(logliks, logLik)
-    logliks <- logmeanexp(logliks, se = TRUE)
+    logliks <- pomp::logmeanexp(logliks, se = TRUE)
     return(logliks)
   } else {
     stop(paste0("Version = \"", version, "\" is not a valid input.
