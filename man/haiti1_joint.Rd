@@ -4,10 +4,30 @@
 \alias{haiti1_joint}
 \title{Build pomp object for Model 1 - Joint}
 \usage{
-haiti1_joint(vacscen = "id0")
+haiti1_joint(
+  vacscen = "id0",
+  breakpoint = 232,
+  rho_flag = T,
+  tau_flag = T,
+  sig_sq_flag = T,
+  beta_flag = F,
+  nu_flag = F
+)
 }
 \arguments{
 \item{vacscen}{ID code for vaccination scenario}
+
+\item{breakpoint}{the week number at which to start re-estimation}
+
+\item{rho_flag}{boolean indicating whether to re-estimate \eqn{\rho} at the breakpoint}
+
+\item{tau_flag}{boolean indicating whether to re-estimate \eqn{\tau} at the breakpoint}
+
+\item{sig_sq_flag}{boolean indicating whether to re-estimate \eqn{\sigma^2} at the breakpoint}
+
+\item{beta_flag}{boolean indicating whether to re-estimate \eqn{\beta's} at the breakpoint}
+
+\item{nu_flag}{boolean indicating whether to re-estimate \eqn{\nu} at the breakpoint}
 }
 \value{
 An object of class \sQuote{pomp}
@@ -16,5 +36,5 @@ An object of class \sQuote{pomp}
 Generate a class \sQuote{pomp} object for fitting to epidemic/endemic Haiti cholera data jointly.
 }
 \examples{
-m1 <- haiti1_joint(vacscen = "id0")
+m1 <- haiti1_joint(vacscen = "id0", breakpoint = 232, rho_flag = T, tau_flag = F, sig_sq_flag = T, beta_flag = F, nu_flag = F)
 }

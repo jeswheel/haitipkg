@@ -7,7 +7,7 @@
 fit_haiti1(version = "basic", run_level = 1)
 }
 \arguments{
-\item{version}{In c("basic", "joint").}
+\item{version}{In c("basic", "basic-full", "joint").}
 
 \item{run_level}{in c(1, 2, 3)}
 }
@@ -24,8 +24,9 @@ As of Feb 20, 2022, Model 1 can be written in 4 different forms:
 }
 
 The Basic version is the closest to the model described and used by Lee et al.
-in that it only has an additional overdispersion term. We currently
-provide methods for fitting both the Basic and Joint forms.
+in that it only has an additional overdispersion term. Basic-Full is the same
+as Basic but fitting through all 430 weeks of data (not split between endemic
+and epidemic). We currently provide methods for fitting both the Basic and Joint forms.
 }
 \examples{
 m1 <- haiti1_joint()
