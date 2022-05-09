@@ -134,8 +134,15 @@ haiti1_joint <- function(vacscen = 'id0', breakpoint = 232, rho_flag = T, tau_fl
     "beta6 = beta6_end; \n",
     "} \n"
   )
-  time_check <- c("double bp = ", breakpoint, "; \n",
-    "double mybeta = beta1*seas1 + beta2*seas2 + beta3*seas3 + beta4*seas4 + beta5*seas5 + beta6*seas6; \n ")
+  time_check <- paste0(
+    "double bp = ", breakpoint, "; \n",
+    "double mybeta;\n",
+    "if (t <= 430) {
+      mybeta = exp(beta1*seas1 + beta2*seas2 + beta3*seas3 + beta4*seas4 + beta5*seas5 + beta6*seas6 + betat*((t-215)/(430-215)));
+    } else {
+      mybeta = exp(beta1*seas1 + beta2*seas2 + beta3*seas3 + beta4*seas4 + beta5*seas5 + beta6*seas6 + betat); // stay at value from last available timepoint.
+    }\n"
+  )
   if (beta_flag) {
     beta <- paste0(beta_check, time_check, collapse = "")
   } else {
@@ -375,13 +382,13 @@ haiti1_joint <- function(vacscen = 'id0', breakpoint = 232, rho_flag = T, tau_fl
     param_names <- c(param_names,
                      paste0("beta", 1:6, "_epi"),
                      paste0("beta", 1:6, "_end"))
-    log_pars <- c(log_pars,
-                  paste0("beta", 1:6, "_epi"),
-                  paste0("beta", 1:6, "_end"))
+    # log_pars <- c(log_pars,
+    #               paste0("beta", 1:6, "_epi"),
+    #               paste0("beta", 1:6, "_end"))
   } else {
     param_names <- c(param_names, paste0("beta", 1:6))
-    log_pars <- c(log_pars,
-                  paste0("beta", 1:6))
+    # log_pars <- c(log_pars,
+    #               paste0("beta", 1:6))
   }
   if (nu_flag) {
     param_names <- c(param_names, "nu_epi", "nu_end")
@@ -444,6 +451,8 @@ haiti1_joint <- function(vacscen = 'id0', breakpoint = 232, rho_flag = T, tau_fl
                      paste0("A", 1:depts, "_0"),
                      paste0("R", 1:depts, "_0"))
   }
+
+  param_names <- c(param_names, "betat")  # Adding trend parameter, should default to zero.
 
   ## build pomp model
   model1 <- pomp::pomp(
