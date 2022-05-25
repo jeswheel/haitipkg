@@ -11,6 +11,8 @@
 #'
 #' @import pomp
 #' @import spatPomp
+#'
+#' @export
 
 panelParms_toSpatParms3 <- function(panel_parms) {
   mod_coupled <- haiti3_spatPomp(dt_years = 1/365.25)
@@ -44,7 +46,7 @@ panelParms_toSpatParms3 <- function(panel_parms) {
   # Set the spatPompCoefs with departement spacific values
   for (i in 1:10) {
     dp <- departements[i]
-    new_params <- best_params[grepl(paste0("\\[", dp, "\\]"), names(best_params))]
+    new_params <- panel_parms[grepl(paste0("\\[", dp, "\\]"), names(panel_parms))]
     names(new_params) <- gsub(paste0("\\[", dp, "\\]"), i, names(new_params))
     which.b0 <- grepl("^B0[[:digit:]]{1,2}$", names(new_params))
     names(new_params)[which.b0] <- paste0("Binit", i)
@@ -53,7 +55,7 @@ panelParms_toSpatParms3 <- function(panel_parms) {
 
   # Set the spatPompCoefs with the shared parameter values
   for (parm in params_common) {
-    spatPompCoefs[paste0(parm, 1:10)] <- best_params[parm]
+    spatPompCoefs[paste0(parm, 1:10)] <- panel_parms[parm]
   }
 
   spatPompCoefs
