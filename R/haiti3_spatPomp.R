@@ -81,10 +81,10 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
     "VSdd", "VR1dd", "VR2dd", "VR3dd",
     "VSd_alt", "VR1d_alt", "VR2d_alt", "VR3d_alt",
     "VSdd_alt", "VR1dd_alt",
-    "VR2dd_alt", "VR3dd_alt", "C", "B"
+    "VR2dd_alt", "VR3dd_alt", "C", "B", "Doses"
   )
 
-  all_state_names <- paste0(rep(unit_state_names, each = 10), 1:10)
+  # all_state_names <- paste0(rep(unit_state_names, each = 10), 1:10)
 
   # All parameters that are common to each departement (disease specific parameters)
   params_common <- c(
@@ -282,6 +282,7 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
   double *VR3dd_alt = &VR3dd_alt1;
   double *C = &C1;
   double *B = &B1;
+  double *Doses = &Doses1;
   const double *thetaI = &thetaI1;
   const double *XthetaA = &XthetaA1;
   const double *mu = &mu1;
@@ -356,6 +357,8 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
     VR1dd_alt[u] = 0;
     VR2dd_alt[u] = 0;
     VR3dd_alt[u] = 0;
+
+    Doses[u] = 0;
 
   }
 "
@@ -464,6 +467,7 @@ double *VR2dd_alt = &VR2dd_alt1;
 double *VR3dd_alt = &VR3dd_alt1;
 double *C = &C1;
 double *B = &B1;
+double *Doses = &Doses1;
 const double *rain_std = &rain_std1;
 
 // getting all non-constant parameters used in the model
@@ -770,9 +774,9 @@ for (int u = 0; u < U; u++) {
   	VSdd_alt[u] - VR1dd_alt[u] - VR2dd_alt[u] - VR3dd_alt[u]);
 
 
-  // if (!previous_vacc_campaign) {
-  //	DosesAll  += dN[2] + dN[10] + dN[14] + dN[18] + dN[22] + 2 * (dN[3] + dN[11] + dN[15] + dN[19] + dN[23]);
-  // }
+  if (!previous_vacc_campaign) {
+  	Doses[u]  += dN[2] + dN[10] + dN[14] + dN[18] + dN[22] + 2 * (dN[3] + dN[11] + dN[15] + dN[19] + dN[23]);
+  }
 
   // CasesAll  +=  dN[0] + dN[24] + dN[33] + dN[42] + dN[51];
 
