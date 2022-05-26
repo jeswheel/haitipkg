@@ -39,29 +39,58 @@ get_elimProbs <- function(sims, model) {
       as.Date((year_frac - yr_offset) * 365.25, origin = origin)
     }
 
-    # here, cases<Departement> represents the simulated reported cases in
-    # <Departement>
-    #
-    # Note that CasesAll is total number of Infectious Cases, and IncidenceAll
-    # is total number of all infections.
+
     sims <- sims %>%
-      mutate(
-        ReportedAll = casesArtibonite + casesCentre +
-          casesGrande_Anse + casesNippes + casesNord +
-          casesNord_Est + casesOuest + casesSud +
-          casesSud_Est + casesNord_Ouest,
-        time = yearsToDate(time)
+      tidyr::pivot_wider(
+        data = .,
+        id_cols = c(time, .id),
+        names_from = unitname,
+        values_from = c(cases, totInc)
       ) %>%
-      select(time, .id, ReportedAll, CasesAll, IncidenceAll, DosesAll) %>%
       mutate(
-        cumIncidence = cumsum(IncidenceAll),  # Get total sum of incidence (A + I)
-        cumReported = cumsum(ReportedAll),  # Get total sum of reported cases
-        # cumCasesAll = cumsum(CasesAll),  # Get total sum of symptomatic infections (I)
-        IncidenceIncrease52 = cumIncidence - lag(cumIncidence, 52),  # See if cases have increased in last 52 weeks.
-        # CasesIncrease52 = cumCasesAll - lag(cumCasesAll, 52),
+        ReportedAll = cases_Artibonite + cases_Centre +
+          cases_Grande_Anse + cases_Nippes + cases_Nord +
+          cases_Nord_Est + cases_Ouest + cases_Sud +
+          cases_Sud_Est + cases_Nord_Ouest,
+        IncidenceAll = totInc_Artibonite + totInc_Centre +
+          totInc_Grande_Anse + totInc_Nippes + totInc_Nord +
+          totInc_Nord_Est + totInc_Ouest + totInc_Sud +
+          totInc_Sud_Est + totInc_Nord_Ouest
+      ) %>%
+      select(time, .id, ReportedAll, IncidenceAll) %>%
+      group_by(.id) %>%
+      mutate(
+        cumIncidence = IncidenceAll,
+        cumReported = cumsum(ReportedAll),
+        IncidenceIncrease52 = cumIncidence - lag(cumIncidence, 52),
         ReportedIncrease52 = cumReported - lag(cumReported, 52)
       ) %>%
       ungroup()
+
+    # # here, cases<Departement> represents the simulated reported cases in
+    # # <Departement>
+    # #
+    # # Note that CasesAll is total number of Infectious Cases, and IncidenceAll
+    # # is total number of all infections.
+    # sims <- sims %>%
+    #   mutate(
+    #     ReportedAll = casesArtibonite + casesCentre +
+    #       casesGrande_Anse + casesNippes + casesNord +
+    #       casesNord_Est + casesOuest + casesSud +
+    #       casesSud_Est + casesNord_Ouest,
+    #     time = yearsToDate(time)
+    #   ) %>%
+    #   select(time, .id, ReportedAll, CasesAll, IncidenceAll, DosesAll) %>%
+    #   group_by(.id) %>%
+    #   mutate(
+    #     cumIncidence = cumsum(IncidenceAll),  # Get total sum of incidence (A + I)
+    #     cumReported = cumsum(ReportedAll),  # Get total sum of reported cases
+    #     # cumCasesAll = cumsum(CasesAll),  # Get total sum of symptomatic infections (I)
+    #     IncidenceIncrease52 = cumIncidence - lag(cumIncidence, 52),  # See if cases have increased in last 52 weeks.
+    #     # CasesIncrease52 = cumCasesAll - lag(cumCasesAll, 52),
+    #     ReportedIncrease52 = cumReported - lag(cumReported, 52)
+    #   ) %>%
+    #   ungroup()
 
     gc()
   } else if (model == 1) {
@@ -115,6 +144,11 @@ get_elimProbs <- function(sims, model) {
     arrange(time) %>%  # Important because of cumsum below
     mutate(elim_prob = cumsum(n) / length(unique(sims$.id))) %>%
     select(-n)
+
+  results_df <- data.frame('time' = unique(sims$time))
+
+  results_df <- dplyr::left_join(results_df, ElimTime, by = 'time') %>%
+    tidyr::fill(elim_prob, .direction = 'down')
 
   final <- list()
   final[['probElim']] <- probElim
