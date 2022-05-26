@@ -153,7 +153,7 @@ get_elimProbs <- function(sims, model) {
   final <- list()
   final[['probElim']] <- probElim
   final[['cumInf']] <- cumInf
-  final[['ElimTime']] <- ElimTime
+  final[['ElimTime']] <- results_df
 
   final
 
