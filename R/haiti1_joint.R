@@ -152,7 +152,7 @@ haiti1_joint <- function(vacscen = 'id0', breakpoint = 232, rho_flag = T, tau_fl
   if (beta_flag) {
     beta <- paste0(beta_check, time_check, collapse = "")
   } else {
-    beta <- paste0(time_check, collapse = "")
+    beta <- paste0("double bp = ", breakpoint, "; \n", time_check, collapse = "")
   }
 
   if (nu_flag) {
