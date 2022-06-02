@@ -610,6 +610,7 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear",
     if(!give_log) lik = exp(lik);
   ")
 
+
   cholera_dmeasure2 <- Csnippet("
     double *C = &C1;
     double *cases = &cases1;
@@ -622,11 +623,34 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear",
       } else {
         m = Rho*C[u];
         v_nc = m*(1-Rho + Psi*Psi*m);
-        lik += dnorm(cases[u],m,sqrt(v_nc),1);
+        if (cases[u] > 0.0) {
+          lik += pnorm(cases[u]+0.5,m,sqrt(v_nc),1,0)
+                  - pnorm(cases[u]-0.5,m,sqrt(v_nc),1,0);
+        } else {
+          lik += pnorm(cases[u]+0.5,m,sqrt(v_nc),1,0);
+        }
       }
     }
-    if(!give_log) lik = exp(lik);
+    if(give_log) lik = log(lik);
   ")
+
+  # cholera_dmeasure2 <- Csnippet("
+  #   double *C = &C1;
+  #   double *cases = &cases1;
+  #   double m,v_nc;
+  #   int u;
+  #   lik = 0;
+  #   for (u = 0; u < U; u++) {
+  #     if(ISNA(cases[u])){
+  #       lik += 0;
+  #     } else {
+  #       m = Rho*C[u];
+  #       v_nc = m*(1-Rho + Psi*Psi*m);
+  #       lik += dnorm(cases[u],m,sqrt(v_nc),1);
+  #     }
+  #   }
+  #   if(!give_log) lik = exp(lik);
+  # ")
 
   cholera_dunit_measure <- Csnippet("
     double m = Rho*C;
