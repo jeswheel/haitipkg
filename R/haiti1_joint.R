@@ -16,7 +16,13 @@
 #' @export
 
 haiti1_joint <- function(vacscen = 'id0', breakpoint = 232, rho_flag = T, tau_flag = T, sig_sq_flag = T, beta_flag = F, nu_flag = F) {
-  vacscen <- vacscen
+
+  flag_params <- c(
+    paste0(rep(c("rho", 'tau', 'sig_sq'), each = 2),
+           c('_epi', '_end')), paste0('beta', 1:6), 'nu'
+  )
+
+  # vacscen <- vacscen
   ## get data
   dat <- haiti1_agg_data()
   fc_set <- vac_scen(vacscen)
@@ -118,6 +124,7 @@ haiti1_joint <- function(vacscen = 'id0', breakpoint = 232, rho_flag = T, tau_fl
   # seasonal beta and foi
   beta_check <- paste0(
     "double beta1, beta2, beta3, beta4, beta5, beta6; \n",
+    "double bp = ", breakpoint, "; \n",
     "if (t < bp) { \n",
     "beta1 = beta1_epi; \n",
     "beta2 = beta2_epi; \n",
@@ -135,7 +142,6 @@ haiti1_joint <- function(vacscen = 'id0', breakpoint = 232, rho_flag = T, tau_fl
     "} \n"
   )
   time_check <- paste0(
-    "double bp = ", breakpoint, "; \n",
     "double mybeta;\n",
     "if (t <= 430) {
       mybeta = exp(beta1*seas1 + beta2*seas2 + beta3*seas3 + beta4*seas4 + beta5*seas5 + beta6*seas6 + betat*((t-215)/(430-215)));
@@ -353,49 +359,89 @@ haiti1_joint <- function(vacscen = 'id0', breakpoint = 232, rho_flag = T, tau_fl
   rmeas <- Csnippet(paste(rmeas, collapse = ""))
 
   ## parameters and names
-  pars <- unlist(MODEL1_INPUT_PARAMETERS$joint_pars)
+  pars_temp <- unlist(MODEL1_INPUT_PARAMETERS$joint_pars)
+  pars_temp['kappa'] <- 0.95
+  pars <- pars_temp[!names(pars_temp) %in% flag_params]
   param_names <- c()
   log_pars <- c()
   logit_pars <- c()
   if (rho_flag) {
     param_names <- c(param_names, "rho_epi", "rho_end")
     logit_pars <- c(logit_pars, "rho_epi", "rho_end")
+    pars <- c(pars,
+              'rho_epi' = unname(pars_temp['rho_epi']),
+              'rho_end' = unname(pars_temp['rho_end'])
+    )
   } else {
     param_names <- c(param_names, "rho")
     logit_pars <- c(logit_pars, "rho")
+    pars <- c(pars, 'rho' = unname(pars_temp['rho_epi']))
   }
   if (sig_sq_flag) {
     param_names <- c(param_names, "sig_sq_epi", "sig_sq_end")
     log_pars <- c(log_pars, "sig_sq_epi", "sig_sq_end")
+    pars <- c(pars,
+              'sig_sq_epi' = unname(pars_temp['sig_sq_epi']),
+              'sig_sq_end' = unname(pars_temp['sig_sq_end']))
   } else {
     param_names <- c(param_names, "sig_sq")
     log_pars <- c(log_pars, "sig_sq")
+    pars <- c(pars, 'sig_sq' = unname(pars_temp['sig_sq_epi']))
   }
   if (tau_flag) {
     param_names <- c(param_names, "tau_epi", "tau_end")
     log_pars <- c(log_pars, "tau_epi", "tau_end")
+    pars <- c(pars,
+              'tau_epi' = unname(pars_temp['tau_epi']),
+              'tau_end' = unname(pars_temp['tau_end']))
   } else {
     param_names <- c(param_names, "tau")
     log_pars <- c(log_pars, "tau")
+    pars <- c(pars, 'tau' = unname(pars_temp['tau_epi']))
   }
   if (beta_flag) {
     param_names <- c(param_names,
                      paste0("beta", 1:6, "_epi"),
                      paste0("beta", 1:6, "_end"))
+    pars <- c(pars,
+              'beta1_epi' = unname(pars_temp['beta1']),
+              'beta2_epi' = unname(pars_temp['beta2']),
+              'beta3_epi' = unname(pars_temp['beta3']),
+              'beta4_epi' = unname(pars_temp['beta4']),
+              'beta5_epi' = unname(pars_temp['beta5']),
+              'beta6_epi' = unname(pars_temp['beta6']),
+              'beta1_end' = unname(pars_temp['beta1']),
+              'beta2_end' = unname(pars_temp['beta2']),
+              'beta3_end' = unname(pars_temp['beta3']),
+              'beta4_end' = unname(pars_temp['beta4']),
+              'beta5_end' = unname(pars_temp['beta5']),
+              'beta6_end' = unname(pars_temp['beta6']))
     # log_pars <- c(log_pars,
     #               paste0("beta", 1:6, "_epi"),
     #               paste0("beta", 1:6, "_end"))
   } else {
     param_names <- c(param_names, paste0("beta", 1:6))
+    pars <- c(pars,
+              'beta1' = unname(pars_temp['beta1']),
+              'beta2' = unname(pars_temp['beta2']),
+              'beta3' = unname(pars_temp['beta3']),
+              'beta4' = unname(pars_temp['beta4']),
+              'beta5' = unname(pars_temp['beta5']),
+              'beta6' = unname(pars_temp['beta6'])
+    )
     # log_pars <- c(log_pars,
     #               paste0("beta", 1:6))
   }
   if (nu_flag) {
     param_names <- c(param_names, "nu_epi", "nu_end")
     logit_pars <- c(logit_pars, "nu_epi", "nu_end")
+    pars <- c(pars,
+              'nu_epi' = unname(pars_temp['nu']),
+              'nu_end' = unname(pars_temp['nu']))
   } else {
     param_names <- c(param_names, "nu")
     logit_pars <- c(logit_pars, "nu")
+    pars <- c(pars, 'nu' = unname(pars_temp['nu']))
   }
 
   if (depts > 1) {
@@ -453,6 +499,7 @@ haiti1_joint <- function(vacscen = 'id0', breakpoint = 232, rho_flag = T, tau_fl
   }
 
   param_names <- c(param_names, "betat")  # Adding trend parameter, should default to zero.
+  pars <- c(pars, 'betat' = 0)
 
   ## build pomp model
   model1 <- pomp::pomp(
@@ -466,7 +513,7 @@ haiti1_joint <- function(vacscen = 'id0', breakpoint = 232, rho_flag = T, tau_fl
       partrans = param_trans,
       statenames = state_names,
       paramnames = param_names,
-      #params = pars,
+      params = pars,
       accumvars = accum_names,
       rinit = rinit
     )
