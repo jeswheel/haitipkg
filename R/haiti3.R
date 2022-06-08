@@ -22,7 +22,7 @@
 #'    of Ecohydrology, Ecole Polytechnique Federale de Lausanne (CH).
 #'
 #'
-#'
+#' @param start_time character string that allows user to input the start time of the model.
 #' @importFrom magrittr %>%
 #' @importFrom foreach %do%
 #' @importFrom foreach foreach
@@ -35,7 +35,7 @@
 #' @export
 
 
-haiti3 <- function() {
+haiti3 <- function(start_time = "2014-03-01") {
 
   # Create vector of departement names
   departements = c(
@@ -96,8 +96,12 @@ haiti3 <- function() {
   )
 
   # Loads the input parameters
-  # load('R/sysdata.rda')  # These are loaded by the package automatically
+
   t_start <- dateToYears(as.Date(MODEL3_INPUT_PARAMETERS$t_start))
+  if (!is.null(start_time)) {
+    t_start <- dateToYears(as.Date(start_time))
+  }
+
   t_end   <- dateToYears(as.Date(MODEL3_INPUT_PARAMETERS$t_end))
 
   all_state_names <- c('IncidenceAll', 'DosesAll', 'CasesAll')

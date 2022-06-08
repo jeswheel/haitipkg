@@ -4,7 +4,10 @@
 \alias{haiti3}
 \title{Build pomp object for model 3.}
 \usage{
-haiti3()
+haiti3(start_time = "2014-03-01")
+}
+\arguments{
+\item{start_time}{character string that allows user to input the start time of the model.}
 }
 \value{
 \code{\link[pomp]{pomp}} representation of model 3 described in \href{https://www.sciencedirect.com/science/article/pii/S2214109X20303107}{Lee, Elizabeth et. al.} and it's accompanying \href{https://ars.els-cdn.com/content/image/1-s2.0-S2214109X20303107-mmc3.pdf}{Supplemental Material}.
