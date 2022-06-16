@@ -7,7 +7,9 @@
 get_elimProbs(sims, model)
 }
 \arguments{
-\item{model}{}
+\item{sims}{data.frame containing simulations from one of the vaccination scenarios}
+
+\item{model}{numeric in c(1, 3) indicating which model the simulations are from.}
 }
 \value{
 A list containing the Probability of Elimination (probElim),

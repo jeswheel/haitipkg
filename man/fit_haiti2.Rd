@@ -4,16 +4,25 @@
 \alias{fit_haiti2}
 \title{Fit model 2}
 \usage{
-fit_haiti2(model, params = c("Mu", "Beta", "BetaW", "v", "VR"))
-}
-\arguments{
-\item{model}{Input is a spatPomp object of the model that is to be fit.}
-
-\item{params}{Vector of characters representing the parameters to be fit.}
+fit_haiti2()
 }
 \value{
-Spatpomp object with the newly fitted parameters in it.
+List containing four objects: \describe{
+\item{epi_params}{A numerical vector containing the parameters to the epidemic period.}
+\item{end_params}{A numerical vector containing the parameters to the endemic period.}
+\item{leeFit_ll}{numeric containing the likelihood of the Lee et al (2020a) model.}
+\item{leeFit_n_params}{numeric containing the number of parameters fit by Lee et al (2020a).}
+}
 }
 \description{
-This function fits the parameters in model 2.
+This function fits the parameters to cholera incidence data in Haiti. This
+function has two main parts:
+\enumerate{
+\item Fit Lee et al (2018) version of the model, to obtain model likelihoods.
+\item Fit our joint version of the model.
+}
+}
+\examples{
+h2_fit_results <- fit_haiti2()
+
 }

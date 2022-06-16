@@ -16,8 +16,8 @@
 #'   and unreported infections) over at least 52 consecutive weeks, over time.}
 #' }
 #'
-#' @param sims
-#' @param model
+#' @param sims data.frame containing simulations from one of the vaccination scenarios
+#' @param model numeric in c(1, 3) indicating which model the simulations are from.
 #'
 #' @return A list containing the Probability of Elimination (probElim),
 #' Cumulative Infections (cumInf), and Probability of Elimination over time
