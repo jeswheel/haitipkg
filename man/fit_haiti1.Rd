@@ -4,32 +4,37 @@
 \alias{fit_haiti1}
 \title{Fit Model 1}
 \usage{
-fit_haiti1(version = "basic", run_level = 1)
+fit_haiti1(
+  NP = 50,
+  NMIF = 3,
+  NUM_TREND = 3,
+  NPROF = 3,
+  NREPS_EVAL = 3,
+  NP_EVAL = 50,
+  ncores = 3
+)
 }
 \arguments{
-\item{version}{In c("basic", "basic-full", "joint").}
+\item{NP}{Number of particles to use for the Iterated Filter}
 
-\item{run_level}{in c(1, 2, 3)}
+\item{NMIF}{Number of MIF iterations}
+
+\item{NUM_TREND}{Number of points on profile to try for the trend parameter.}
+
+\item{NPROF}{Number of global search for each value of the trend parameter.}
+
+\item{NREPS_EVAL}{Number of particle filter replications to evaluate the
+likelihood.}
+
+\item{NP_EVAL}{Number of particles used for likelihood evaluation.}
+
+\item{ncores}{Number of cores to use for parallelization.}
 }
 \description{
-This function fits the specified version of model 1.
-}
-\details{
-As of Feb 20, 2022, Model 1 can be written in 4 different forms:
-\itemize{
-\item Basic: aggregated, single time period \code{pomp} object (\code{haiti1()}).
-\item Joint: aggregated, joint time periods \code{pomp} object (\code{haiti1_joint()}).
-\item Disagg: disaggregated \code{pomp} object (\code{haiti1_disagg()}).
-\item Panel: disaggregated \code{panelPomp} object (\code{haiti1_disagg()}).
-}
-
-The Basic version is the closest to the model described and used by Lee et al.
-in that it only has an additional overdispersion term. Basic-Full is the same
-as Basic but fitting through all 430 weeks of data (not split between endemic
-and epidemic). We currently provide methods for fitting both the Basic and Joint forms.
+This function fits Model 1 by performing calculating a Monte-Carlo adjusted
+profile for the linear trend in transmission parameter.
 }
 \examples{
-m1 <- haiti1_joint()
-fit_m1 <- fit_haiti1(version = "joint", run_level = 2)
+fit_m1 <- fit_haiti1()
 
 }
