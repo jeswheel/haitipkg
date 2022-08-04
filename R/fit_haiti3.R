@@ -1,59 +1,44 @@
 #' Fit Model 3
 #'
-#' This function fits model 3 to the available haiti cholera data
+#' This function fits the panelPOMP version of Model 3 to cholera incidence
+#' data from Oct 2010 - Jan 2019 in Haiti. The data are measured at a
+#' weekly timescale.
 #'
-#' As of Feb 16, 2022, Model 3 can be written in 3 different forms:
+#' Because of the complex structure of the model, and the high-dimensional nature
+#' of panelPomp models, Model 3 requires several rounds of Panel Iterated
+#' Filtering in order to obtain the best possible fits. This function breaks the
+#' model fitting process into 6 different phases:
 #' \itemize{
-#'    \item Coupled `pomp` object (`haiti3_correct()`).
-#'    \item Independent `panelPomp` object (`haiti3_panel()`).
-#'    \item Coupled `spatPomp` object (`haiti3_spatPomp()`).
+#'    \item{Phase 1: }{Global search of all model parameters.}
+#'    \item{Phase 2: }{Local search of all shared parameters, with starting
+#'    values derived from the top \emph{TOP_N} results of the global search.}
+#'    \item{Phases 3-5: }{Local search of all unit-specific parameters, starting
+#'    from the top \emph{TOP_N} results of the previous local search.}
+#'    \item{Phase 6: }{Local search for only a subset of the units.}
+#'    \item{Phase 7: }{Extremly local search of all parameters.}
 #' }
 #'
-#' Despite being represented in so many different forms, the model is only fit
-#' using `panelPomp` methods. This is because it best replicates what was done
-#' in Lee et al. by not using `spatPomp` (which was not available at the time).
-#' The modeling fitting is improved from the fitting done by Lee et al by using
-#' `panelPomp`, which came out just before the Lee et al. paper did.
-#'
-#' Because of the complex nature of the `panelPomp` model, we found that
-#' performing the model fitting in three different stages (1. Performing a
-#' global search of all model parameters, 2. Fix the unit-specific parameters
-#' found in the global search, and perform another global search just on the
-#' shared parameters, 3. Fix the shared parameters found in the global search
-#' and perform a local search on the unit-specific parameters). Note that adding
-#' more additional stages or and changing any of the three stages we used may
-#' have resulted in a slightly different estimate.
-#'
-#'  The following is a more in depth description of the `RUN_LEVEL` argument:
-#' \describe{
-#'    \item{`RUN_LEVEL = 1`}{Stage 1: `Np = 50` and `Nmif = 3` for global search,
-#'    with 3 starting locations for the parameters used. Stage 2: `Np = 50` and
-#'    `Nmif = 3` and 3 starting locations for global search. Stage 3: `Np = 50`
-#'    and `Nmif = 3`, repeating the local search 3 times. At the end of each
-#'    stage, 50 particles are used to estimate the likelihood, and 3 replications
-#'    of the estimation are conducted.}
-#'    \item{`RUN_LEVEL = 2`}{Stage 1: `Np = 400` and `Nmif = 15` for global search,
-#'    with 10 starting locations for the parameters used. Stage 2: `Np = 400` and
-#'    `Nmif = 15` and 10 starting locations for global search. Stage 3: `Np = 400`
-#'    and `Nmif = 15`, repeating the local search 3 times. At the end of each
-#'    stage, 400 particles are used to estimate the likelihood, and 5 replications
-#'    of the estimation are conducted.}
-#'    \item{`RUN_LEVEL = 3`}{Stage 1: `Np = 1000` and `Nmif = 50` for global search,
-#'    with 72 starting locations for the parameters used. Stage 2: `Np = 1000` and
-#'    `Nmif = 50` and 72 starting locations for global search. Stage 3: `Np = 1500`
-#'    and `Nmif = 50`, repeating the local search 36 times. At the end of each
-#'    stage, 36 replications are conducted with `Np = 2000, 2500, 3000` at stages
-#'    1, 2, and 3, respectively}
+#' The user has some control over each of these phases. Importantly, by setting
+#' \emp{n_searches}, a user may make the fitting process shorter by avoiding
+#' some of the later phases. Additional MIF2 search parameters that can be set
+#' for each phase are the following:
+#' \itemize{
+#'    \item{TOP_N: }{Number of results from the previous search to use as a
+#'    starting point for the next search. Note that this argument is ignored for
+#'    the first global search.}
+#'    \item{NP: }{Number of particles to use in the Panel Iterated Filtering.}
+#'    \item{NMIF: }{Number of MIF iterations to use in the Panel Iterated Filtering.}
+#'    \item{NREPS: }{For each starting point, how many replicated searches should
+#'    be conducted. Here, we recommend that NREPS * TOP_N be a multiple of
+#'    ncores.}
+#'    \item{NREPS_EVAL: }{Number of times to replicate the evaluation using a
+#'    particle filter.}
+#'    \item{NP_EVAL: }{Number of particles to use in model evaluation.}
 #' }
 #'
-#' @param RUN_LEVEL parameter in `c(1, 2, 3)`. The different RUN_LEVELS
-#'    correspond to the computational effort that is used to fit the model, with
-#'    `RUN_LEVEL = 1` being the least ammount of computation used to fit and
-#'    `RUN_LEVEL = 3` being the largest ammount of computation used to fit the
-#'    model. Note that `RUN_LEVEL = 3` is used to obtain our final results, and
-#'    `RUN_LEVEL = 1` is primarily used for debugging purposes. More precise
-#'    information about each of the run levels is provided in the Details
-#'    Section below.
+#'
+#' @param n_searches integer number of searches to conduct. See details below.
+#' @param search[i] list containing parameters used to fit the model. See details.
 #' @param ncores Number of cores used to fit the model. The code is written
 #'    so that the optimal number of cores with `RUN_LEVEL = 3` is 36.
 #'
@@ -63,44 +48,157 @@
 #' @import doRNG
 #'
 #' @importFrom magrittr %>%
-#' @importFrom foreach %do%
-#' @importFrom foreach foreach
 #'
 #' @export
-fit_haiti3 <- function(RUN_LEVEL = 1, ncores = 1) {
+fit_haiti3 <- function(
+    n_searches = 3L,
+    search1 = list(
+      NP = 20,
+      NMIF = 3,
+      NREPS = 3,
+      NREPS_EVAL = 3,
+      NP_EVAL = 25
+    ),
+    search2 = list(
+      TOP_N = 1,
+      NP = 20,
+      NMIF = 3,
+      NREPS = 3,
+      NREPS_EVAL = 3,
+      NP_EVAL = 25
+    ),
+    search3 = list(
+      TOP_N = 1,
+      NP = 20,
+      NMIF = 3,
+      NREPS = 3,
+      NREPS_EVAL = 3,
+      NP_EVAL = 25
+    ),
+    search4 = list(
+      TOP_N = 1,
+      NP = 20,
+      NMIF = 3,
+      NREPS = 3,
+      NREPS_EVAL = 3,
+      NP_EVAL = 25
+    ),
+    search5 = NULL,
+    ncores = 3
+) {
+
+  # Set of names required for each search. Throw error if missing
+  req_names <- c('NP', 'NMIF', 'NREPS', 'NREPS_EVAL', 'NP_EVAL')
+
+  # Throw error if missing names in search1
+  if (any(!req_names %in% names(search1))) {
+    missing <- req_names[which(!req_names %in% names(search1))]
+    stop(
+      paste0(
+        "search1 missing required argument(s): ",
+        paste0(missing, collapse = ', '),
+        "."
+      )
+    )
+  }
+
+  # Throw error if missing names in search2
+  if (n_searches >= 2 && any(!req_names %in% names(search2))) {
+    missing <- req_names[which(!req_names %in% names(search2))]
+    stop(
+      paste0(
+        "search2 missing required argument(s): ",
+        paste0(missing, collapse = ', '),
+        "."
+      )
+    )
+  }
+
+  # Throw error if missing names in search3
+  if (n_searches >= 3 && any(!req_names %in% names(search3))) {
+    missing <- req_names[which(!req_names %in% names(search3))]
+    stop(
+      paste0(
+        "search3 missing required argument(s): ",
+        paste0(missing, collapse = ', '),
+        "."
+      )
+    )
+  }
+
+  # Throw error if missing names in search4
+  if (n_searches >= 4 && any(!req_names %in% names(search4))) {
+    missing <- req_names[which(!req_names %in% names(search4))]
+    stop(
+      paste0(
+        "search4 missing required argument(s): ",
+        paste0(missing, collapse = ', '),
+        "."
+      )
+    )
+  }
+
+  # Throw error if missing names in search5
+  if (n_searches >= 5 && any(!req_names %in% names(search5))) {
+    missing <- req_names[which(!req_names %in% names(search5))]
+    stop(
+      paste0(
+        "search5 missing required argument(s): ",
+        paste0(missing, collapse = ', '),
+        "."
+      )
+    )
+  }
 
 
-  doParallel::registerDoParallel(ncores)
+  # TOP_N is not required, but if missing, default to 1.
+  if (!"TOP_N" %in% names(search2) && n_searches >= 2) {
+    search2$TOP_N <- 1
+  }
 
-  NP_GLOBAL    <- switch(RUN_LEVEL, 50, 4e3,  1000)
-  NP_LOCAL     <- switch(RUN_LEVEL, 50, 4e3,  1500)
-  NMIF         <- switch(RUN_LEVEL,  3,  15,    50)
-  NREPS_GLOBAL <- switch(RUN_LEVEL,  3,  10,    72)
-  NREPS_LOCAL  <- switch(RUN_LEVEL,  3,  10,    36)
-  NREPS_EVAL   <- switch(RUN_LEVEL,  3,   5, cores)
-  NP_EVAL1     <- switch(RUN_LEVEL, 50, 4e3,  2000)
-  NP_EVAL2     <- switch(RUN_LEVEL, 50, 4e3,  2500)
-  NP_EVAL3     <- switch(RUN_LEVEL, 50, 4e3,  3000)
+  if (!"TOP_N" %in% names(search3) && n_searches >= 3) {
+    search3$TOP_N <- 1
+  }
 
-  # STEP 1: Global all ------------------------------------------------------
+  if (!"TOP_N" %in% names(search4) && n_searches >= 4) {
+    search4$TOP_N <- 1
+  }
 
-  SIRB_panel <- haiti3_panel(start_time = "2010-10-23",
-                             B0 = TRUE)
+  if (!"TOP_N" %in% names(search5) && n_searches >= 5) {
+    search5$TOP_N <- 1
+  }
 
-  # Smallest value positive parameters will start at
-  min_param_val <- 5e-8
-
-  unit_bounds <- tibble::tribble(
-    ~param, ~lower, ~upper,
-    "betaB", min_param_val, 20,
-    "foi_add", min_param_val, 1e-5,
-    "B0", 0.15, 0.4
+  #### Load model
+  SIRB_panel <- haiti3_panel(
+    start_time = "2010-10-23",
+    B0 = TRUE
   )
 
+  #### Register cores
+  doParallel::registerDoParallel(ncores)
+
+  #### Create a list to store final results
+  results = list()
+
+  ####
+  #### Start search 1: Global search of all parameters
+  ####
+
+  min_param_val <- 5e-8  # Min param value for positive parameters
+
+  # Create data.frame of unit-specific parameter bounds
+  unit_bounds <- data.frame(
+    "param" = c('betaB', 'foi_add', 'B0'),
+    "lower" = c(min_param_val, min_param_val, 0.15),
+    "upper" = c(50, 1e-5, 0.4)
+  )
+
+  # Get the default values saved in Model 3, to use as a starting point
   original_unit <- SIRB_panel@specific
   fixed_unit <- SIRB_panel@specific[c('H', 'D'), ]
   shared_params <- SIRB_panel@shared
 
+  # Get names of all of the departments
   deps <- colnames(original_unit)
 
   # From the table above, create lower and upper bounds for each parameter
@@ -109,15 +207,17 @@ fit_haiti3 <- function(RUN_LEVEL = 1, ncores = 1) {
   ub_unit <- unlist(unit_bounds[, 'upper'])
   names(ub_unit) <- unlist(unit_bounds[, 'param'], use.names = FALSE)
 
+  # Create random starting points
   set.seed(3178689)
   guesses_unit <- runif_design(
     lower = lb_unit,
     upper = ub_unit,
-    nseq = (NREPS_GLOBAL - 1) * 10
+    nseq = (search1$NREPS - 1) * 10
   )
 
+  # Create list that will contain unit-specific and shared parameters
   guess_list_unit <- list()
-  for (i in 1:(NREPS_GLOBAL - 1)) {
+  for (i in 1:(search1$NREPS - 1)) {
     Betas <- guesses_unit$betaB[(10 * i - 9):(10 * i)]
     Fois <- guesses_unit$foi_add[(10 * i - 9):(10 * i)]
     B0s <- guesses_unit$B0[(10 * i - 9):(10 * i)]
@@ -128,28 +228,22 @@ fit_haiti3 <- function(RUN_LEVEL = 1, ncores = 1) {
     guess_list_unit[[i]] <- params
   }
 
-  guess_list_unit[[NREPS_GLOBAL]] <- original_unit
+  # Save final set of parameters with the default unit specific params
+  guess_list_unit[[search1$NREPS]] <- original_unit
 
-  # Table copied from run_mif_haitiOCV.R, but bounds where changed a bit
-  parameter_bounds <- tibble::tribble(
-    ~param, ~lower, ~upper,
-    "mu_B", 25, 250,
-    "XthetaA", min_param_val, 0.6,
-    "thetaI", min_param_val, 5e-3,
-    "lambdaR", min_param_val, 5,
-    "r", min_param_val, 2,
-    "std_W", min_param_val, 0.15,
-    "epsilon", .25, 1,
-    "k", 10, 1000,# hard to get negbin like this, sobol in log scale -5 et 4 TODO IF ENABLE: UNCOMMENT ID2314
-    "sigma", 0.01, 0.5
+  # Create data.frame object for the shared parameter bounds
+  parameter_bounds <- data.frame(
+    "param" = c("mu_B", "XthetaA", "thetaI", "lambdaR", "r",
+                "std_W", "epsilon", "k", "sigma"),
+    "lower" = c(5, min_param_val, min_param_val, min_param_val,
+                min_param_val, min_param_val, 0.25, 5, 0.01),
+    "upper" = c(300, 1, 2e-3, 5, 2, 0.15, 1, 1000, 0.5)
   )
 
+  # Save all default values for starting parameters later
   original_fixed_shared <- SIRB_panel@shared[names(SIRB_panel@shared) %in% parameter_bounds$param]
   fixed_shared <- SIRB_panel@shared[!names(SIRB_panel@shared) %in% parameter_bounds$param]
-  fixed_shared['cas_def'] <- 1
-
-  # All parameters are fixed that aren't in the table above
-  # fixed_params <- sirb_cholera@params[!names(sirb_cholera@params) %in% parameter_bounds$param]
+  fixed_shared['cas_def'] <- 1  # No change in reporting rate
 
   # From the table above, create lower and upper bounds for each parameter
   lb <- unlist(parameter_bounds[, 'lower'], use.names = FALSE)
@@ -163,11 +257,13 @@ fit_haiti3 <- function(RUN_LEVEL = 1, ncores = 1) {
   guesses <- runif_design(
     lower = lb,
     upper = ub,
-    nseq = NREPS_GLOBAL - 1
+    nseq = search1$NREPS - 1
   )
 
+  # Set last set of shared parameters to model defaults.
   guesses <- rbind(guesses, original_fixed_shared[colnames(guesses)])
 
+  # Set random walk standard deviation
   chol_rw <- rw.sd(
     betaB = 0.02,
     mu_B = 0.02,
@@ -183,15 +279,12 @@ fit_haiti3 <- function(RUN_LEVEL = 1, ncores = 1) {
     B0 = ivp(0.1)
   )
 
-  # Get all of the cores available.
+  # set RNG for reproducible parallelization
   registerDoRNG(1851563)
-  cat('\nStarting Global Search...\n')
 
-  # Global MIF at "MLE"
-
-  # Run global MIF chol_Nreps_global times
-  no_trend_global <- foreach(
-    i=1:NREPS_GLOBAL,
+  # Loop through each starting point and perform MIF2 search.
+  foreach(
+    i=1:search1$NREPS,
     .packages = c('panelPomp'),
     .combine = c
   ) %dopar% {
@@ -199,8 +292,8 @@ fit_haiti3 <- function(RUN_LEVEL = 1, ncores = 1) {
     r_unit_params <- guess_list_unit[[i]]
     mif2(
       SIRB_panel,
-      Np = NP_GLOBAL,
-      Nmif = NMIF,
+      Np = search1$NP,
+      Nmif = search1$NMIF,
       cooling.fraction.50 = 0.5,
       rw.sd = chol_rw,
       cooling.type = 'geometric',
@@ -208,298 +301,403 @@ fit_haiti3 <- function(RUN_LEVEL = 1, ncores = 1) {
       specific.start = r_unit_params,
       block = TRUE
     )
-  }
+  } -> no_trend_global
 
-  cat('Finished!\n\n')
-
-  # Just removing everything so that there is no issue with renaming stuff,
-  # and so that we are being a bit more memory efficient.
+  # Some clutter clean-up
   rm(
     chol_rw, fixed_unit, guess_list_unit, guesses, guesses_unit, original_unit,
     parameter_bounds, params, unit_bounds, Betas, fixed_shared, Fois, i, lb,
-    lb_unit, original_fixed_shared, shared_params, ub, ub_unit
+    lb_unit, original_fixed_shared, shared_params, ub, ub_unit, B0s
   )
 
+  # Garbage collector to free unused memory after clean-up.
   gc()
 
+  #### pfilter global search results
 
-  # Step 1.5: PFilter results -----------------------------------------------
-
-  cat('\nPFiltering Global All...\n')
+  # Create data.frame to store likelihood evaluations
   mif_logLik <- data.frame(
     'logLik' = rep(0, length(no_trend_global)),
     'se' = rep(0, length(no_trend_global)),
     'which' = 1:length(no_trend_global)
   )
 
-  mif_results <- foreach(i=1:length(no_trend_global)) %do% {
-    mf <- no_trend_global[[i]]
-    list(logLik = logLik(mf), params = coef(mf))
-  }
-
+  # Loop through PIF results and perform particle filters to evaluate likelihood
   for (j in 1:length(no_trend_global)) {
     mf <- no_trend_global[[j]]
-    mif_params <- mif_results[[j]]$params
+    mif_params <- coef(mf)
 
-    # registerDoParallel(36)
     registerDoRNG((j * 38763911) %% 7919)
 
-    library(tictoc)
-
-    tic()
-    pf3_loglik_matrix <- foreach(i=1:NREPS_EVAL, .combine = rbind) %dopar% {
+    pf3_loglik_matrix <- foreach(i=1:search1$NREPS_EVAL, .combine = rbind) %dopar% {
       library(panelPomp)
-      unitlogLik(pfilter(mf, params = mif_params, Np = NP_EVAL1))
+      unitlogLik(pfilter(mf, params = mif_params, Np = search1$NP_EVAL))
     }
-    toc()
 
     mif_logLik[mif_logLik$which == j, 1:2] <- panel_logmeanexp(pf3_loglik_matrix, MARGIN = 2, se = TRUE)
   }
 
-  cat('Finished!\n\n')
+  # Save results from the global search
+  search1_results <- list()
+  search1_results$logLiks <- mif_logLik
+  search1_results$params  <- t(sapply(no_trend_global, coef))
 
-  # save(mif_logLik, file = 'output/global_all_correctPanel_PF.rda')
+  # Save search results in final output list
+  results$search1 <- search1_results
 
-  rm(
-    i, j, mf, mif_params, mif_results, pf3_loglik_matrix
-  )
-
+  # clean-up and garbage collection
+  rm(mf, mif_logLik, no_trend_global, pf3_loglik_matrix, j, mif_params, search1)
   gc()
 
-  # Step 2: Global Search of Shared Parameters ------------------------------
+  if (n_searches == 1L) {
+    return(results)
+  }
 
-  cat('Starting Global Search of Shared...\n')
+  ####
+  #### End of global search
+  ####
 
-  best_m <- mif_logLik %>%
-    arrange(-logLik) %>%
-    slice_head(n = 1) %>%
-    pull(which)
+  #### Start local search of shared parameters
 
-  params_shared <- no_trend_global[[best_m]]@shared
-  params_unit <- no_trend_global[[best_m]]@specific
+  top_n_global <- search1_results$logLiks %>%
+    dplyr::arrange(-logLik) %>%
+    dplyr::slice_head(n = search2$TOP_N) %>%
+    dplyr::pull(which)
 
-  rm(no_trend_global, mif_logLik)
-  gc()
-
-  # Table copied from run_mif_haitiOCV.R, but bounds where changed a bit
-  parameter_bounds <- tribble(
-    ~param, ~lower, ~upper,
-    "mu_B", 20, 200,
-    "XthetaA", min_param_val, 1,
-    "thetaI", min_param_val, 5e-04,
-    "lambdaR", min_param_val, 10,
-    "r", min_param_val, 5e3,
-    "std_W", min_param_val, 0.9,
-    "epsilon", .25, 1,
-    "k", 10, 1000
-  )
-
-  original_fixed_shared <- params_shared[names(params_shared) %in% parameter_bounds$param]
-  fixed_shared <- params_shared[!names(params_shared) %in% parameter_bounds$param]
-
-  # From the table above, create lower and upper bounds for each parameter
-  lb <- unlist(parameter_bounds[, 'lower'])
-  names(lb) <- unlist(parameter_bounds[, 'param'], use.names = FALSE)
-  ub <- unlist(parameter_bounds[, 'upper'])
-  names(ub) <- unlist(parameter_bounds[, 'param'], use.names = FALSE)
-
-  # Using the bounds defined above, create a grid of parameters
-  # to search globally.
-  set.seed(17839)
-  guesses <- runif_design(
-    lower = lb,
-    upper = ub,
-    nseq = NREPS_LOCAL - 1
-  )
-
-  guesses <- rbind(guesses, original_fixed_shared)
+  params <- search1_results$params[rep(top_n_global, each = search2$NREPS), ]
 
   chol_rw <- rw.sd(
-    mu_B = 0.02,
-    thetaI = 0.02,
-    XthetaA = 0.02,
-    lambdaR = 0.02,
-    r = 0.02,
-    std_W = 0.02,
-    epsilon = 0.02,
-    sigma = 0.02,
-    k = 0.02
+    mu_B = 0.005,
+    thetaI = 0.005,
+    XthetaA = 0.005,
+    lambdaR = 0.005,
+    r = 0.005,
+    std_W = 0.005,
+    epsilon = 0.005,
+    k = 0.005,
+    sigma = 0.005
   )
 
-  registerDoRNG(3481569)
+  registerDoRNG(987153547)
 
-  # Local MIF at "MLE"
-  # Run local MIF chol_Nreps_local times
-  no_trend_shared <- foreach(
-    guess=iter(guesses, 'row'),
+  foreach(
+    i = 1:(search2$NREPS * search2$TOP_N),
     .packages = c('panelPomp'),
     .combine = c
   ) %dopar% {
-    r_shared_params <- unlist(guess)
+
+    start_params <- params[i, ]
+
     mif2(
       SIRB_panel,
-      Np = NP_GLOBAL,
-      Nmif = NMIF,
+      Np = search2$NP,
+      Nmif = search2$NMIF,
       cooling.fraction.50 = 0.5,
       rw.sd = chol_rw,
       cooling.type = 'geometric',
-      shared.start = c(fixed_shared, r_shared_params),
-      specific.start = params_unit,
-      block = TRUE
+      start = start_params
     )
-  }
+  } -> local_MIF2_search
 
-  cat("Finished! \n\n")
-
-  # Just removing everything so that there is no issue with renaming stuff,
-  # and so that we are being a bit more memory efficient.
   rm(
-    chol_rw, guesses, parameter_bounds, params_unit, best_m, fixed_shared, lb,
-    ub, params_shared, original_fixed_shared
+    chol_rw, params
   )
 
   gc()
 
-
-  # Step 2.5: PFilter results -----------------------------------------------
-
-  cat('\nPFiltering Global Shared...\n')
   mif_logLik <- data.frame(
-    'logLik' = rep(0, length(no_trend_shared)),
-    'se' = rep(0, length(no_trend_shared)),
-    'which' = 1:length(no_trend_shared)
+    'logLik' = rep(0, search2$TOP_N * search2$NREPS),
+    'se' = rep(0, search2$TOP_N * search2$NREPS),
+    'which' = 1:(search2$TOP_N * search2$NREPS),
+    'starting_set' = rep(top_n_global, each = search2$NREPS)
   )
 
-  mif_results <- foreach(i=1:length(no_trend_shared)) %do% {
-    mf <- no_trend_shared[[i]]
-    list(logLik = logLik(mf), params = coef(mf))
-  }
-
-  for (j in 1:length(no_trend_shared)) {
-    mf <- no_trend_shared[[j]]
-    mif_params <- mif_results[[j]]$params
+  for (j in 1:(search2$TOP_N * search2$NREPS)) {
+    mf <- local_MIF2_search[[j]]
+    mif_params <- coef(mf)
 
     # registerDoParallel(36)
     registerDoRNG((j * 38763911) %% 7919)
 
-    library(tictoc)
-
-    tic()
-    pf3_loglik_matrix <- foreach(i=1:NREPS_EVAL, .combine = rbind) %dopar% {
-      library(panelPomp)
-      unitlogLik(pfilter(mf, params = mif_params, Np = NP_EVAL2))
+    pf3_loglik_matrix <- foreach(i=1:search2$NREPS_EVAL, .combine = rbind,
+                                 .packages = 'panelPomp') %dopar% {
+      unitlogLik(pfilter(mf, params = mif_params, Np = search2$NP_EVAL))
     }
-    toc()
 
-    mif_logLik[mif_logLik$which == j, 1:2] <- panel_logmeanexp(pf3_loglik_matrix, MARGIN = 2, se = TRUE)
+    mif_logLik[j, 1:2] <- panel_logmeanexp(pf3_loglik_matrix, MARGIN = 2, se = TRUE)
   }
 
-  cat('Finished!\n\n')
-  # save(mif_logLik, file = 'output/global_shared_correctPanel_PF.rda')
+  # Save results from the global search
+  search2_results <- list()
+  search2_results$logLiks <- mif_logLik
+  search2_results$params  <- t(sapply(local_MIF2_search, coef))
 
-  rm(
-    i, j, mf, mif_params, mif_results, pf3_loglik_matrix
-  )
+  results$search2 <- search2_results
 
+  rm(j, mf, mif_params, local_MIF2_search, mif_logLik, search2, pf3_loglik_matrix,
+     top_n_global, search1_results)
   gc()
 
-  # Step 3: Local Search of Unit Params -------------------------------------
+  if (n_searches == 2L) {
+    return(results)
+  }
 
-  cat('Starting Local Search of Unit params...\n')
+  ####
+  #### End of search 2
+  ####
 
-  params_shared <- no_trend_shared[[which.max(mif_logLik$logLik)]]@shared
-  params_unit <- no_trend_shared[[which.max(mif_logLik$logLik)]]@specific
+  #### Search 3: Local search for unit specific parameters:
 
-  rm(no_trend_shared, mif_logLik)
-  gc()
+  # Get index for top N searches
+  top_n_local <- search2_results$logLiks %>%
+    dplyr::arrange(-logLik) %>%
+    dplyr::slice_head(n = search3$TOP_N) %>%
+    dplyr::pull(which)
 
+  # Copy parameters for top N searches
+  params <- search2_results$params[rep(top_n_local, each = search3$NREPS), ]
+
+  # Set rw sd
   chol_rw <- rw.sd(
     betaB = 0.02,
     foi_add = 0.02,
-    B0 = ivp(0.1)  # Change this to 0.1.
+    B0 = ivp(0.1)
   )
 
-  # Get all of the cores available.
-  registerDoRNG(40765101)
+  registerDoRNG(987153547)
 
-  # Local MIF at "MLE"
-  # Run local MIF chol_Nreps_local times
-  no_trend_local <- foreach(
-    i=1:NREPS_LOCAL,
+  foreach(
+    i = 1:(search3$NREPS * search3$TOP_N),
     .packages = c('panelPomp'),
     .combine = c
   ) %dopar% {
+
+    start_params <- params[i, ]
+
     mif2(
       SIRB_panel,
-      Np = NP_LOCAL,
-      Nmif = NMIF,
+      Np = search3$NP,
+      Nmif = search3$NMIF,
       cooling.fraction.50 = 0.5,
       rw.sd = chol_rw,
       cooling.type = 'geometric',
-      shared.start = params_shared,
-      specific.start = params_unit,
+      start = start_params,
       block = TRUE
     )
-  }
+  } -> local_MIF2_search
 
-  cat("Finished! \n\n")
-
-  # Just removing everything so that there is no issue with renaming stuff,
-  # and so that we are being a bit more memory efficient.
-  rm(
-    chol_rw, params_unit, params_shared
-  )
-
+  rm(chol_rw, params)
   gc()
 
-
-  # Step 3.5: PFilter of Local results --------------------------------------
-
-  cat('\nPFiltering Local Unit...\n')
   mif_logLik <- data.frame(
-    'logLik' = rep(0, length(no_trend_local)),
-    'se' = rep(0, length(no_trend_local)),
-    'which' = 1:length(no_trend_local)
+    'logLik' = rep(0, search3$NREPS * search3$TOP_N),
+    'se' = rep(0, search3$NREPS * search3$TOP_N),
+    'which' = 1:(search3$NREPS * search3$TOP_N),
+    'starting_set' = rep(top_n_local, each = search3$NREPS)
   )
 
-  mif_results <- foreach(i=1:length(no_trend_local)) %do% {
-    mf <- no_trend_local[[i]]
-    list(logLik = logLik(mf), params = coef(mf))
-  }
+  for (j in 1:(search3$NREPS * search3$TOP_N)) {
+    mf <- local_MIF2_search[[j]]
+    mif_params <- coef(mf)
 
-  for (j in 1:length(no_trend_local)) {
-    mf <- no_trend_local[[j]]
-    mif_params <- mif_results[[j]]$params
-
-    # registerDoParallel(36)
     registerDoRNG((j * 38763911) %% 7919)
 
-    library(tictoc)
-
-    tic()
-    pf3_loglik_matrix <- foreach(i=1:NREPS_EVAL, .combine = rbind) %dopar% {
-      library(panelPomp)
-      unitlogLik(pfilter(mf, params = mif_params, Np = NP_EVAL2))
+    pf3_loglik_matrix <- foreach(i=1:search3$NREPS_EVAL, .combine = rbind,
+                                 .packages = 'panelPomp') %dopar% {
+      unitlogLik(pfilter(mf, params = mif_params, Np = search3$NP_EVAL))
     }
-    toc()
 
-    mif_logLik[mif_logLik$which == j, 1:2] <- panel_logmeanexp(pf3_loglik_matrix, MARGIN = 2, se = TRUE)
+    mif_logLik[j, 1:2] <- panel_logmeanexp(pf3_loglik_matrix, MARGIN = 2, se = TRUE)
   }
 
-  cat('Finished!\n\n')
-  # save(mif_logLik, file = 'output/local_unit_correctPanel_PF.rda')
+  # Save results from the global search
+  search3_results <- list()
+  search3_results$logLiks <- mif_logLik
+  search3_results$params  <- t(sapply(local_MIF2_search, coef))
 
-  rm(
-    i, j, mf, mif_params, mif_results, pf3_loglik_matrix
-  )
+  results$search3 <- search3_results
 
+  rm(j, mf, mif_params, local_MIF2_search, mif_logLik, search3, pf3_loglik_matrix,
+     top_n_local, search2_results)
   gc()
 
-  best_m <- mif_logLik %>%
-    arrange(-logLik) %>%
-    slice_head(n = 1) %>%
-    pull(which)
+  if (n_searches == 3L) {
+    return(results)
+  }
 
-  coef(no_trend_local[[best_m]])
+  ####
+  #### End of search 3
+  ####
+
+  #### Start Search 4:
+
+  # Get index for top N searches
+  top_n_local <- search3_results$logLiks %>%
+    dplyr::arrange(-logLik) %>%
+    dplyr::slice_head(n = search4$TOP_N) %>%
+    dplyr::pull(which)
+
+  # Copy parameters for top N searches
+  params <- search3_results$params[rep(top_n_local, each = search4$NREPS), ]
+
+  # Set rw sd
+  chol_rw <- rw.sd(
+    betaB = 0.006,
+    foi_add = 0.006,
+    B0 = ivp(0.03)
+  )
+
+  registerDoRNG(904303541)
+
+  foreach(
+    i = 1:(search4$NREPS * search4$TOP_N),
+    .packages = c('panelPomp'),
+    .combine = c
+  ) %dopar% {
+
+    start_params <- params[i, ]
+
+    mif2(
+      SIRB_panel,
+      Np = search4$NP,
+      Nmif = search4$NMIF,
+      cooling.fraction.50 = 0.5,
+      rw.sd = chol_rw,
+      cooling.type = 'geometric',
+      start = start_params,
+      block = TRUE
+    )
+  } -> local_MIF2_search
+
+  rm(chol_rw, params)
+  gc()
+
+  mif_logLik <- data.frame(
+    'logLik' = rep(0, search4$NREPS * search4$TOP_N),
+    'se' = rep(0, search4$NREPS * search4$TOP_N),
+    'which' = 1:(search4$NREPS * search4$TOP_N),
+    'starting_set' = rep(top_n_local, each = search4$NREPS)
+  )
+
+  for (j in 1:(search4$NREPS * search4$TOP_N)) {
+    mf <- local_MIF2_search[[j]]
+    mif_params <- coef(mf)
+
+    registerDoRNG((j * 38763911) %% 7919)
+
+    pf3_loglik_matrix <- foreach(i=1:search4$NREPS_EVAL, .combine = rbind,
+                                 .packages = 'panelPomp') %dopar% {
+                                   unitlogLik(pfilter(mf, params = mif_params, Np = search4$NP_EVAL))
+                                 }
+
+    mif_logLik[j, 1:2] <- panel_logmeanexp(pf3_loglik_matrix, MARGIN = 2, se = TRUE)
+  }
+
+  # Save results from the global search
+  search4_results <- list()
+  search4_results$logLiks <- mif_logLik
+  search4_results$params  <- t(sapply(local_MIF2_search, coef))
+
+  results$search4 <- search4_results
+
+  rm(j, mf, mif_params, local_MIF2_search, mif_logLik, search4, pf3_loglik_matrix,
+     top_n_local, search3_results)
+  gc()
+
+  if (n_searches == 4L) {
+    return(results)
+  }
+
+  ####
+  #### End of search 4
+  ####
+
+  #### Start search 5: Local search of unit-specific parameters
+
+  # Get index for top N searches
+  top_n_local <- search4_results$logLiks %>%
+    dplyr::arrange(-logLik) %>%
+    dplyr::slice_head(n = search5$TOP_N) %>%
+    dplyr::pull(which)
+
+  # Copy parameters for top N searches
+  params <- search4_results$params[rep(top_n_local, each = search5$NREPS), ]
+
+  # Set rw sd
+  chol_rw <- rw.sd(
+    betaB = 0.005,
+    foi_add = 0.005
+  )
+
+  registerDoRNG(904303541)
+
+  foreach(
+    i = 1:(search5$NREPS * search5$TOP_N),
+    .packages = c('panelPomp'),
+    .combine = c
+  ) %dopar% {
+
+    start_params <- params[i, ]
+
+    mif2(
+      SIRB_panel,
+      Np = search5$NP,
+      Nmif = search5$NMIF,
+      cooling.fraction.50 = 0.5,
+      rw.sd = chol_rw,
+      cooling.type = 'geometric',
+      start = start_params,
+      block = TRUE
+    )
+  } -> local_MIF2_search
+
+  rm(chol_rw, params)
+  gc()
+
+  mif_logLik <- data.frame(
+    'logLik' = rep(0, search5$NREPS * search5$TOP_N),
+    'se' = rep(0, search5$NREPS * search5$TOP_N),
+    'which' = 1:(search5$NREPS * search5$TOP_N),
+    'starting_set' = rep(top_n_local, each = search5$NREPS)
+  )
+
+  for (j in 1:(search5$NREPS * search5$TOP_N)) {
+    mf <- local_MIF2_search[[j]]
+    mif_params <- coef(mf)
+
+    registerDoRNG((j * 38763911) %% 7919)
+
+    pf3_loglik_matrix <- foreach(i=1:search5$NREPS_EVAL, .combine = rbind,
+                                 .packages = 'panelPomp') %dopar% {
+                                   unitlogLik(pfilter(mf, params = mif_params, Np = search5$NP_EVAL))
+                                 }
+
+    mif_logLik[j, 1:2] <- panel_logmeanexp(pf3_loglik_matrix, MARGIN = 2, se = TRUE)
+  }
+
+  # Save results from the global search
+  search5_results <- list()
+  search5_results$logLiks <- mif_logLik
+  search5_results$params  <- t(sapply(local_MIF2_search, coef))
+
+  results$search5 <- search5_results
+
+  rm(j, mf, mif_params, local_MIF2_search, mif_logLik, search5, pf3_loglik_matrix,
+     top_n_local, search4_results)
+  gc()
+
+  if (n_searches == 5L) {
+    return(results)
+  }
+
+  ####
+  #### End of search 5
+  ####
+
+  ####
+  #### Start Search 6: Local search of sub-model.
+  ####
+
+  # TODO: Implement this.
 
 }
