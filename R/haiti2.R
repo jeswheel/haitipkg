@@ -52,7 +52,7 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear",
 
     const double pi = 3.14159265358979323846;
     const double redb = 0.001;
-    const double redmu = 0.000001;
+    const double redmu = 0.0000001;  // TODO: This should be 10^(-7)
     double p_u5 = 0.118;
 
     const double Tmat[10][10] = {
@@ -768,7 +768,7 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear",
       else {vacc[0]=0; vacc[1]=0;}
 
       // expected force of infection
-      foi = Beta*(I[u]+IOD[u]+ITD[u]) + redb*Beta*(A[u]+AOD[u]+ATD[u]);
+      foi = Beta*(I[u]+IOD[u]+ITD[u]) + redb*Beta*(A[u]+AOD[u]+ATD[u]); //  TODO: Need to add under 5 vaccinated?
 
       // water effect
       foi += 0.5*(1 + AlphaS*cos(2*pi*t/ps + phase))*(BetaW*W[u])/(Sat+W[u]);
@@ -926,14 +926,17 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear",
   names(c_params_IVPS) <- paste0(c("InitInfected"),1:10)
 
   # MLE for epidemic model
-  start_params <- c(sigma=1/5, gammaE=52/0.18, k=0.2, gamma=52, Beta=5.7288e-15,
-                    Omega1=1, Omega2=5, VE1=0.43, VE2=0.52, Delta=52/3, Mu=4.6612e3,
-                    AlphaS=0.4, ps=1.05, Sat=1e5, BetaW=4.544, sigmaSE=0.01,
-                    VR=1.7889e-11, WR=5, Psi=0.5, Rho=0.2, scenario=0,
-                    f=0.75, v=5.371e2, phase=0)
+  start_params <- c(
+    sigma = 1/5, gammaE = 52.18/0.18, k = 0.2, gamma = 52.18,
+    Beta = 52.18 * 9.9 * 10^(-7), Omega1 = 1, Omega2 = 1 / 5,
+    VE1 = 0.43, VE2 = 0.52, Delta = 52 / 3, Mu = 52.18 * 3.98 * 10^3,
+    AlphaS = 0.4, ps = 1.00, Sat = 1e5, BetaW = 52.18 * 4.03 * 10^(-2),
+    sigmaSE = 0.01, VR = 52.18 * 10^(-12), WR = 52.18 * 0.5, Psi = 0.5,
+    Rho = 0.2, scenario = 0,f = 0.75, v = 5.371e2, phase = 0
+  )
   # MLE for endemic model
   if (region=="after") {
-    start_params[c("VR","Mu","v")] <- c(1.304e-9, 1.897e2, 8.201e1)
+    start_params[c("VR","Mu","v")] <- c(52.18 * 10^(-12), 52.18 * 2.58, 8.201e1)
   }
 
   par <- c(start_params,c_params_IVPS)

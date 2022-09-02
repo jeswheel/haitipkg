@@ -25,6 +25,8 @@
 fit_haiti1 <- function(
     NP = 50, NMIF = 3, NUM_TREND = 3, NPROF = 3,
     NREPS_EVAL = 3, NP_EVAL = 50, ncores = 3
+    # rho_flag = TRUE, tau_flag = TRUE, sig_sq_flag = TRUE,
+    # beta_flag = FALSE, nu_flag = FALSE
 ) {
 
   doParallel::registerDoParallel(ncores)
@@ -32,7 +34,7 @@ fit_haiti1 <- function(
 
   # Load the model, allow breakpoint in rho, tau, and sig_sq, but not beta or nu
   mod_1 <- haiti1_joint(
-    rho_flag = TRUE,
+    rho_flag = FALSE,
     tau_flag = TRUE,
     sig_sq_flag = TRUE,
     beta_flag = FALSE,
@@ -53,8 +55,7 @@ fit_haiti1 <- function(
     "beta6",         .75, 1.75,
     "tau_epi",       100,  850,
     "tau_end",       100,  850,
-    "rho_epi",      0.15,    1,
-    "rho_end",      0.15,    1,
+    "rho",          0.15,    1,
     "nu",           0.95,    1,
     "sig_sq_epi",   0.05, 0.15,
     "sig_sq_end",   0.05, 0.15,
@@ -92,15 +93,14 @@ fit_haiti1 <- function(
     beta4 = .02,
     beta5 = .02,
     beta6 = .02,
-    tau_epi = ifelse(time < 232, 0.02, 0),
-    tau_end = ifelse(time >= 232, 0.02, 0),
-    rho_epi = ifelse(time < 232, 0.02, 0),
-    rho_end = ifelse(time >= 232, 0.02, 0),
-    nu = 0.01,
+    rho   = 0.02,
+    nu    = 0.01,
+    E_0   = ivp(0.2),
+    I_0   = ivp(0.2),
+    tau_epi    = ifelse(time < 232, 0.02, 0),
+    tau_end    = ifelse(time >= 232, 0.02, 0),
     sig_sq_epi = ifelse(time < 232, 0.02, 0),
-    sig_sq_end = ifelse(time >= 232, 0.02, 0),
-    E_0 = ivp(0.2),
-    I_0 = ivp(0.2)
+    sig_sq_end = ifelse(time >= 232, 0.02, 0)
   )
 
   # Make reproducible results
