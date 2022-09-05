@@ -1,4 +1,4 @@
-#' Function used to get department data for haiti3_dep model
+#' Function used to get department data for \code{\link{haiti3_dep}} model
 #'
 #' @param departement Name of department to fit POMP model to
 #' @param start_time Time of which to start the time series. In the

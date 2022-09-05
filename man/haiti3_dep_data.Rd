@@ -2,7 +2,7 @@
 % Please edit documentation in R/haiti3_dep_data.R
 \name{haiti3_dep_data}
 \alias{haiti3_dep_data}
-\title{Function used to get department data for haiti3_dep model}
+\title{Function used to get department data for \code{\link{haiti3_dep}} model}
 \usage{
 haiti3_dep_data(departement = "Artibonite", start_time = "2014-03-01")
 }
@@ -20,5 +20,5 @@ fit the Ouest model earlier, or fit the remaining departement models
 at 2017-06-01}
 }
 \description{
-Function used to get department data for haiti3_dep model
+Function used to get department data for \code{\link{haiti3_dep}} model
 }

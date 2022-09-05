@@ -25,7 +25,7 @@
 #' @return \code{\link[pomp]{pomp}} representation of model 3 described in \href{https://www.sciencedirect.com/science/article/pii/S2214109X20303107}{Lee, Elizabeth et. al.} and it's accompanying \href{https://ars.els-cdn.com/content/image/1-s2.0-S2214109X20303107-mmc3.pdf}{Supplemental Material}.
 #' @export
 
-haiti3_dep_correct <- function(departement = 'Artibonite',
+haiti3_dep <- function(departement = 'Artibonite',
                                start_time = "2010-10-23",
                                delta.t = 1/365.25) {
 
