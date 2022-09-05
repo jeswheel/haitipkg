@@ -35,7 +35,7 @@
 #' @export
 
 
-haiti3 <- function(start_time = "2014-03-01") {
+haiti3_lee_et_al <- function(start_time = "2014-03-01") {
 
   # Create vector of departement names
   departements = c(
