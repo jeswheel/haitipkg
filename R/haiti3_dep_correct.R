@@ -1,8 +1,5 @@
 #' Build single department POMP object following model 3
 #'
-#' This code is a slight modification of the \code{\link{haiti3_dep}} function,
-#' correcting minor flaws in the original code.
-#'
 #' @param departement String indicating which departement to fit the
 #'   pomp model to.
 #' @param start_time Time of which to start the time series. In the

@@ -13,8 +13,7 @@ haiti3_panel(
     "Nord-Ouest", "Ouest", "Sud", "Sud-Est"),
   betaB_trend = FALSE,
   start_time = "2014-03-01",
-  B0 = FALSE,
-  old_mod = FALSE
+  B0 = FALSE
 )
 }
 \arguments{

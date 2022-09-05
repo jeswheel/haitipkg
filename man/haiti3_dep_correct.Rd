@@ -38,6 +38,5 @@ compartment will be estimated; If FALSE, the equilibrium will be used.}
 \code{\link[pomp]{pomp}} representation of model 3 described in \href{https://www.sciencedirect.com/science/article/pii/S2214109X20303107}{Lee, Elizabeth et. al.} and it's accompanying \href{https://ars.els-cdn.com/content/image/1-s2.0-S2214109X20303107-mmc3.pdf}{Supplemental Material}.
 }
 \description{
-This code is a slight modification of the \code{\link{haiti3_dep}} function,
-correcting minor flaws in the original code.
+Build single department POMP object following model 3
 }

@@ -22,38 +22,22 @@
 haiti3_panel <- function(delta.t = 1/365, departements = c(
   'Artibonite', 'Centre', 'Grande_Anse', 'Nippes',
   'Nord', 'Nord-Est', 'Nord-Ouest', 'Ouest', 'Sud', 'Sud-Est'),
-  betaB_trend = FALSE, start_time = "2014-03-01", B0 = FALSE,
-  old_mod = FALSE
+  betaB_trend = FALSE, start_time = "2014-03-01", B0 = FALSE
 ) {
 
   # Create a list of pomp objects
   pomps <- list()
 
-  if (old_mod) {
-    # Best values fitted using Artibonite data, hand entered.
-    SHARED <- c(
-      'mu_B' = 111.3593, 'XthetaA' = 0.05779537, 'thetaI' = 0.0004327653,
-      'lambdaR' = 0.499169, 'std_W' = 0.01400412, 'epsilon' = 0.993717,
-      'k' = 516.8755, 'cas_def' = 0.9341205, 'sigma' = 0.25, 'r' = 0.6359411,
-      'gammaI' = 182.625,
-      'gammaA' = 182.625,
-      'rhoA' = 0.1250856,
-      'XrhoI' = 1,
-      'Rtot_0' = 0.35, 'mu' = 0.01586626, 'alpha' = 1.461, 'cases_ext' = 1,
-      't_vacc_start' = 0, 't_vacc_end' = 0, 'p1d_reg' = 0, 'r_v_year' = 0
-    )
-  } else {
-    # Best values fitted using Artibonite data, hand entered.
-    SHARED <- c(
-      'mu_B' = 111.3593, 'XthetaA' = 0.05779537, 'thetaI' = 0.0004327653,
-      'lambdaR' = 0.499169, 'std_W' = 0.01400412, 'epsilon' = 0.993717,
-      'k' = 516.8755, 'cas_def' = 0.9341205, 'sigma' = 0.25, 'r' = 0.6359411,
-      'gamma' = 182.625,
-      'rho' = 0.1250856,
-      'Rtot_0' = 0.35, 'mu' = 0.01586626, 'alpha' = 1.461, 'cases_ext' = 1,
-      't_vacc_start' = 0, 't_vacc_end' = 0, 'p1d_reg' = 0, 'r_v_year' = 0
-    )
-  }
+  # Best values fitted using Artibonite data, hand entered.
+  SHARED <- c(
+    'mu_B' = 111.3593, 'XthetaA' = 0.05779537, 'thetaI' = 0.0004327653,
+    'lambdaR' = 0.499169, 'std_W' = 0.01400412, 'epsilon' = 0.993717,
+    'k' = 516.8755, 'cas_def' = 0.9341205, 'sigma' = 0.25, 'r' = 0.6359411,
+    'gamma' = 182.625,
+    'rho' = 0.1250856,
+    'Rtot_0' = 0.35, 'mu' = 0.01586626, 'alpha' = 1.461, 'cases_ext' = 1,
+    't_vacc_start' = 0, 't_vacc_end' = 0, 'p1d_reg' = 0, 'r_v_year' = 0
+  )
 
   all_deps <- c(
     'Artibonite', 'Centre', 'Grande_Anse', 'Nippes',
@@ -93,20 +77,12 @@ haiti3_panel <- function(delta.t = 1/365, departements = c(
   # Loop through each departement
   for (dep in departements) {
 
-    if (old_mod) {
-      # Using haitipkg, create and save pomp object for each departement
-      pomps[[dep]] <- haiti3_dep(departement = dep, delta.t = delta.t,
-                                 betaB_trend = betaB_trend,
-                                 start_time = start_time,
-                                 B0 = B0)
-    } else {
-      # Using haitipkg, create and save pomp object for each departement
-      pomps[[dep]] <- haiti3_dep_correct(
-        departement = dep,
-        delta.t = delta.t,
-        start_time = start_time
-      )
-    }
+    # Using haitipkg, create and save pomp object for each departement
+    pomps[[dep]] <- haiti3_dep_correct(
+      departement = dep,
+      delta.t = delta.t,
+      start_time = start_time
+    )
   }
 
   SPECIFIC <- SPECIFIC[, departements]
