@@ -4,7 +4,7 @@
 \alias{haiti2}
 \title{Build SpatPomp object for Model 2}
 \usage{
-haiti2(cutoff = 2014.161, region = "before", measure = "linear", joint = FALSE)
+haiti2(cutoff = 2014.161, region = "before", measure = "linear")
 }
 \arguments{
 \item{cutoff}{a numeric. Used to define the cutoff time for the model}
@@ -14,9 +14,6 @@ or after the cutoff time.}
 
 \item{measure}{a character string. Specifies the measurement model used. Valid
 entries are "linear" and "log".}
-
-\item{joint}{a boolean. Specifies if the state values should carry over from
-epidemic to endemic phase.}
 }
 \value{
 An object of class \sQuote{spatPomp}.

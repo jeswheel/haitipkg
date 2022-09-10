@@ -9,8 +9,7 @@
 #'     \item{V4}{Countrywide vaccination over 2 years.}
 #'   }
 #'
-#' @param epi_params: a vector of parameters for the epidemic period
-#' @param end_params: a vector of parameters for the endemic period
+#' @param params: a vector of parameters for the model
 #'
 #' @importFrom magrittr %>%
 #' @return List containing two objects: \describe{
@@ -20,60 +19,54 @@
 #'
 #' @examples
 #' h2 <- fit_haiti2()
-#' results <- haiti2_vaccScenario(epi_params = h2$epi_params, end_params = h2$end_params)
+#' results <- haiti2_vaccScenario(epi_params = h2$epi_params)
 #'
 #' @export
-haiti2_vaccScenario <- function(epi_params, end_params) {
-
-  if (missing(epi_params) | missing(end_params)) {
-    stop("You must give parameters for both epidemic and endemic periods.")
-  }
+haiti2_vaccScenario <- function(epi_params) {
 
   # Create joint model to simulate the trajectory
-  h2_epi <- haiti2(region = 'before')
-  h2_end <- haiti2(region = 'after', joint = TRUE)
+  h2_epi <- haiti2(cutoff = 10000, measure = "log")
 
-  if (!setequal(names(epi_params), names(pomp::coef(h2_epi))) |
-      !setequal(names(end_params), names(pomp::coef(h2_end)))) {
+  if (!setequal(names(epi_params), names(pomp::coef(h2_epi)))) {
     stop("Names of input parameters do not match the model.")
   }
 
   # Set model coefficients to input values
   pomp::coef(h2_epi) <- epi_params
-  pomp::coef(h2_end) <- end_params
 
   # Get epidemic trajectory
   epi_traj <- pomp::trajectory(
     h2_epi,
     params = pomp::coef(h2_epi),
-    format = 'data.frame'
+    format = 'data.frame',
+    times = pomp::time(h2_epi)
   )
 
-  # Get endemic trajectory
-  end_traj <- pomp::trajectory(
-    h2_end,
-    params = pomp::coef(h2_end),
-    format = 'data.frame'
-  )
+  # # Get endemic trajectory
+  # end_traj <- pomp::trajectory(
+  #   h2_end,
+  #   params = pomp::coef(h2_end),
+  #   format = 'data.frame'
+  # )
 
   # Get reported cases
   epi_traj$Ctotal <- rowSums(epi_traj[, paste0("C", 1:10)]) * epi_params['Rho']
-  end_traj$Ctotal <- rowSums(end_traj[, paste0("C", 1:10)]) * end_params['Rho']
+  # end_traj$Ctotal <- rowSums(end_traj[, paste0("C", 1:10)]) * end_params['Rho']
 
   # Create vector of forcast times
   time_forecast <- lubridate::decimal_date(
-    seq(lubridate::ymd("2014-03-01"), lubridate::ymd("2029-12-21"), by = "1 week")
+    seq(
+      as.Date(lubridate::round_date(lubridate::date_decimal(min(h2_epi@times)), unit = 'day')),
+      lubridate::ymd("2029-12-21"),
+      by = "1 week")
   )
 
-  # Create model used to forecast
-  h2_forecast <- haiti2(region = 'after', joint = TRUE)
-
   # Set vacination scenario parameters to endemic model parameters
-  V0_params <- end_params
-  V1_params <- end_params
-  V2_params <- end_params
-  V3_params <- end_params
-  V4_params <- end_params
+  V0_params <- epi_params
+  V1_params <- epi_params
+  V2_params <- epi_params
+  V3_params <- epi_params
+  V4_params <- epi_params
   V1_params['scenario'] <- 1
   V2_params['scenario'] <- 2
   V3_params['scenario'] <- 3
@@ -81,11 +74,14 @@ haiti2_vaccScenario <- function(epi_params, end_params) {
 
   # Project under V0
   V0_traj <- pomp::trajectory(
-    h2_forecast,
+    h2_epi,
     params = V0_params,
     times = time_forecast,
     format = "data.frame"
-  )
+  ) %>%
+    dplyr::filter(
+     year >= max(h2_epi@times)
+    )
   V0_traj$scenario <- "V0"
   V0_traj$Itotal <- rowSums(V0_traj[, paste0("C", 1:10)])
   V0_traj$Atotal <- (1 - V0_params['k']) / (V0_params['k']) * V0_traj$Itotal
@@ -94,11 +90,14 @@ haiti2_vaccScenario <- function(epi_params, end_params) {
 
   # Project under V1
   V1_traj <- pomp::trajectory(
-    h2_forecast,
+    h2_epi,
     params = V1_params,
     times = time_forecast,
     format = "data.frame"
-  )
+  ) %>%
+    dplyr::filter(
+      year >= max(h2_epi@times)
+    )
   V1_traj$scenario <- "V1"
   V1_traj$Itotal <- rowSums(V1_traj[, paste0("C", 1:10)])
   V1_traj$Atotal <- (1 - V1_params['k']) / (V1_params['k']) * V1_traj$Itotal
@@ -107,11 +106,14 @@ haiti2_vaccScenario <- function(epi_params, end_params) {
 
   # Project under V2
   V2_traj <- pomp::trajectory(
-    h2_forecast,
+    h2_epi,
     params = V2_params,
     times = time_forecast,
     format = "data.frame"
-  )
+  ) %>%
+    dplyr::filter(
+      year >= max(h2_epi@times)
+    )
   V2_traj$scenario <- "V2"
   V2_traj$Itotal <- rowSums(V2_traj[, paste0("C", 1:10)])
   V2_traj$Atotal <- (1 - V2_params['k']) / (V2_params['k']) * V2_traj$Itotal
@@ -120,11 +122,14 @@ haiti2_vaccScenario <- function(epi_params, end_params) {
 
   # Project under V3
   V3_traj <- pomp::trajectory(
-    h2_forecast,
+    h2_epi,
     params = V3_params,
     times = time_forecast,
     format = "data.frame"
-  )
+  ) %>%
+    dplyr::filter(
+      year >= max(h2_epi@times)
+    )
   V3_traj$scenario <- "V3"
   V3_traj$Itotal <- rowSums(V3_traj[, paste0("C", 1:10)])
   V3_traj$Atotal <- (1 - V3_params['k']) / (V3_params['k']) * V3_traj$Itotal
@@ -133,11 +138,14 @@ haiti2_vaccScenario <- function(epi_params, end_params) {
 
   # Project under V4
   V4_traj <- pomp::trajectory(
-    h2_forecast,
+    h2_epi,
     params = V4_params,
     times = time_forecast,
     format = "data.frame"
-  )
+  ) %>%
+    dplyr::filter(
+      year >= max(h2_epi@times)
+    )
   V4_traj$scenario <- "V4"
   V4_traj$Itotal <- rowSums(V4_traj[, paste0("C", 1:10)])
   V4_traj$Atotal <- (1 - V4_params['k']) / (V4_params['k']) * V4_traj$Itotal

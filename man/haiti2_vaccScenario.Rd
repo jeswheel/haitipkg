@@ -4,12 +4,10 @@
 \alias{haiti2_vaccScenario}
 \title{Model 2: Project Vaccination Scenario}
 \usage{
-haiti2_vaccScenario(epi_params, end_params)
+haiti2_vaccScenario(epi_params)
 }
 \arguments{
-\item{epi_params:}{a vector of parameters for the epidemic period}
-
-\item{end_params:}{a vector of parameters for the endemic period}
+\item{params:}{a vector of parameters for the model}
 }
 \value{
 List containing two objects: \describe{
@@ -29,6 +27,6 @@ This function projects the following vaccination scenarios under Model 2:
 }
 \examples{
 h2 <- fit_haiti2()
-results <- haiti2_vaccScenario(epi_params = h2$epi_params, end_params = h2$end_params)
+results <- haiti2_vaccScenario(epi_params = h2$epi_params)
 
 }

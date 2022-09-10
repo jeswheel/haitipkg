@@ -19,7 +19,7 @@
 #' }
 #'
 #' The user has some control over each of these phases. Importantly, by setting
-#' \emp{n_searches}, a user may make the fitting process shorter by avoiding
+#' \emph{n_searches}, a user may make the fitting process shorter by avoiding
 #' some of the later phases. Additional MIF2 search parameters that can be set
 #' for each phase are the following:
 #' \itemize{

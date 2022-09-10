@@ -9,16 +9,13 @@
 #' or after the cutoff time.
 #' @param measure a character string. Specifies the measurement model used. Valid
 #' entries are "linear" and "log".
-#' @param joint a boolean. Specifies if the state values should carry over from
-#' epidemic to endemic phase.
 #' @return An object of class \sQuote{spatPomp}.
 #' @examples
 #' c_epidemic <- haiti2(cutoff=2014.25, region="before")
 #' @export
 
 
-haiti2 <- function(cutoff=2014.161, region="before", measure="linear",
-                   joint=FALSE){
+haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
   cholera_unit_statenames <- c("S","E","I","A","R","RA","C",
                                "VOD","EOD","IOD","AOD","ROD","RAOD",
                                "VTD","ETD","ITD","ATD","RTD","RATD",
@@ -247,353 +244,153 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear",
     }
   ")
 
-  cholera_rinit_after2 <- Csnippet("
-    double *S = &S1;
-    double *E = &E1;
-    double *I = &I1;
-    double *A = &A1;
-    double *R = &R1;
-    double *RA = &RA1;
-    double *C = &C1;
-    double *VOD = &VOD1;
-    double *EOD = &EOD1;
-    double *IOD = &IOD1;
-    double *AOD = &AOD1;
-    double *ROD = &ROD1;
-    double *RAOD = &RAOD1;
-    double *VTD = &VTD1;
-    double *ETD = &ETD1;
-    double *ITD = &ITD1;
-    double *ATD = &ATD1;
-    double *RTD = &RTD1;
-    double *RATD = &RATD1;
-    double *VODu5 = &VODu51;
-    double *EODu5 = &EODu51;
-    double *IODu5 = &IODu51;
-    double *AODu5 = &AODu51;
-    double *RODu5 = &RODu51;
-    double *RAODu5 = &RAODu51;
-    double *VTDu5 = &VTDu51;
-    double *ETDu5 = &ETDu51;
-    double *ITDu5 = &ITDu51;
-    double *ATDu5 = &ATDu51;
-    double *RTDu5 = &RTDu51;
-    double *RATDu5 = &RATDu51;
-    double *W = &W1;
+  # cholera_rinit_after2 <- Csnippet("
+  #   double *S = &S1;
+  #   double *E = &E1;
+  #   double *I = &I1;
+  #   double *A = &A1;
+  #   double *R = &R1;
+  #   double *RA = &RA1;
+  #   double *C = &C1;
+  #   double *VOD = &VOD1;
+  #   double *EOD = &EOD1;
+  #   double *IOD = &IOD1;
+  #   double *AOD = &AOD1;
+  #   double *ROD = &ROD1;
+  #   double *RAOD = &RAOD1;
+  #   double *VTD = &VTD1;
+  #   double *ETD = &ETD1;
+  #   double *ITD = &ITD1;
+  #   double *ATD = &ATD1;
+  #   double *RTD = &RTD1;
+  #   double *RATD = &RATD1;
+  #   double *VODu5 = &VODu51;
+  #   double *EODu5 = &EODu51;
+  #   double *IODu5 = &IODu51;
+  #   double *AODu5 = &AODu51;
+  #   double *RODu5 = &RODu51;
+  #   double *RAODu5 = &RAODu51;
+  #   double *VTDu5 = &VTDu51;
+  #   double *ETDu5 = &ETDu51;
+  #   double *ITDu5 = &ITDu51;
+  #   double *ATDu5 = &ATDu51;
+  #   double *RTDu5 = &RTDu51;
+  #   double *RATDu5 = &RATDu51;
+  #   double *W = &W1;
+  #
+  #   double *Si = &Si1;
+  #   double *Ei = &Ei1;
+  #   double *Ii = &Ii1;
+  #   double *Ai = &Ai1;
+  #   double *Ri = &Ri1;
+  #   double *RAi = &RAi1;
+  #   double *Ci = &Ci1;
+  #   double *VODi = &VODi1;
+  #   double *EODi = &EODi1;
+  #   double *IODi = &IODi1;
+  #   double *AODi = &AODi1;
+  #   double *RODi = &RODi1;
+  #   double *RAODi = &RAODi1;
+  #   double *VTDi = &VTDi1;
+  #   double *ETDi = &ETDi1;
+  #   double *ITDi = &ITDi1;
+  #   double *ATDi = &ATDi1;
+  #   double *RTDi = &RTDi1;
+  #   double *RATDi = &RATDi1;
+  #   double *VODu5i = &VODu5i1;
+  #   double *EODu5i = &EODu5i1;
+  #   double *IODu5i = &IODu5i1;
+  #   double *AODu5i = &AODu5i1;
+  #   double *RODu5i = &RODu5i1;
+  #   double *RAODu5i = &RAODu5i1;
+  #   double *VTDu5i = &VTDu5i1;
+  #   double *ETDu5i = &ETDu5i1;
+  #   double *ITDu5i = &ITDu5i1;
+  #   double *ATDu5i = &ATDu5i1;
+  #   double *RTDu5i = &RTDu5i1;
+  #   double *RATDu5i = &RATDu5i1;
+  #   double *Wi = &Wi1;
+  #
+  #   int u;
+  #
+  #   for (u = 0; u < U; u++) {
+  #     I[u] = Ii[u];
+  #     A[u] = Ai[u];
+  #     R[u] = Ri[u];
+  #     RA[u] = RAi[u];
+  #     E[u] = Ei[u];
+  #     S[u] = Si[u];
+  #
+  #     VOD[u] = VODi[u];
+  #     IOD[u] = IODi[u];
+  #     EOD[u] = EODi[u];
+  #     AOD[u] = AODi[u];
+  #     ROD[u] = RODi[u];
+  #     RAOD[u] = RAODi[u];
+  #
+  #     VTD[u] = VTDi[u];
+  #     ITD[u] = ITDi[u];
+  #     ETD[u] = ETDi[u];
+  #     ATD[u] = ATDi[u];
+  #     RTD[u] = RTDi[u];
+  #     RATD[u] = RATDi[u];
+  #
+  #     VODu5[u] = VODu5i[u];
+  #     IODu5[u] = IODu5i[u];
+  #     EODu5[u] = EODu5i[u];
+  #     AODu5[u] = AODu5i[u];
+  #     RODu5[u] = RODu5i[u];
+  #     RAODu5[u] = RAODu5i[u];
+  #
+  #     VTDu5[u] = VTDu5i[u];
+  #     ITDu5[u] = ITDu5i[u];
+  #     ETDu5[u] = ETDu5i[u];
+  #     ATDu5[u] = ATDu5i[u];
+  #     RTDu5[u] = RTDu5i[u];
+  #     RATDu5[u] = RATDu5i[u];
+  #
+  #     C[u] = Ci[u];
+  #
+  #     W[u] = Wi[u];
+  #   }
+  # ")
 
-    double *Si = &Si1;
-    double *Ei = &Ei1;
-    double *Ii = &Ii1;
-    double *Ai = &Ai1;
-    double *Ri = &Ri1;
-    double *RAi = &RAi1;
-    double *Ci = &Ci1;
-    double *VODi = &VODi1;
-    double *EODi = &EODi1;
-    double *IODi = &IODi1;
-    double *AODi = &AODi1;
-    double *RODi = &RODi1;
-    double *RAODi = &RAODi1;
-    double *VTDi = &VTDi1;
-    double *ETDi = &ETDi1;
-    double *ITDi = &ITDi1;
-    double *ATDi = &ATDi1;
-    double *RTDi = &RTDi1;
-    double *RATDi = &RATDi1;
-    double *VODu5i = &VODu5i1;
-    double *EODu5i = &EODu5i1;
-    double *IODu5i = &IODu5i1;
-    double *AODu5i = &AODu5i1;
-    double *RODu5i = &RODu5i1;
-    double *RAODu5i = &RAODu5i1;
-    double *VTDu5i = &VTDu5i1;
-    double *ETDu5i = &ETDu5i1;
-    double *ITDu5i = &ITDu5i1;
-    double *ATDu5i = &ATDu5i1;
-    double *RTDu5i = &RTDu5i1;
-    double *RATDu5i = &RATDu5i1;
-    double *Wi = &Wi1;
-
-    int u;
-
-    for (u = 0; u < U; u++) {
-      I[u] = Ii[u];
-      A[u] = Ai[u];
-      R[u] = Ri[u];
-      RA[u] = RAi[u];
-      E[u] = Ei[u];
-      S[u] = Si[u];
-
-      VOD[u] = VODi[u];
-      IOD[u] = IODi[u];
-      EOD[u] = EODi[u];
-      AOD[u] = AODi[u];
-      ROD[u] = RODi[u];
-      RAOD[u] = RAODi[u];
-
-      VTD[u] = VTDi[u];
-      ITD[u] = ITDi[u];
-      ETD[u] = ETDi[u];
-      ATD[u] = ATDi[u];
-      RTD[u] = RTDi[u];
-      RATD[u] = RATDi[u];
-
-      VODu5[u] = VODu5i[u];
-      IODu5[u] = IODu5i[u];
-      EODu5[u] = EODu5i[u];
-      AODu5[u] = AODu5i[u];
-      RODu5[u] = RODu5i[u];
-      RAODu5[u] = RAODu5i[u];
-
-      VTDu5[u] = VTDu5i[u];
-      ITDu5[u] = ITDu5i[u];
-      ETDu5[u] = ETDu5i[u];
-      ATDu5[u] = ATDu5i[u];
-      RTDu5[u] = RTDu5i[u];
-      RATDu5[u] = RATDu5i[u];
-
-      C[u] = Ci[u];
-
-      W[u] = Wi[u];
-    }
-  ")
-
-
-  cholera_rprocess <- Csnippet('
-    double *S = &S1;
-    double *E = &E1;
-    double *I = &I1;
-    double *A = &A1;
-    double *R = &R1;
-    double *RA = &RA1;
-    double *C = &C1;
-    double *VOD = &VOD1;
-    double *EOD = &EOD1;
-    double *IOD = &IOD1;
-    double *AOD = &AOD1;
-    double *ROD = &ROD1;
-    double *RAOD = &RAOD1;
-    double *VTD = &VTD1;
-    double *ETD = &ETD1;
-    double *ITD = &ITD1;
-    double *ATD = &ATD1;
-    double *RTD = &RTD1;
-    double *RATD = &RATD1;
-    double *VODu5 = &VODu51;
-    double *EODu5 = &EODu51;
-    double *IODu5 = &IODu51;
-    double *AODu5 = &AODu51;
-    double *RODu5 = &RODu51;
-    double *RAODu5 = &RAODu51;
-    double *VTDu5 = &VTDu51;
-    double *ETDu5 = &ETDu51;
-    double *ITDu5 = &ITDu51;
-    double *ATDu5 = &ATDu51;
-    double *RTDu5 = &RTDu51;
-    double *RATDu5 = &RATDu51;
-    double *W = &W1;
-
-    double rate[11], trans[67], vacc[2];
-
-    int u;
-    double foi, dw;
-
-    for (u = 0 ; u < U ; u++) {
-
-      if (scenario==1 && t>2019.03 && t<2021.03 && (u==0 || u==1)){
-        // 2-dep
-        vacc[0] = nearbyint(0.7*pop[u]/2*dt);
-        vacc[1] = nearbyint(0.1*pop[u]/2*dt);
-      }
-      else if (scenario==2 && t>2019.03 && t<2021.03 && (u==0||u==1||u==7)){
-        // 3-dep
-        vacc[0] = nearbyint(0.7*pop[u]/2*dt);
-        vacc[1] = nearbyint(0.1*pop[u]/2*dt);
-      }
-      else if (scenario==3 && t>2019.03 && t<2024.03){
-        // slow national
-        vacc[0] = nearbyint(0.7*pop[u]/5*dt);
-        vacc[1] = nearbyint(0.1*pop[u]/5*dt);
-      }
-      else if (scenario==4 && t>2019.03 && t<2021.03){
-        // fast national
-        vacc[0] = nearbyint(0.7*pop[u]/2*dt);
-        vacc[1] = nearbyint(0.1*pop[u]/2*dt);
-      }
-      else if (scenario==5 && t>2019.03 && t<2021.03){
-        // fast high coverage national
-        vacc[0] = nearbyint(0.95*pop[u]/2*dt);
-        vacc[1] = nearbyint(0.0167*pop[u]/2*dt);
-      }
-      else {vacc[0]=0; vacc[1]=0;}
-
-      // expected force of infection
-      foi = Beta*(I[u]+IOD[u]+ITD[u]+IODu5[u]+ITDu5[u]) +
-           redb*Beta*(A[u]+AOD[u]+ATD[u]+AODu5[u]+ATDu5[u]);
-
-      // water effect
-      foi += 0.5*(1 + AlphaS*cos(2*pi*t/ps + phase))*(BetaW*W[u])/(Sat+W[u]);
-
-      // white noise (extrademographic stochasticity)
-      dw = rgammawn(sigmaSE,dt);
-
-      // rates
-      rate[0] = foi*dw/dt;  // infection rate - no dose
-      rate[1] = gammaE; // latent period
-      rate[2] = gamma; // infectious period
-      rate[3] = sigma; // rate of natural immunity
-      rate[4] = Omega1; // rate of lose of vaccine immunity - one dose
-      rate[5] = Omega2; // rate of lost of vaccine immunity - two dose
-      rate[6] = (1-VE1)*foi*dw/dt;  // infection rate - one dose
-      rate[7] = (1-VE2)*foi*dw/dt;  // infection rate - two dose
-      rate[8] = Delta; // decay of cholera in water
-      rate[9] = Mu; // symptomatic shedding rate
-      rate[10] = Mu*redmu; // asymptomatic shedding rate
-
-      // transitions between classes
-      reulermultinom(1,S[u],&rate[0],dt,&trans[0]); // S to E
-      reulermultinom(1,E[u],&rate[1],dt,&trans[1]); // E to (I,A)
-      reulermultinom(1,I[u],&rate[2],dt,&trans[2]); // I to R
-      reulermultinom(1,A[u],&rate[2],dt,&trans[3]); // A to RA
-      reulermultinom(1,R[u],&rate[3],dt,&trans[4]); // R to S
-      reulermultinom(1,RA[u],&rate[3],dt,&trans[5]); // RA to S
-
-      reulermultinom(1,VOD[u],&rate[4],dt,&trans[6]); // V1 to S
-      reulermultinom(1,VTD[u],&rate[5],dt,&trans[7]); // V2 to S
-
-      reulermultinom(1,VOD[u],&rate[6],dt,&trans[8]); // V1 to E1
-      reulermultinom(1,EOD[u],&rate[1],dt,&trans[9]); // E1 to (I1,A1)
-      reulermultinom(1,IOD[u],&rate[2],dt,&trans[10]); // I1 to R1
-      reulermultinom(1,AOD[u],&rate[2],dt,&trans[11]); // A1 to RA1
-      reulermultinom(1,ROD[u],&rate[3],dt,&trans[12]); // R1 to S1
-      reulermultinom(1,RAOD[u],&rate[3],dt,&trans[13]); // RA1 to S1
-
-      reulermultinom(1,VTD[u],&rate[7],dt,&trans[14]); // V2 to E2
-      reulermultinom(1,ETD[u],&rate[1],dt,&trans[15]); // E2 to (I2,A2)
-      reulermultinom(1,ITD[u],&rate[2],dt,&trans[16]); // I2 to R2
-      reulermultinom(1,ATD[u],&rate[2],dt,&trans[17]); // A2 to RA2
-      reulermultinom(1,RTD[u],&rate[3],dt,&trans[18]); // R2 to S2
-      reulermultinom(1,RATD[u],&rate[3],dt,&trans[19]); // RA2 to S2
-
-      trans[20] = nearbyint((Mu*(I[u]+IOD[u]+ITD[u]) + redmu*Mu*(A[u]+AOD[u]+ATD[u]))*dt); // (I,A) to W
-      trans[21] = nearbyint(Delta*W[u]*dt); // water decay
-
-      trans[22] = nearbyint(dt*VR*(inflow(Tmat,u,S) - outflow(Tmat,u,S))); // travel for S
-      trans[23] = nearbyint(dt*VR*(inflow(Tmat,u,E) - outflow(Tmat,u,E))); // travel for E
-      trans[24] = nearbyint(dt*VR*(inflow(Tmat,u,I) - outflow(Tmat,u,I))); // travel for I
-      trans[25] = nearbyint(dt*VR*(inflow(Tmat,u,A) - outflow(Tmat,u,A))); // travel for A
-      trans[26] = nearbyint(dt*VR*(inflow(Tmat,u,R) - outflow(Tmat,u,R))); // travel for R
-      trans[27] = nearbyint(dt*VR*(inflow(Tmat,u,RA) - outflow(Tmat,u,RA))); // travel for RA
-
-      trans[28] = nearbyint(dt*WR*(inflow(Wmat,u,W) - outflow(Wmat,u,W))); // water movement
-
-      reulermultinom(1,VODu5[u],&rate[4],dt,&trans[29]); // V1 to S (u5)
-      reulermultinom(1,VTDu5[u],&rate[5],dt,&trans[30]); // V2 to S (u5)
-
-      reulermultinom(1,VODu5[u],&rate[6],dt,&trans[31]); // V1 to E1 (u5)
-      reulermultinom(1,EODu5[u],&rate[1],dt,&trans[32]); // E1 to (I1,A1) (u5)
-      reulermultinom(1,IODu5[u],&rate[2],dt,&trans[33]); // I1 to R1 (u5)
-      reulermultinom(1,AODu5[u],&rate[2],dt,&trans[34]); // A1 to RA1 (u5)
-      reulermultinom(1,RODu5[u],&rate[3],dt,&trans[35]); // R1 to S1 (u5)
-      reulermultinom(1,RAODu5[u],&rate[3],dt,&trans[36]); // RA1 to S1 (u5)
-
-      reulermultinom(1,VTDu5[u],&rate[7],dt,&trans[37]); // V2 to E2 (u5)
-      reulermultinom(1,ETDu5[u],&rate[1],dt,&trans[38]); // E2 to (I2,A2) (u5)
-      reulermultinom(1,ITDu5[u],&rate[2],dt,&trans[39]); // I2 to R2 (u5)
-      reulermultinom(1,ATDu5[u],&rate[2],dt,&trans[40]); // A2 to RA2 (u5)
-      reulermultinom(1,RTDu5[u],&rate[3],dt,&trans[41]); // R2 to S2 (u5)
-      reulermultinom(1,RATDu5[u],&rate[3],dt,&trans[42]); // RA2 to S2 (u5)
-
-      trans[43] = nearbyint(dt*VR*(inflow(Tmat,u,VOD) - outflow(Tmat,u,VOD))); // travel for VOD
-      trans[44] = nearbyint(dt*VR*(inflow(Tmat,u,EOD) - outflow(Tmat,u,EOD))); // travel for EOD
-      trans[45] = nearbyint(dt*VR*(inflow(Tmat,u,IOD) - outflow(Tmat,u,IOD))); // travel for IOD
-      trans[46] = nearbyint(dt*VR*(inflow(Tmat,u,AOD) - outflow(Tmat,u,AOD))); // travel for AOD
-      trans[47] = nearbyint(dt*VR*(inflow(Tmat,u,ROD) - outflow(Tmat,u,ROD))); // travel for ROD
-      trans[48] = nearbyint(dt*VR*(inflow(Tmat,u,RAOD) - outflow(Tmat,u,RAOD))); // travel for RAOD
-
-      trans[49] = nearbyint(dt*VR*(inflow(Tmat,u,VTD) - outflow(Tmat,u,VTD))); // travel for VTD
-      trans[50] = nearbyint(dt*VR*(inflow(Tmat,u,ETD) - outflow(Tmat,u,ETD))); // travel for ETD
-      trans[51] = nearbyint(dt*VR*(inflow(Tmat,u,ITD) - outflow(Tmat,u,ITD))); // travel for ITD
-      trans[52] = nearbyint(dt*VR*(inflow(Tmat,u,ATD) - outflow(Tmat,u,ATD))); // travel for ATD
-      trans[53] = nearbyint(dt*VR*(inflow(Tmat,u,RTD) - outflow(Tmat,u,RTD))); // travel for RTD
-      trans[54] = nearbyint(dt*VR*(inflow(Tmat,u,RATD) - outflow(Tmat,u,RATD))); // travel for RATD
-
-      trans[55] = nearbyint(dt*VR*(inflow(Tmat,u,VODu5) - outflow(Tmat,u,VODu5))); // travel for VODu5
-      trans[56] = nearbyint(dt*VR*(inflow(Tmat,u,EODu5) - outflow(Tmat,u,EODu5))); // travel for EODu5
-      trans[57] = nearbyint(dt*VR*(inflow(Tmat,u,IODu5) - outflow(Tmat,u,IODu5))); // travel for IODu5
-      trans[58] = nearbyint(dt*VR*(inflow(Tmat,u,AODu5) - outflow(Tmat,u,AODu5))); // travel for AODu5
-      trans[59] = nearbyint(dt*VR*(inflow(Tmat,u,RODu5) - outflow(Tmat,u,RODu5))); // travel for RODu5
-      trans[60] = nearbyint(dt*VR*(inflow(Tmat,u,RAODu5) - outflow(Tmat,u,RAODu5))); // travel for RAODu5
-
-      trans[61] = nearbyint(dt*VR*(inflow(Tmat,u,VTDu5) - outflow(Tmat,u,VTDu5))); // travel for VTDu5
-      trans[62] = nearbyint(dt*VR*(inflow(Tmat,u,ETDu5) - outflow(Tmat,u,ETDu5))); // travel for ETDu5
-      trans[63] = nearbyint(dt*VR*(inflow(Tmat,u,ITDu5) - outflow(Tmat,u,ITDu5))); // travel for ITDu5
-      trans[64] = nearbyint(dt*VR*(inflow(Tmat,u,ATDu5) - outflow(Tmat,u,ATDu5))); // travel for ATDu5
-      trans[65] = nearbyint(dt*VR*(inflow(Tmat,u,RTDu5) - outflow(Tmat,u,RTDu5))); // travel for RTDu5
-      trans[66] = nearbyint(dt*VR*(inflow(Tmat,u,RATDu5) - outflow(Tmat,u,RATDu5))); // travel for RATDu5
-
-      // make transitions
-      S[u] += trans[4] + trans[5] + trans[6] + trans[7] + trans[22] +
-              trans[29] + trans[30] - trans[0] - vacc[0] - vacc[1];
-      E[u] += trans[0] + trans[23] - trans[1];
-      I[u] += nearbyint(k*trans[1]) + trans[24] - trans[2];
-      A[u] += nearbyint((1-k)*trans[1]) + trans[25] - trans[3];
-      R[u] += trans[2] + trans[26] - trans[4];
-      RA[u] += trans[3] + trans[27] - trans[5];
-
-      VOD[u] += trans[12] + trans[13] + trans[43] - trans[6] - trans[8] + nearbyint(vacc[1]*(1-p_u5));
-      EOD[u] += trans[8] + trans[44] - trans[9];
-      IOD[u] += nearbyint(k*trans[9]) + trans[45] - trans[10];
-      AOD[u] += nearbyint((1-k)*trans[9]) + trans[46] - trans[11];
-      ROD[u] += trans[10] + trans[47] - trans[12];
-      RAOD[u] += trans[11] + trans[48] - trans[13];
-
-      VTD[u] += trans[18] + trans[19] + trans[49] - trans[7] - trans[14] + nearbyint(vacc[0]*(1-p_u5));;
-      ETD[u] += trans[14] + trans[50] - trans[15];
-      ITD[u] += nearbyint(k*trans[15]) + trans[51] - trans[16];
-      ATD[u] += nearbyint((1-k)*trans[15]) + trans[52] - trans[17];
-      RTD[u] += trans[16] + trans[53] - trans[18];
-      RATD[u] += trans[17] + trans[54] - trans[19];
-
-      VODu5[u] += trans[35] + trans[36] + trans[55] - trans[29] - trans[31] + nearbyint(vacc[1]*p_u5);
-      EODu5[u] += trans[31] + trans[56] - trans[32];
-      IODu5[u] += nearbyint(k*trans[32]) + trans[57] - trans[33];
-      AODu5[u] += nearbyint((1-k)*trans[32]) + trans[58] - trans[34];
-      RODu5[u] += trans[33] + trans[59] - trans[35];
-      RAODu5[u] += trans[34] + trans[60] - trans[36];
-
-      VTDu5[u] += trans[41] + trans[42] + trans[61] - trans[30] - trans[37] + nearbyint(vacc[0]*p_u5);
-      ETDu5[u] += trans[37] + trans[62] - trans[38];
-      ITDu5[u] += nearbyint(k*trans[38]) + trans[63] - trans[39];
-      ATDu5[u] += nearbyint((1-k)*trans[38]) + trans[64] - trans[40];
-      RTDu5[u] += trans[39] + trans[65] - trans[41];
-      RATDu5[u] += trans[40] + trans[66] - trans[42];
-
-      C[u] += trans[2] + trans[10] + trans[16] + trans[33] + trans[39];
-
-      W[u] += trans[20] + trans[28] - trans[21];
-    }
-  ')
-
-  cholera_rmeasure <- Csnippet("
-    double *C = &C1;
-    double *cases = &cases1;
-    double m,v_tmp;
-    double tol = 1.0e-300;
-    int u;
-    for (u = 0; u < U; u++) {
-      m = (C[u]+tol)*Rho;
-      v_tmp = m*(1.0-Rho + Psi*Psi*m);
-      cases[u] = rnorm(m,sqrt(v_tmp)+tol);
-      if (cases[u] > 0.0) {
-        cases[u] = nearbyint(cases[u]);
-      } else {
-        cases[u] = 0.0;
-      }
-    }
-  ")
+  # cholera_rmeasure <- Csnippet("
+  #   double *C = &C1;
+  #   double *cases = &cases1;
+  #   double m,v_tmp;
+  #   double tol = 1.0e-300;
+  #   int u;
+  #   for (u = 0; u < U; u++) {
+  #     m = (C[u]+tol)*Rho;
+  #     v_tmp = m*(1.0-Rho + Psi*Psi*m);
+  #     cases[u] = rnorm(m,sqrt(v_tmp)+tol);
+  #     if (cases[u] > 0.0) {
+  #       cases[u] = nearbyint(cases[u]);
+  #     } else {
+  #       cases[u] = 0.0;
+  #     }
+  #   }
+  # ")
 
   cholera_dmeasure <- Csnippet("
+    double *C = &C1;
+    double *cases = &cases1;
+    double m;
+    int u;
+    lik = 0;
+    for (u = 0; u < U; u++) {
+      if(ISNA(cases[u])){
+        lik += 0;
+      } else {
+        m = Rho*C[u];
+        lik += dnorm(cases[u],m,v,1);
+      }
+    }
+    if(!give_log) lik = exp(lik);
+  ")
+
+  cholera_log_dmeasure <- Csnippet("
     double *C = &C1;
     double *cases = &cases1;
     double m;
@@ -610,60 +407,18 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear",
     if(!give_log) lik = exp(lik);
   ")
 
-
-  cholera_dmeasure2 <- Csnippet("
-    double *C = &C1;
-    double *cases = &cases1;
-    double m,v_nc;
-    int u;
-    lik = 0;
-    for (u = 0; u < U; u++) {
-      if(ISNA(cases[u])){
-        lik += 0;
-      } else {
-        m = Rho*C[u];
-        v_nc = m*(1-Rho + Psi*Psi*m);
-        if (cases[u] > 0.0) {
-          lik += pnorm(cases[u]+0.5,m,sqrt(v_nc),1,0)
-                  - pnorm(cases[u]-0.5,m,sqrt(v_nc),1,0);
-        } else {
-          lik += pnorm(cases[u]+0.5,m,sqrt(v_nc),1,0);
-        }
-      }
-    }
-    if(give_log) lik = log(lik);
-  ")
-
-  # cholera_dmeasure2 <- Csnippet("
-  #   double *C = &C1;
-  #   double *cases = &cases1;
-  #   double m,v_nc;
-  #   int u;
-  #   lik = 0;
-  #   for (u = 0; u < U; u++) {
-  #     if(ISNA(cases[u])){
-  #       lik += 0;
-  #     } else {
-  #       m = Rho*C[u];
-  #       v_nc = m*(1-Rho + Psi*Psi*m);
-  #       lik += dnorm(cases[u],m,sqrt(v_nc),1);
-  #     }
+  # cholera_dunit_measure <- Csnippet("
+  #   double m = Rho*C;
+  #   if(ISNA(cases)){
+  #     lik = (give_log) ? 0 : 1;
+  #   } else {
+  #     lik = dnorm(cases,m,v,give_log);
   #   }
-  #   if(!give_log) lik = exp(lik);
   # ")
 
-  cholera_dunit_measure <- Csnippet("
-    double m = Rho*C;
-    if(ISNA(cases)){
-      lik = (give_log) ? 0 : 1;
-    } else {
-      lik = dnorm(cases,m,v,give_log);
-    }
-  ")
-
-  cholera_eunit_measure <- Csnippet("
-    ey = Rho*C;
-  ")
+  # cholera_eunit_measure <- Csnippet("
+  #   ey = Rho*C;
+  # ")
 
   cholera_skel <- Csnippet('
     double *S = &S1;
@@ -913,12 +668,12 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear",
     cholera_rinit <- cholera_rinit_before
   } else {
     haiti <- haiti[haiti$year > cutoff,]
-    if(joint) cholera_rinit <- cholera_rinit_after2
-    else cholera_rinit <- cholera_rinit_after
+    # if(joint) cholera_rinit <- cholera_rinit_after2
+    cholera_rinit <- cholera_rinit_after
   }
 
   if (measure == "log"){
-    cholera_dmeasure <- cholera_dmeasure2
+    cholera_dmeasure <- cholera_log_dmeasure
   }
 
   # Initialize unit values based on reported cases
@@ -941,14 +696,14 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear",
 
   par <- c(start_params,c_params_IVPS)
 
-  if (region=="after" & joint==TRUE) {
-    cholera_IVPnames_mod <-
-      sapply(cholera_unit_statenames, FUN= function(x) paste0(x,"i",1:10)) %>% as.vector()
-    cholera_paramnames <- c(cholera_RPnames,cholera_IVPnames_mod)
-    joint_IVPS <- rep(0, length(cholera_IVPnames_mod))
-    names(joint_IVPS) <- cholera_IVPnames_mod
-    par <- c(start_params, joint_IVPS)
-  }
+  # if (region=="after" & joint==TRUE) {
+  #   cholera_IVPnames_mod <-
+  #     sapply(cholera_unit_statenames, FUN= function(x) paste0(x,"i",1:10)) %>% as.vector()
+  #   cholera_paramnames <- c(cholera_RPnames,cholera_IVPnames_mod)
+  #   joint_IVPS <- rep(0, length(cholera_IVPnames_mod))
+  #   names(joint_IVPS) <- cholera_IVPnames_mod
+  #   par <- c(start_params, joint_IVPS)
+  # }
 
   ret <- spatPomp::spatPomp(
     data = haiti,
@@ -956,18 +711,18 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear",
     times = "year",
     t0 = min(haiti$year)-1/52,
     unit_statenames = cholera_unit_statenames,
-    rprocess=pomp::euler(cholera_rprocess, delta.t=2/365),
-    skeleton=pomp::vectorfield(cholera_skel),
+    # rprocess = pomp::euler(cholera_rprocess, delta.t=2/365),
+    skeleton = pomp::vectorfield(cholera_skel),
     unit_accumvars = c("C"),
-    paramnames=cholera_paramnames,
+    paramnames = cholera_paramnames,
     params = par,
-    partrans=cholera_partrans,
-    globals=cholera_globals,
-    rinit=cholera_rinit,
-    dmeasure=cholera_dmeasure,
-    eunit_measure=cholera_eunit_measure,
-    rmeasure=cholera_rmeasure,
-    dunit_measure=cholera_dunit_measure
+    partrans = cholera_partrans,
+    globals = cholera_globals,
+    rinit = cholera_rinit,
+    dmeasure = cholera_dmeasure
+    # eunit_measure=cholera_eunit_measure,
+    # rmeasure=cholera_rmeasure,
+    # dunit_measure=cholera_dunit_measure
   )
   ret@params <- par
   return(ret)
