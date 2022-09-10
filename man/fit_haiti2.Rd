@@ -8,8 +8,7 @@ fit_haiti2()
 }
 \value{
 List containing four objects: \describe{
-\item{epi_params}{A numerical vector containing the parameters to the epidemic period.}
-\item{end_params}{A numerical vector containing the parameters to the endemic period.}
+\item{h2_params}{A numerical vector containing the parameters to the epidemic period.}
 \item{leeFit_ll}{numeric containing the likelihood of the Lee et al (2020a) model.}
 \item{leeFit_n_params}{numeric containing the number of parameters fit by Lee et al (2020a).}
 }

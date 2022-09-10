@@ -9,8 +9,7 @@
 #'
 #' @importFrom magrittr %>%
 #' @return List containing four objects: \describe{
-#'   \item{epi_params}{A numerical vector containing the parameters to the epidemic period.}
-#'   \item{end_params}{A numerical vector containing the parameters to the endemic period.}
+#'   \item{h2_params}{A numerical vector containing the parameters to the epidemic period.}
 #'   \item{leeFit_ll}{numeric containing the likelihood of the Lee et al (2020a) model.}
 #'   \item{leeFit_n_params}{numeric containing the number of parameters fit by Lee et al (2020a).}
 #' }
@@ -76,89 +75,41 @@ fit_haiti2 <- function() {
 
   ##### Fitting our joint model ######
 
-  # h2_epi_temp <- haiti2()
-
   # Create model and save initial values for each parameter
-  h2_epi <- haiti2(cutoff = 10000, measure = "log")  # Default is epidemic period
-  h2_epi_params <- h2_epi@params
+  h2 <- haiti2(cutoff = 10000, measure = "log")  # Default is epidemic period
+  h2_params <- h2@params
 
   # Get objective function to minimize
   epi_ofun <- pomp::traj_objfun(
-    h2_epi,
+    h2,
     est = c('Mu', 'Beta', 'BetaW', 'v', 'sigma', 'phase'),
-    params = h2_epi_params
+    params = h2_params
   )
 
-  theta <- h2_epi_params[c("Mu", "Beta", "BetaW", "v", "sigma")]  # parameters to fit
+  theta <- h2_params[c("Mu", "Beta", "BetaW", "v", "sigma")]  # parameters to fit
   # Note that phase is not log-transformed, se it's treated slightly differently
   # Fit the epi model
-  h2_epi_fit <- subplex::subplex(
-    par = c(log(theta), h2_epi_params['phase']),
+  h2_fit <- subplex::subplex(
+    par = c(log(theta), h2_params['phase']),
     fn = epi_ofun
   )
 
   # Save fitted parameters
-  h2_epi_params[c("Mu","Beta","BetaW","v", "sigma")] <- exp(h2_epi_fit$par[c("Mu", "Beta", "BetaW", "v", "sigma")])
-  h2_epi_params['phase'] <- h2_epi_fit$par['phase']
-
-  # Now that the model for the epidemic phase is fit, we need to get the values of
-  # the hidden states and use that as initial values for fitting the model on the
-  # endemic phase:
-  # h2_epi_sim <- pomp::trajectory(
-  #   h2_epi,
-  #   times = h2_epi_temp@times,
-  #   t0 = h2_epi_temp@t0,
-  #   params = h2_epi_params,
-  #   format = 'data.frame'
-  # )
-  # IVPS <- h2_epi_sim[nrow(h2_epi_sim),
-  #                    !colnames(h2_epi_sim) %in% c('year', '.id')] %>%
-  #   unlist()
-  #
-  # # Now we fit the endemic model:
-  # h2_end <- haiti2(region = 'after', joint = TRUE)
-  # h2_end_params <- h2_end@params
-  #
-  # # Initialize parameters based on previous result:
-  # h2_end_params[1:24] <- h2_epi_params[1:24]
-  #
-  # # Initialize hidden states:
-  # h2_end_params[25:length(h2_end_params)] <- IVPS
-
-  # TODO: Uncomment to fit endemic period seperately
-  # # Get objective function:
-  # end_ofun <- pomp::traj_objfun(
-  #   h2_end,
-  #   est = c("Mu","Beta","BetaW","v","Delta", 'phase'),
-  #   params = h2_end_params
-  # )
-  #
-  # # Fit model:
-  # h2_end_fit <- subplex::subplex(
-  #   par = c(log(h2_end_params[c("Mu","Beta","BetaW","v","Delta")]), h2_end_params['phase']),
-  #   fn = end_ofun
-  # )
-  #
-  # h2_end_params[c("Mu","Beta","BetaW","v","Delta")] <- exp(h2_end_fit$par[c("Mu","Beta","BetaW","v","Delta")])
-  # h2_end_params['phase'] <- h2_end_fit$par['phase']
+  h2_params[c("Mu","Beta","BetaW","v", "sigma")] <- exp(h2_fit$par[c("Mu", "Beta", "BetaW", "v", "sigma")])
+  h2_params['phase'] <- h2_fit$par['phase']
 
   rm(
-    # h2_end,
-    # h2_end_fit,
-    h2_epi,
-    h2_epi_fit,
-    # h2_epi_sim,
-    # end_ofun,
+    h2,
+    h2_fit,
     epi_ofun,
     theta
-    # IVPS
   )
 
   gc()
 
   model2_fit_results <- list()
 
-  model2_fit_results[['epi_params']] <- h2_epi_params
+  model2_fit_results[['h2_params']] <- h2_params
   # model2_fit_results[['end_params']] <- h2_end_params
   model2_fit_results[['leeFit_ll']] <- mod2_leeFit_ll
   model2_fit_results[['leeFit_n_params']] <- mod2_leeFit_num_parms

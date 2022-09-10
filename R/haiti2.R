@@ -244,135 +244,6 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
     }
   ")
 
-  # cholera_rinit_after2 <- Csnippet("
-  #   double *S = &S1;
-  #   double *E = &E1;
-  #   double *I = &I1;
-  #   double *A = &A1;
-  #   double *R = &R1;
-  #   double *RA = &RA1;
-  #   double *C = &C1;
-  #   double *VOD = &VOD1;
-  #   double *EOD = &EOD1;
-  #   double *IOD = &IOD1;
-  #   double *AOD = &AOD1;
-  #   double *ROD = &ROD1;
-  #   double *RAOD = &RAOD1;
-  #   double *VTD = &VTD1;
-  #   double *ETD = &ETD1;
-  #   double *ITD = &ITD1;
-  #   double *ATD = &ATD1;
-  #   double *RTD = &RTD1;
-  #   double *RATD = &RATD1;
-  #   double *VODu5 = &VODu51;
-  #   double *EODu5 = &EODu51;
-  #   double *IODu5 = &IODu51;
-  #   double *AODu5 = &AODu51;
-  #   double *RODu5 = &RODu51;
-  #   double *RAODu5 = &RAODu51;
-  #   double *VTDu5 = &VTDu51;
-  #   double *ETDu5 = &ETDu51;
-  #   double *ITDu5 = &ITDu51;
-  #   double *ATDu5 = &ATDu51;
-  #   double *RTDu5 = &RTDu51;
-  #   double *RATDu5 = &RATDu51;
-  #   double *W = &W1;
-  #
-  #   double *Si = &Si1;
-  #   double *Ei = &Ei1;
-  #   double *Ii = &Ii1;
-  #   double *Ai = &Ai1;
-  #   double *Ri = &Ri1;
-  #   double *RAi = &RAi1;
-  #   double *Ci = &Ci1;
-  #   double *VODi = &VODi1;
-  #   double *EODi = &EODi1;
-  #   double *IODi = &IODi1;
-  #   double *AODi = &AODi1;
-  #   double *RODi = &RODi1;
-  #   double *RAODi = &RAODi1;
-  #   double *VTDi = &VTDi1;
-  #   double *ETDi = &ETDi1;
-  #   double *ITDi = &ITDi1;
-  #   double *ATDi = &ATDi1;
-  #   double *RTDi = &RTDi1;
-  #   double *RATDi = &RATDi1;
-  #   double *VODu5i = &VODu5i1;
-  #   double *EODu5i = &EODu5i1;
-  #   double *IODu5i = &IODu5i1;
-  #   double *AODu5i = &AODu5i1;
-  #   double *RODu5i = &RODu5i1;
-  #   double *RAODu5i = &RAODu5i1;
-  #   double *VTDu5i = &VTDu5i1;
-  #   double *ETDu5i = &ETDu5i1;
-  #   double *ITDu5i = &ITDu5i1;
-  #   double *ATDu5i = &ATDu5i1;
-  #   double *RTDu5i = &RTDu5i1;
-  #   double *RATDu5i = &RATDu5i1;
-  #   double *Wi = &Wi1;
-  #
-  #   int u;
-  #
-  #   for (u = 0; u < U; u++) {
-  #     I[u] = Ii[u];
-  #     A[u] = Ai[u];
-  #     R[u] = Ri[u];
-  #     RA[u] = RAi[u];
-  #     E[u] = Ei[u];
-  #     S[u] = Si[u];
-  #
-  #     VOD[u] = VODi[u];
-  #     IOD[u] = IODi[u];
-  #     EOD[u] = EODi[u];
-  #     AOD[u] = AODi[u];
-  #     ROD[u] = RODi[u];
-  #     RAOD[u] = RAODi[u];
-  #
-  #     VTD[u] = VTDi[u];
-  #     ITD[u] = ITDi[u];
-  #     ETD[u] = ETDi[u];
-  #     ATD[u] = ATDi[u];
-  #     RTD[u] = RTDi[u];
-  #     RATD[u] = RATDi[u];
-  #
-  #     VODu5[u] = VODu5i[u];
-  #     IODu5[u] = IODu5i[u];
-  #     EODu5[u] = EODu5i[u];
-  #     AODu5[u] = AODu5i[u];
-  #     RODu5[u] = RODu5i[u];
-  #     RAODu5[u] = RAODu5i[u];
-  #
-  #     VTDu5[u] = VTDu5i[u];
-  #     ITDu5[u] = ITDu5i[u];
-  #     ETDu5[u] = ETDu5i[u];
-  #     ATDu5[u] = ATDu5i[u];
-  #     RTDu5[u] = RTDu5i[u];
-  #     RATDu5[u] = RATDu5i[u];
-  #
-  #     C[u] = Ci[u];
-  #
-  #     W[u] = Wi[u];
-  #   }
-  # ")
-
-  # cholera_rmeasure <- Csnippet("
-  #   double *C = &C1;
-  #   double *cases = &cases1;
-  #   double m,v_tmp;
-  #   double tol = 1.0e-300;
-  #   int u;
-  #   for (u = 0; u < U; u++) {
-  #     m = (C[u]+tol)*Rho;
-  #     v_tmp = m*(1.0-Rho + Psi*Psi*m);
-  #     cases[u] = rnorm(m,sqrt(v_tmp)+tol);
-  #     if (cases[u] > 0.0) {
-  #       cases[u] = nearbyint(cases[u]);
-  #     } else {
-  #       cases[u] = 0.0;
-  #     }
-  #   }
-  # ")
-
   cholera_dmeasure <- Csnippet("
     double *C = &C1;
     double *cases = &cases1;
@@ -406,19 +277,6 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
     }
     if(!give_log) lik = exp(lik);
   ")
-
-  # cholera_dunit_measure <- Csnippet("
-  #   double m = Rho*C;
-  #   if(ISNA(cases)){
-  #     lik = (give_log) ? 0 : 1;
-  #   } else {
-  #     lik = dnorm(cases,m,v,give_log);
-  #   }
-  # ")
-
-  # cholera_eunit_measure <- Csnippet("
-  #   ey = Rho*C;
-  # ")
 
   cholera_skel <- Csnippet('
     double *S = &S1;
@@ -668,7 +526,6 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
     cholera_rinit <- cholera_rinit_before
   } else {
     haiti <- haiti[haiti$year > cutoff,]
-    # if(joint) cholera_rinit <- cholera_rinit_after2
     cholera_rinit <- cholera_rinit_after
   }
 
@@ -696,22 +553,12 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
 
   par <- c(start_params,c_params_IVPS)
 
-  # if (region=="after" & joint==TRUE) {
-  #   cholera_IVPnames_mod <-
-  #     sapply(cholera_unit_statenames, FUN= function(x) paste0(x,"i",1:10)) %>% as.vector()
-  #   cholera_paramnames <- c(cholera_RPnames,cholera_IVPnames_mod)
-  #   joint_IVPS <- rep(0, length(cholera_IVPnames_mod))
-  #   names(joint_IVPS) <- cholera_IVPnames_mod
-  #   par <- c(start_params, joint_IVPS)
-  # }
-
   ret <- spatPomp::spatPomp(
     data = haiti,
     units = "department",
     times = "year",
     t0 = min(haiti$year)-1/52,
     unit_statenames = cholera_unit_statenames,
-    # rprocess = pomp::euler(cholera_rprocess, delta.t=2/365),
     skeleton = pomp::vectorfield(cholera_skel),
     unit_accumvars = c("C"),
     paramnames = cholera_paramnames,
@@ -720,9 +567,6 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
     globals = cholera_globals,
     rinit = cholera_rinit,
     dmeasure = cholera_dmeasure
-    # eunit_measure=cholera_eunit_measure,
-    # rmeasure=cholera_rmeasure,
-    # dunit_measure=cholera_dunit_measure
   )
   ret@params <- par
   return(ret)
