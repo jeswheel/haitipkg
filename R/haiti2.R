@@ -271,7 +271,7 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
       if(ISNA(cases[u])){
         lik += 0;
       } else {
-        m = log(Rho*(C[u] + 1));
+        m = log(Rho*C[u] + 1);
         lik += dnorm(log(cases[u] + 1),m,v,1);
       }
     }
