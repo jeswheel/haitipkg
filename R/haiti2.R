@@ -26,7 +26,7 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
   cholera_RPnames <- c("sigma","gammaE","k","gamma","Beta","Omega1",
                        "Omega2","VE1","VE2","Delta","Mu","AlphaS","ps",
                        "Sat","BetaW","sigmaSE","VR","WR","Psi","Rho",
-                       "scenario","f","v","phase")
+                       "scenario","f","v","phase", "redb", "redmu")
   cholera_paramnames <- c(cholera_RPnames,cholera_IVPnames)
 
   # make components of spatPomp object
@@ -517,7 +517,7 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
     log=c("sigma","gammaE","gamma","Omega1","Omega2","AlphaS",
           "Delta","ps","Sat","sigmaSE","VR","WR","Psi",
           "Mu","Beta","BetaW","v"),
-    logit=c("k","VE1","VE2","Rho","f")
+    logit=c("k","VE1","VE2","Rho","f", "redb", "redmu")
   )
 
   haiti <- haiti2_data()
@@ -544,7 +544,8 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
     VE1 = 0.43, VE2 = 0.52, Delta = 52 / 3, Mu = 52.18 * 3.98 * 10^3,
     AlphaS = 0.4, ps = 1.00, Sat = 1e5, BetaW = 52.18 * 4.03310744e-02,
     sigmaSE = 0.01, VR = 52.18 * 10^(-12), WR = 52.18 * 0.5, Psi = 0.5,
-    Rho = 0.2, scenario = 0,f = 0.75, v = 5.371e2, phase = 0
+    Rho = 0.2, scenario = 0,f = 0.75, v = 5.371e2, phase = 0,
+    redb = 0.001, redmu = 0.0000001
   )
   # MLE for endemic model
   if (region=="after") {
