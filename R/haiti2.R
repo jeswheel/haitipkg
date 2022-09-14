@@ -48,8 +48,6 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
     728807,4029705,774976,632601};
 
     const double pi = 3.14159265358979323846;
-    const double redb = 0.001;
-    const double redmu = 0.0000001;  // TODO: This should be 10^(-7)
     double p_u5 = 0.118;
 
     const double Tmat[10][10] = {
