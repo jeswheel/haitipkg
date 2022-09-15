@@ -7,11 +7,11 @@
 haiti1_joint(
   vacscen = "id0",
   breakpoint = 232,
-  rho_flag = T,
-  tau_flag = T,
-  sig_sq_flag = T,
-  beta_flag = F,
-  nu_flag = F
+  rho_flag = FALSE,
+  tau_flag = TRUE,
+  sig_sq_flag = TRUE,
+  beta_flag = FALSE,
+  nu_flag = FALSE
 )
 }
 \arguments{

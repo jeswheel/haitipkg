@@ -14,8 +14,9 @@
 #' @examples
 #' m1 <- haiti1_joint(vacscen = "id0", breakpoint = 232, rho_flag = T, tau_flag = F, sig_sq_flag = T, beta_flag = F, nu_flag = F)
 #' @export
-
-haiti1_joint <- function(vacscen = 'id0', breakpoint = 232, rho_flag = T, tau_flag = T, sig_sq_flag = T, beta_flag = F, nu_flag = F) {
+haiti1_joint <- function(vacscen = 'id0', breakpoint = 232, rho_flag = FALSE,
+                         tau_flag = TRUE, sig_sq_flag = TRUE, beta_flag = FALSE,
+                         nu_flag = FALSE) {
 
   flag_params <- c(
     paste0(rep(c("rho", 'tau', 'sig_sq'), each = 2),
