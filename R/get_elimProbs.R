@@ -135,20 +135,27 @@ get_elimProbs <- function(sims, model) {
               q50 = quantile(fiveYearIncrease, probs = 0.5),
               q975 = quantile(fiveYearIncrease, probs = 0.975))
 
-  ElimTime <- sims %>%
+  sims0 <- sims %>%
     group_by(.id) %>%
-    filter(0 %in% IncidenceIncrease52) %>%  # Find only sims that eliminated cholera
-    slice(min(which((IncidenceIncrease52 == 0)))) %>%  # Find when cholera was eliminated
-    ungroup() %>%
-    count(time) %>%  # get count of elimination times
-    arrange(time) %>%  # Important because of cumsum below
-    mutate(elim_prob = cumsum(n) / length(unique(sims$.id))) %>%
-    select(-n)
+    filter(0 %in% IncidenceIncrease52)
 
-  results_df <- data.frame('time' = unique(sims$time))
+  if (nrow(sims0) == 0) {
+    results_df <- data.frame('time' = unique(sims$time))
+    results_df$elim_prob = 0
+  } else {
+    ElimTime <- sims0 %>%  # Find only sims that eliminated cholera
+      slice(min(which((IncidenceIncrease52 == 0)))) %>%  # Find when cholera was eliminated
+      ungroup() %>%
+      count(time) %>%  # get count of elimination times
+      arrange(time) %>%  # Important because of cumsum below
+      mutate(elim_prob = cumsum(n) / length(unique(sims$.id))) %>%
+      select(-n)
 
-  results_df <- dplyr::left_join(results_df, ElimTime, by = 'time') %>%
-    tidyr::fill(elim_prob, .direction = 'down')
+    results_df <- data.frame('time' = unique(sims$time))
+
+    results_df <- dplyr::left_join(results_df, ElimTime, by = 'time') %>%
+      tidyr::fill(elim_prob, .direction = 'down')
+  }
 
   final <- list()
   final[['probElim']] <- probElim
