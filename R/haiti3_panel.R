@@ -6,8 +6,6 @@
 #' @param delta.t delta time step used in the model
 #' @param departements vector of departements to include in the panelPomp.
 #'    The default is all departements.
-#' @param BetaB_trend Boolean indicator of whether or not a trend parameter
-#'    should be added to the betaB parameter.
 #' @param start_time Time of which to start the panel. In the
 #'    original paper, the authors used a start time of 2014-03-01 for all
 #'    departements except for Ouest, which started with a time of 2017-06-10.
@@ -22,7 +20,7 @@
 haiti3_panel <- function(delta.t = 1/365, departements = c(
   'Artibonite', 'Centre', 'Grande_Anse', 'Nippes',
   'Nord', 'Nord-Est', 'Nord-Ouest', 'Ouest', 'Sud', 'Sud-Est'),
-  betaB_trend = FALSE, start_time = "2014-03-01", B0 = FALSE
+  start_time = "2014-03-01", B0 = FALSE
 ) {
 
   # Create a list of pomp objects
@@ -61,11 +59,7 @@ haiti3_panel <- function(delta.t = 1/365, departements = c(
     c(353, 214, 245, 270, 505, 243, 347, 809, 292, 311)
   )
 
-  if (betaB_trend) {
-    SPECIFIC <- rbind(SPECIFIC, rep(0, 10))
-    colnames(SPECIFIC) <- all_deps
-    rownames(SPECIFIC) <- c(specific_param_names, "betaB_trend")
-  } else if (B0) {
+  if (B0) {
     SPECIFIC <- rbind(SPECIFIC, rep(0.024, 10))
     colnames(SPECIFIC) <- all_deps
     rownames(SPECIFIC) <- c(specific_param_names, "B0")

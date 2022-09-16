@@ -11,7 +11,6 @@ haiti3_panel(
   delta.t = 1/365,
   departements = c("Artibonite", "Centre", "Grande_Anse", "Nippes", "Nord", "Nord-Est",
     "Nord-Ouest", "Ouest", "Sud", "Sud-Est"),
-  betaB_trend = FALSE,
   start_time = "2014-03-01",
   B0 = FALSE
 )
@@ -31,9 +30,6 @@ of data to fit the model.}
 
 \item{B0}{Boolean indicator. If TRUE, Initial value of the Bacteria
 compartment will be estimated; If FALSE, the equilibrium will be used.}
-
-\item{BetaB_trend}{Boolean indicator of whether or not a trend parameter
-should be added to the betaB parameter.}
 }
 \description{
 Build PanelPomp representation of model 3. The shared parameters are

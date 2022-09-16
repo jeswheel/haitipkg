@@ -34,12 +34,11 @@ Filtering in order to obtain the best possible fits. This function breaks the
 model fitting process into 6 different phases:
 \itemize{
 \item{Phase 1: }{Global search of all model parameters.}
-\item{Phase 2: }{Local search of all shared parameters, with starting
+\item{Phase 2: }{Local search of all unit specific parameters, with starting
 values derived from the top \emph{TOP_N} results of the global search.}
-\item{Phases 3-5: }{Local search of all unit-specific parameters, starting
+\item{Phases 3-4: }{Local search of all unit-specific parameters, starting
 from the top \emph{TOP_N} results of the previous local search.}
-\item{Phase 6: }{Local search for only a subset of the units.}
-\item{Phase 7: }{Extremly local search of all parameters.}
+\item{Phase 5: }{Local search for all parameters.}
 }
 
 The user has some control over each of these phases. Importantly, by setting
@@ -58,5 +57,6 @@ ncores.}
 \item{NREPS_EVAL: }{Number of times to replicate the evaluation using a
 particle filter.}
 \item{NP_EVAL: }{Number of particles to use in model evaluation.}
+\item{RW_SD: }{Specification of the rw.sd used in the MIF2 algorithm.}
 }
 }

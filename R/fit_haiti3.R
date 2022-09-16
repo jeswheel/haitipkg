@@ -10,12 +10,11 @@
 #' model fitting process into 6 different phases:
 #' \itemize{
 #'    \item{Phase 1: }{Global search of all model parameters.}
-#'    \item{Phase 2: }{Local search of all shared parameters, with starting
+#'    \item{Phase 2: }{Local search of all unit specific parameters, with starting
 #'    values derived from the top \emph{TOP_N} results of the global search.}
-#'    \item{Phases 3-5: }{Local search of all unit-specific parameters, starting
+#'    \item{Phases 3-4: }{Local search of all unit-specific parameters, starting
 #'    from the top \emph{TOP_N} results of the previous local search.}
-#'    \item{Phase 6: }{Local search for only a subset of the units.}
-#'    \item{Phase 7: }{Extremly local search of all parameters.}
+#'    \item{Phase 5: }{Local search for all parameters.}
 #' }
 #'
 #' The user has some control over each of these phases. Importantly, by setting
@@ -34,8 +33,8 @@
 #'    \item{NREPS_EVAL: }{Number of times to replicate the evaluation using a
 #'    particle filter.}
 #'    \item{NP_EVAL: }{Number of particles to use in model evaluation.}
+#'    \item{RW_SD: }{Specification of the rw.sd used in the MIF2 algorithm.}
 #' }
-#'
 #'
 #' @param n_searches integer number of searches to conduct. See details below.
 #' @param search[i] list containing parameters used to fit the model. See details.
@@ -150,7 +149,6 @@ fit_haiti3 <- function(
     )
   }
 
-
   # TOP_N is not required, but if missing, default to 1.
   if (!"TOP_N" %in% names(search2) && n_searches >= 2) {
     search2$TOP_N <- 1
@@ -166,6 +164,81 @@ fit_haiti3 <- function(
 
   if (!"TOP_N" %in% names(search5) && n_searches >= 5) {
     search5$TOP_N <- 1
+  }
+
+  # rw.sd is not required, but if not supplied, use these defualts:
+  if (!"RW_SD" %in% names(search1)) {
+    # Set random walk standard deviation
+    chol_rw1 <- rw.sd(
+      betaB = 0.02,  # Unit Specific
+      mu_B = 0.02,   # Unit Specific
+      thetaI = 0.02,
+      XthetaA = 0.02,
+      lambdaR = 0.02,
+      r = 0.02,
+      std_W = 0.02,
+      epsilon = 0.02,
+      k = 0.02,
+      sigma = 0.02,
+      foi_add = 0.02
+    )
+  } else {
+    chol_rw1 <- search1$RW_SD
+  }
+
+  if (!"RW_SD" %in% names(search2)) {
+    chol_rw2 <- rw.sd(
+      betaB = 0.02,
+      foi_add = 0.02
+    )
+  } else {
+    chol_rw2 <- search2$RW_SD
+  }
+
+  if (!"RW_SD" %in% names(search3)) {
+    # Set rw sd
+    chol_rw3 <- rw.sd(
+      mu_B = 0.01,
+      thetaI = 0.01,
+      XthetaA = 0.01,
+      lambdaR = 0.01,
+      r = 0.01,
+      std_W = 0.01,
+      epsilon = 0.01,
+      k = 0.01,
+      sigma = 0.01
+    )
+  } else {
+    chol_rw3 <- search3[['RW_SD']]
+  }
+
+  if (!"RW_SD" %in% names(search4)) {
+    # Set rw sd
+    chol_rw4 <- rw.sd(
+      betaB = 0.01,
+      foi_add = 0.01
+    )
+  } else {
+    chol_rw4 <- search4[['RW_SD']]
+  }
+
+  if (!"RW_SD" %in% names(search5)) {
+    # Set rw sd
+    chol_rw5 <- rw.sd(
+      betaB = 0.001,
+      foi_add = 0.001,
+      mu_B = 0.001,
+      thetaI = 0.001,
+      XthetaA = 0.001,
+      lambdaR = 0.001,
+      r = 0.001,
+      std_W = 0.001,
+      epsilon = 0.001,
+      k = 0.001,
+      sigma = 0.001
+    )
+  } else {
+    chol_rw5 <- search5[["RW_SD"]]
   }
 
   #### Load model
@@ -188,14 +261,14 @@ fit_haiti3 <- function(
 
   # Create data.frame of unit-specific parameter bounds
   unit_bounds <- data.frame(
-    "param" = c('betaB', 'foi_add', 'B0'),
-    "lower" = c(min_param_val, min_param_val, 0.15),
-    "upper" = c(50, 1e-5, 0.4)
+    "param" = c('betaB', 'foi_add'),
+    "lower" = c(min_param_val, min_param_val),
+    "upper" = c(50, 1e-5)
   )
 
   # Get the default values saved in Model 3, to use as a starting point
   original_unit <- SIRB_panel@specific
-  fixed_unit <- SIRB_panel@specific[c('H', 'D'), ]
+  fixed_unit <- SIRB_panel@specific[c('H', 'D', 'B0'), ]
   shared_params <- SIRB_panel@shared
 
   # Get names of all of the departments
@@ -220,10 +293,9 @@ fit_haiti3 <- function(
   for (i in 1:(search1$NREPS - 1)) {
     Betas <- guesses_unit$betaB[(10 * i - 9):(10 * i)]
     Fois <- guesses_unit$foi_add[(10 * i - 9):(10 * i)]
-    B0s <- guesses_unit$B0[(10 * i - 9):(10 * i)]
-    params <- rbind(Betas, Fois, B0s)
+    params <- rbind(Betas, Fois)
     colnames(params) <- deps
-    rownames(params) <- c('betaB', 'foi_add', 'B0')
+    rownames(params) <- c('betaB', 'foi_add')
     params <- rbind(params, fixed_unit)
     guess_list_unit[[i]] <- params
   }
@@ -263,22 +335,6 @@ fit_haiti3 <- function(
   # Set last set of shared parameters to model defaults.
   guesses <- rbind(guesses, original_fixed_shared[colnames(guesses)])
 
-  # Set random walk standard deviation
-  chol_rw <- rw.sd(
-    betaB = 0.02,
-    mu_B = 0.02,
-    thetaI = 0.02,
-    XthetaA = 0.02,
-    lambdaR = 0.02,
-    r = 0.02,
-    std_W = 0.02,
-    epsilon = 0.02,
-    k = 0.02,
-    sigma = 0.02,
-    foi_add = 0.02,
-    B0 = ivp(0.1)
-  )
-
   # set RNG for reproducible parallelization
   registerDoRNG(1851563)
 
@@ -295,7 +351,7 @@ fit_haiti3 <- function(
       Np = search1$NP,
       Nmif = search1$NMIF,
       cooling.fraction.50 = 0.5,
-      rw.sd = chol_rw,
+      rw.sd = chol_rw1,
       cooling.type = 'geometric',
       shared.start = c(fixed_shared, r_shared_params),
       specific.start = r_unit_params,
@@ -305,9 +361,9 @@ fit_haiti3 <- function(
 
   # Some clutter clean-up
   rm(
-    chol_rw, fixed_unit, guess_list_unit, guesses, guesses_unit, original_unit,
+    chol_rw1, fixed_unit, guess_list_unit, guesses, guesses_unit, original_unit,
     parameter_bounds, params, unit_bounds, Betas, fixed_shared, Fois, i, lb,
-    lb_unit, original_fixed_shared, shared_params, ub, ub_unit, B0s
+    lb_unit, original_fixed_shared, shared_params, ub, ub_unit
   )
 
   # Garbage collector to free unused memory after clean-up.
@@ -357,7 +413,7 @@ fit_haiti3 <- function(
   #### End of global search
   ####
 
-  #### Start local search of shared parameters
+  #### Start local search of unit specific parameters
 
   top_n_global <- search1_results$logLiks %>%
     dplyr::arrange(-logLik) %>%
@@ -365,18 +421,6 @@ fit_haiti3 <- function(
     dplyr::pull(which)
 
   params <- search1_results$params[rep(top_n_global, each = search2$NREPS), ]
-
-  chol_rw <- rw.sd(
-    mu_B = 0.005,
-    thetaI = 0.005,
-    XthetaA = 0.005,
-    lambdaR = 0.005,
-    r = 0.005,
-    std_W = 0.005,
-    epsilon = 0.005,
-    k = 0.005,
-    sigma = 0.005
-  )
 
   registerDoRNG(987153547)
 
@@ -393,14 +437,14 @@ fit_haiti3 <- function(
       Np = search2$NP,
       Nmif = search2$NMIF,
       cooling.fraction.50 = 0.5,
-      rw.sd = chol_rw,
+      rw.sd = chol_rw2,
       cooling.type = 'geometric',
       start = start_params
     )
   } -> local_MIF2_search
 
   rm(
-    chol_rw, params
+    chol_rw2, params
   )
 
   gc()
@@ -427,7 +471,7 @@ fit_haiti3 <- function(
     mif_logLik[j, 1:2] <- panel_logmeanexp(pf3_loglik_matrix, MARGIN = 2, se = TRUE)
   }
 
-  # Save results from the global search
+  # Save results from the search
   search2_results <- list()
   search2_results$logLiks <- mif_logLik
   search2_results$params  <- t(sapply(local_MIF2_search, coef))
@@ -446,7 +490,7 @@ fit_haiti3 <- function(
   #### End of search 2
   ####
 
-  #### Search 3: Local search for unit specific parameters:
+  #### Search 3: Local search for shared parameters:
 
   # Get index for top N searches
   top_n_local <- search2_results$logLiks %>%
@@ -456,13 +500,6 @@ fit_haiti3 <- function(
 
   # Copy parameters for top N searches
   params <- search2_results$params[rep(top_n_local, each = search3$NREPS), ]
-
-  # Set rw sd
-  chol_rw <- rw.sd(
-    betaB = 0.02,
-    foi_add = 0.02,
-    B0 = ivp(0.1)
-  )
 
   registerDoRNG(987153547)
 
@@ -479,14 +516,14 @@ fit_haiti3 <- function(
       Np = search3$NP,
       Nmif = search3$NMIF,
       cooling.fraction.50 = 0.5,
-      rw.sd = chol_rw,
+      rw.sd = chol_rw3,
       cooling.type = 'geometric',
       start = start_params,
       block = TRUE
     )
   } -> local_MIF2_search
 
-  rm(chol_rw, params)
+  rm(chol_rw3, params)
   gc()
 
   mif_logLik <- data.frame(
@@ -540,13 +577,6 @@ fit_haiti3 <- function(
   # Copy parameters for top N searches
   params <- search3_results$params[rep(top_n_local, each = search4$NREPS), ]
 
-  # Set rw sd
-  chol_rw <- rw.sd(
-    betaB = 0.006,
-    foi_add = 0.006,
-    B0 = ivp(0.03)
-  )
-
   registerDoRNG(904303541)
 
   foreach(
@@ -562,14 +592,14 @@ fit_haiti3 <- function(
       Np = search4$NP,
       Nmif = search4$NMIF,
       cooling.fraction.50 = 0.5,
-      rw.sd = chol_rw,
+      rw.sd = chol_rw4,
       cooling.type = 'geometric',
       start = start_params,
       block = TRUE
     )
   } -> local_MIF2_search
 
-  rm(chol_rw, params)
+  rm(chol_rw4, params)
   gc()
 
   mif_logLik <- data.frame(
@@ -612,7 +642,7 @@ fit_haiti3 <- function(
   #### End of search 4
   ####
 
-  #### Start search 5: Local search of unit-specific parameters
+  #### Start search 5: Local search of all parameters
 
   # Get index for top N searches
   top_n_local <- search4_results$logLiks %>%
@@ -622,12 +652,6 @@ fit_haiti3 <- function(
 
   # Copy parameters for top N searches
   params <- search4_results$params[rep(top_n_local, each = search5$NREPS), ]
-
-  # Set rw sd
-  chol_rw <- rw.sd(
-    betaB = 0.005,
-    foi_add = 0.005
-  )
 
   registerDoRNG(904303541)
 
@@ -644,14 +668,14 @@ fit_haiti3 <- function(
       Np = search5$NP,
       Nmif = search5$NMIF,
       cooling.fraction.50 = 0.5,
-      rw.sd = chol_rw,
+      rw.sd = chol_rw5,
       cooling.type = 'geometric',
       start = start_params,
       block = TRUE
     )
   } -> local_MIF2_search
 
-  rm(chol_rw, params)
+  rm(chol_rw5, params)
   gc()
 
   mif_logLik <- data.frame(
@@ -690,14 +714,6 @@ fit_haiti3 <- function(
     return(results)
   }
 
-  ####
-  #### End of search 5
-  ####
 
-  ####
-  #### Start Search 6: Local search of sub-model.
-  ####
-
-  # TODO: Implement this.
-
+  results
 }
