@@ -372,11 +372,16 @@ fit_haiti3 <- function(
   #### pfilter global search results
 
   # Create data.frame to store likelihood evaluations
-  mif_logLik <- data.frame(
-    'logLik' = rep(0, length(no_trend_global)),
-    'se' = rep(0, length(no_trend_global)),
-    'which' = 1:length(no_trend_global)
-  )
+  # mif_logLik <- data.frame(
+  #   'logLik' = rep(0, length(no_trend_global)),
+  #   'se' = rep(0, length(no_trend_global)),
+  #   'which' = 1:length(no_trend_global)
+  # )
+  mif_logLik <- matrix(nrow = length(no_trend_global), ncol = 10)
+  colnames(mif_logLik) <- names(unitobjects(SIRB_panel))
+  mif_logLik <- as.data.frame(mif_logLik)
+  # mif_logLik$which <- 1:length(no_trend_global)
+
 
   # Loop through PIF results and perform particle filters to evaluate likelihood
   for (j in 1:length(no_trend_global)) {
@@ -390,7 +395,9 @@ fit_haiti3 <- function(
       unitlogLik(pfilter(mf, params = mif_params, Np = search1$NP_EVAL))
     }
 
-    mif_logLik[mif_logLik$which == j, 1:2] <- panel_logmeanexp(pf3_loglik_matrix, MARGIN = 2, se = TRUE)
+
+    mif_logLik[j, 1:10] <- apply(pf3_loglik_matrix, 2, logmeanexp)
+    # mif_logLik[mif_logLik$which == j, 1:2] <- panel_logmeanexp(pf3_loglik_matrix, MARGIN = 2, se = TRUE)
   }
 
   # Save results from the global search
@@ -415,10 +422,12 @@ fit_haiti3 <- function(
 
   #### Start local search of unit specific parameters
 
-  top_n_global <- search1_results$logLiks %>%
-    dplyr::arrange(-logLik) %>%
-    dplyr::slice_head(n = search2$TOP_N) %>%
-    dplyr::pull(which)
+  top_n_global <- order(-apply(search1_results$logLiks, 1, sum))[1:search2$TOP_N]
+
+  # top_n_global <- search1_results$logLiks %>%
+  #   dplyr::arrange(-logLik) %>%
+  #   dplyr::slice_head(n = search2$TOP_N) %>%
+  #   dplyr::pull(which)
 
   params <- search1_results$params[rep(top_n_global, each = search2$NREPS), ]
 
@@ -449,12 +458,10 @@ fit_haiti3 <- function(
 
   gc()
 
-  mif_logLik <- data.frame(
-    'logLik' = rep(0, search2$TOP_N * search2$NREPS),
-    'se' = rep(0, search2$TOP_N * search2$NREPS),
-    'which' = 1:(search2$TOP_N * search2$NREPS),
-    'starting_set' = rep(top_n_global, each = search2$NREPS)
-  )
+  mif_logLik <- matrix(nrow = search2$TOP_N * search2$NREPS, ncol = 10)
+  colnames(mif_logLik) <- names(unitobjects(SIRB_panel))
+  mif_logLik <- as.data.frame(mif_logLik)
+  mif_logLik$starting_set <- rep(top_n_global, each = search2$NREPS)
 
   for (j in 1:(search2$TOP_N * search2$NREPS)) {
     mf <- local_MIF2_search[[j]]
@@ -468,7 +475,7 @@ fit_haiti3 <- function(
       unitlogLik(pfilter(mf, params = mif_params, Np = search2$NP_EVAL))
     }
 
-    mif_logLik[j, 1:2] <- panel_logmeanexp(pf3_loglik_matrix, MARGIN = 2, se = TRUE)
+    mif_logLik[j, 1:10] <- apply(pf3_loglik_matrix, 2, logmeanexp)
   }
 
   # Save results from the search
@@ -492,11 +499,28 @@ fit_haiti3 <- function(
 
   #### Search 3: Local search for shared parameters:
 
-  # Get index for top N searches
-  top_n_local <- search2_results$logLiks %>%
-    dplyr::arrange(-logLik) %>%
-    dplyr::slice_head(n = search3$TOP_N) %>%
-    dplyr::pull(which)
+  temp_unit_likes <- rbind(
+    results$search1$logLiks,
+    results$search2$logLiks[, -11]  # remove starting_set column
+  )
+
+  # temp_unit_likes$set_number <- c(-(1:nrow(results$search1$logLiks)), 1:nrow(results$search2$logLiks))
+
+  temp_unit_params <- rbind(
+    results$search1$params,
+    results$search2$params
+  )
+
+  panelPomp::pParams(temp_unit_params[top_n_local[, 1], ])
+
+  apply(temp_unit_likes, 2, function(x) order(-x)[1:search3$TOP_N])
+  top_n_local <- apply(search2_results$logLiks, 2, function(x) order(-x)[1:search3$TOP_N])
+  temp_unit_params
+
+  # junk_params <- matrix(rep(1:nrow(temp_unit_params), each = 10), ncol = 10, byrow = TRUE)
+
+  sapply(1:10, function(x) temp_unit_params[top_n_local[, x], ])
+  # junk_params[top_n_local, ]
 
   # Copy parameters for top N searches
   params <- search2_results$params[rep(top_n_local, each = search3$NREPS), ]
