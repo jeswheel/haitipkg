@@ -5,12 +5,12 @@
 \title{Fit Model 3}
 \usage{
 fit_haiti3(
-  n_searches = 3L,
+  n_searches = 5L,
   search1 = list(NP = 20, NMIF = 3, NREPS = 3, NREPS_EVAL = 3, NP_EVAL = 25),
   search2 = list(TOP_N = 1, NP = 20, NMIF = 3, NREPS = 3, NREPS_EVAL = 3, NP_EVAL = 25),
-  search3 = list(TOP_N = 1, NP = 20, NMIF = 3, NREPS = 3, NREPS_EVAL = 3, NP_EVAL = 25),
+  search3 = list(NP = 20, NMIF = 3, NREPS = 3, NREPS_EVAL = 3, NP_EVAL = 25),
   search4 = list(TOP_N = 1, NP = 20, NMIF = 3, NREPS = 3, NREPS_EVAL = 3, NP_EVAL = 25),
-  search5 = NULL,
+  search5 = list(NP = 20, NMIF = 3, NREPS = 3, NREPS_EVAL = 3, NP_EVAL = 25),
   ncores = 3
 )
 }
@@ -48,7 +48,7 @@ for each phase are the following:
 \itemize{
 \item{TOP_N: }{Number of results from the previous search to use as a
 starting point for the next search. Note that this argument is ignored for
-the first global search.}
+the first global search, and for searches after local unit searches.}
 \item{NP: }{Number of particles to use in the Panel Iterated Filtering.}
 \item{NMIF: }{Number of MIF iterations to use in the Panel Iterated Filtering.}
 \item{NREPS: }{For each starting point, how many replicated searches should
