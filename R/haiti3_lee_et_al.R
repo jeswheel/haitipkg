@@ -895,7 +895,7 @@ return(dB);
   all_params["std_W"] <- 0.008172280355938182  # Matches table S15
   all_params["epsilon"] <- 0.9750270707877388  # Matches table S15
   all_params["k"] <- 101.2215999283583  # Matches p in table S15
-  all_params["cas_def"] <- 0.10  # TODO: It is clear this wasn't fit using MIF, but the authors say that it was. Matches \epsilon_2 in table S15
+  all_params["cas_def"] <- 0.10  # TODO: It seems unlikely this was fit using MIF, but the authors say that it was. Matches \epsilon_2 in table S15
 
   all_params["betaBArtibonite"] =   0.516191
   all_params["betaBSud_Est"] =      1.384372

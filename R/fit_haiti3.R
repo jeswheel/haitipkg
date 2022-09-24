@@ -51,7 +51,7 @@
 #'
 #' @export
 fit_haiti3 <- function(
-    n_searches = 5L,
+    n_searches = 3L,
     search1 = list(
       NP = 20,
       NMIF = 3,
@@ -68,21 +68,7 @@ fit_haiti3 <- function(
       NP_EVAL = 25
     ),
     search3 = list(
-      NP = 20,
-      NMIF = 3,
-      NREPS = 3,
-      NREPS_EVAL = 3,
-      NP_EVAL = 25
-    ),
-    search4 = list(
       TOP_N = 1,
-      NP = 20,
-      NMIF = 3,
-      NREPS = 3,
-      NREPS_EVAL = 3,
-      NP_EVAL = 25
-    ),
-    search5 = list(
       NP = 20,
       NMIF = 3,
       NREPS = 3,
@@ -131,36 +117,12 @@ fit_haiti3 <- function(
     )
   }
 
-  # Throw error if missing names in search4
-  if (n_searches >= 4 && any(!req_names %in% names(search4))) {
-    missing <- req_names[which(!req_names %in% names(search4))]
-    stop(
-      paste0(
-        "search4 missing required argument(s): ",
-        paste0(missing, collapse = ', '),
-        "."
-      )
-    )
-  }
-
-  # Throw error if missing names in search5
-  if (n_searches >= 5 && any(!req_names %in% names(search5))) {
-    missing <- req_names[which(!req_names %in% names(search5))]
-    stop(
-      paste0(
-        "search5 missing required argument(s): ",
-        paste0(missing, collapse = ', '),
-        "."
-      )
-    )
-  }
-
   # TOP_N is not required, but if missing, default to 1.
-  if (!"TOP_N" %in% names(search2) && n_searches >= 2) {
+  if (!"TOP_N" %in% names(search2)) {
     search2$TOP_N <- 1
   }
 
-  if (n_searches >= 4 && !"TOP_N" %in% names(search4)) {
+  if (!"TOP_N" %in% names(search3)) {
     search4$TOP_N <- 1
   }
 
@@ -173,7 +135,7 @@ fit_haiti3 <- function(
       thetaI = 0.02,
       XthetaA = 0.02,
       lambdaR = 0.02,
-      r = 0.02,
+      r = 0.01,
       std_W = 0.02,
       epsilon = 0.02,
       k = 0.02,
@@ -186,8 +148,17 @@ fit_haiti3 <- function(
 
   if (!"RW_SD" %in% names(search2)) {
     chol_rw2 <- pomp::rw.sd(
-      betaB = 0.02,
-      foi_add = 0.02
+      betaB = 0.0075,  # Unit Specific
+      mu_B = 0.0075,   # Unit Specific
+      thetaI = 0.0075,
+      XthetaA = 0.0075,
+      lambdaR = 0.0075,
+      r = 0.005,
+      std_W = 0.0075,
+      epsilon = 0.0075,
+      k = 0.0075,
+      sigma = 0.0075,
+      foi_add = 0.0075
     )
   } else {
     chol_rw2 <- search2$RW_SD
@@ -196,47 +167,11 @@ fit_haiti3 <- function(
   if (n_searches >= 3 && !"RW_SD" %in% names(search3)) {
     # Set rw sd
     chol_rw3 <- pomp::rw.sd(
-      mu_B = 0.01,
-      thetaI = 0.01,
-      XthetaA = 0.01,
-      lambdaR = 0.01,
-      r = 0.01,
-      std_W = 0.01,
-      epsilon = 0.01,
-      k = 0.01,
-      sigma = 0.01
+      betaB = 0.005,
+      foi_add = 0.005
     )
   } else {
     chol_rw3 <- search3[['RW_SD']]
-  }
-
-  if (n_searches >= 4 && !"RW_SD" %in% names(search4)) {
-    # Set rw sd
-    chol_rw4 <- pomp::rw.sd(
-      betaB = 0.01,
-      foi_add = 0.01
-    )
-  } else {
-    chol_rw4 <- search4[['RW_SD']]
-  }
-
-  if (n_searches >= 5 && !"RW_SD" %in% names(search5)) {
-    # Set rw sd
-    chol_rw5 <- pomp::rw.sd(
-      betaB = 0.001,
-      foi_add = 0.001,
-      mu_B = 0.001,
-      thetaI = 0.001,
-      XthetaA = 0.001,
-      lambdaR = 0.001,
-      r = 0.001,
-      std_W = 0.001,
-      epsilon = 0.001,
-      k = 0.001,
-      sigma = 0.001
-    )
-  } else {
-    chol_rw5 <- search5[["RW_SD"]]
   }
 
   #### Load model
@@ -307,7 +242,7 @@ fit_haiti3 <- function(
                 "std_W", "epsilon", "k", "sigma"),
     "lower" = c(5, min_param_val, min_param_val, min_param_val,
                 min_param_val, min_param_val, 0.25, 5, 0.01),
-    "upper" = c(300, 1, 2e-3, 5, 2, 0.15, 1, 1000, 0.5)
+    "upper" = c(300, 1, 2e-3, 5, 1.2, 0.15, 1, 1000, 0.5)
   )
 
   # Save all default values for starting parameters later
@@ -379,7 +314,7 @@ fit_haiti3 <- function(
     mf <- no_trend_global[[j]]
     mif_params <- coef(mf)
 
-    registerDoRNG((j * 38763911) %% 7919)
+    doRNG::registerDoRNG((j * 38763911) %% 7919)
 
     pf3_loglik_matrix <- foreach(i=1:search1$NREPS_EVAL, .combine = rbind) %dopar% {
       library(panelPomp)
@@ -409,10 +344,9 @@ fit_haiti3 <- function(
   #### End of global search
   ####
 
-  #### Start local search of unit specific parameters
+  #### Start local search of top half of the searches
 
   top_n_global <- order(-apply(search1_results$logLiks, 1, sum))[1:search2$TOP_N]
-
   params <- search1_results$params[rep(top_n_global, each = search2$NREPS), ]
 
   registerDoRNG(987153547)
@@ -447,7 +381,7 @@ fit_haiti3 <- function(
   mif_logLik <- as.data.frame(mif_logLik)
   mif_logLik$starting_set <- rep(top_n_global, each = search2$NREPS)
 
-  for (j in 1:(search2$TOP_N * search2$NREPS)) {
+  for (j in 1:length(local_MIF2_search)) {
     mf <- local_MIF2_search[[j]]
     mif_params <- coef(mf)
 
@@ -456,8 +390,8 @@ fit_haiti3 <- function(
 
     pf3_loglik_matrix <- foreach(i=1:search2$NREPS_EVAL, .combine = rbind,
                                  .packages = 'panelPomp') %dopar% {
-      unitlogLik(pfilter(mf, params = mif_params, Np = search2$NP_EVAL))
-    }
+                                   unitlogLik(pfilter(mf, params = mif_params, Np = search2$NP_EVAL))
+                                 }
 
     mif_logLik[j, 1:10] <- apply(pf3_loglik_matrix, 2, logmeanexp)
   }
@@ -467,123 +401,58 @@ fit_haiti3 <- function(
   search2_results$logLiks <- mif_logLik
   search2_results$params  <- t(sapply(local_MIF2_search, coef))
 
-  # Save the maximum log-likes for each unit within each grouped shared parameter
-  search2_results$group_logLiks <- mif_logLik %>%
-    dplyr::group_by(starting_set) %>%
-    dplyr::summarize(dplyr::across(Artibonite:`Sud-Est`, max, na.rm = TRUE))
-
-  # Record which set of parameters within a group resulted in best unit parameter
-  search2_results$which_logLiks <- mif_logLik %>%
-    dplyr::group_by(starting_set) %>%
-    dplyr::summarize(dplyr::across(Artibonite:`Sud-Est`, which.max))
-
-  # For convenience, save the shared starting values (did not change after this search)
-  shared_params_finish <- t(sapply(
-    unique(search2_results$which_logLiks$starting_set),
-    function(x) {
-      panelPomp::pParams(results$search1$params[x, ])$shared
-    }
-  ))
-
-  search2_results$shared_params_finish <- shared_params_finish
-
-  # Get matrix of all unit parameters after doing MIF
-  unit_params_finish <- lapply(
-    1:nrow(search2_results$params),
-    function(x) {
-      panelPomp::pParams(search2_results$params[x, ])$specific
-    }
-  )
-
-  best_unit_combo <- list()
-  best_ll <- numeric(nrow(search2_results$which_logLiks))
-
-  # Loop through each group (starting shared parameters)
-  for (i in 1:nrow(search2_results$which_logLiks)) {
-
-    # # Get the group "name", which is the number of the starting_set.
-    # g <- search2_results$which_logLiks[i, 'starting_set'] %>% dplyr::pull()
-
-    # Find which likelihoods are the largest for group g
-    which_unit_max <- unlist(search2_results$which_logLiks[i, -1])
-
-    # Create a list of only the unit specific parameters for this particular group
-    group_unit_params <- unit_params_finish[((i - 1) * search2$NREPS + 1):(i * search2$NREPS)]
-
-    # Create a matrix of unit specific parameters where the parameters for unit u
-    # are those that maximized the likelihood within the group.
-    best_pp <- sapply(1:10, function(col) group_unit_params[[which_unit_max[col]]][, col])
-    colnames(best_pp) <- colnames(group_unit_params[[1]])
-
-    best_unit_combo[[i]] <- best_pp
-    best_ll[i] <- sum(search2_results$group_logLiks[i, -1])
-  }
-
-  search2_results$best_unit_combo <- best_unit_combo
-  search2_results$best_ll_combo <- best_ll
-
   results$search2 <- search2_results
 
   rm(j, mf, mif_params, local_MIF2_search, mif_logLik, search2, pf3_loglik_matrix,
-     top_n_global, search1_results, best_pp, best_unit_combo, group_unit_params,
-     unit_params_finish, best_ll, i, which_unit_max, shared_params_finish)
+     top_n_global, search1_results)
   gc()
 
   if (n_searches == 2L) {
     return(results)
   }
 
-  ####
-  #### End of search 2
-  ####
+  #### Start local search of unit specific parameters
 
-  #### Search 3: Local search for shared parameters:
-
-  # Copy parameters for each starting set of shared parameters
-  list_unit_params <- rep(search2_results$best_unit_combo, each = search3$NREPS)
-  mat_shared_params <- search2_results$shared_params_finish[
-    rep(1:nrow(search2_results$shared_params_finish), each = search3$NREPS),
-  ]
-
+  top_n_local <- order(-apply(search2_results$logLiks, 1, sum))[1:search3$TOP_N]
+  params <- search2_results$params[rep(top_n_local, each = search3$NREPS), ]
 
   registerDoRNG(987153547)
 
   foreach(
-    i = 1:nrow(mat_shared_params),
+    i = 1:(search3$NREPS * search3$TOP_N),
     .packages = c('panelPomp'),
     .combine = c
   ) %dopar% {
 
-
-    unit_start <- list_unit_params[[i]]
-    shared_start <- mat_shared_params[i, ]
+    start_params <- params[i, ]
 
     mif2(
       SIRB_panel,
       Np = search3$NP,
       Nmif = search3$NMIF,
-      shared.start = shared_start,
-      specific.start = unit_start,
       cooling.fraction.50 = 0.5,
       rw.sd = chol_rw3,
       cooling.type = 'geometric',
-      block = TRUE
+      start = start_params
     )
   } -> local_MIF2_search
 
-  rm(chol_rw3, list_unit_params, mat_shared_params)
-  gc()
+  rm(
+    chol_rw3, params
+  )
 
+  gc()
 
   mif_logLik <- matrix(nrow = length(local_MIF2_search), ncol = 10)
   colnames(mif_logLik) <- names(unitobjects(SIRB_panel))
   mif_logLik <- as.data.frame(mif_logLik)
-  mif_logLik$starting_set <- rep(1:nrow(results$search2$which_logLiks), each = search3$NREPS)
+  mif_logLik$starting_set <- rep(top_n_local, each = search3$NREPS)
 
   for (j in 1:length(local_MIF2_search)) {
     mf <- local_MIF2_search[[j]]
     mif_params <- coef(mf)
 
+    # registerDoParallel(36)
     registerDoRNG((j * 38763911) %% 7919)
 
     pf3_loglik_matrix <- foreach(i=1:search3$NREPS_EVAL, .combine = rbind,
@@ -594,120 +463,50 @@ fit_haiti3 <- function(
     mif_logLik[j, 1:10] <- apply(pf3_loglik_matrix, 2, logmeanexp)
   }
 
-  # Save results from the global search
+  # Save results from the search
   search3_results <- list()
   search3_results$logLiks <- mif_logLik
   search3_results$params  <- t(sapply(local_MIF2_search, coef))
 
-  results$search3 <- search3_results
-
-  rm(j, mf, mif_params, local_MIF2_search, mif_logLik, search3, pf3_loglik_matrix,
-     search2_results)
-  gc()
-
-  if (n_searches == 3L) {
-    return(results)
-  }
-
-  ####
-  #### End of search 3
-  ####
-
-  #### Start Search 4:
-
-  top_n_global <- order(-apply(search3_results$logLiks[, -11], 1, sum))[1:search4$TOP_N]
-
-  # Copy parameters for top N searches
-  params <- search3_results$params[rep(top_n_global, each = search4$NREPS), ]
-
-  registerDoRNG(904303541)
-
-  foreach(
-    i = 1:(search4$NREPS * search4$TOP_N),
-    .packages = c('panelPomp'),
-    .combine = c
-  ) %dopar% {
-
-    start_params <- params[i, ]
-
-    mif2(
-      SIRB_panel,
-      Np = search4$NP,
-      Nmif = search4$NMIF,
-      cooling.fraction.50 = 0.5,
-      rw.sd = chol_rw4,
-      cooling.type = 'geometric',
-      start = start_params,
-      block = TRUE
-    )
-  } -> local_MIF2_search
-
-  rm(chol_rw4, params)
-  gc()
-
-  mif_logLik <- matrix(nrow = search4$TOP_N * search4$NREPS, ncol = 10)
-  colnames(mif_logLik) <- names(unitobjects(SIRB_panel))
-  mif_logLik <- as.data.frame(mif_logLik)
-  mif_logLik$starting_set <- rep(top_n_global, each = search4$NREPS)
-
-  for (j in 1:(search4$NREPS * search4$TOP_N)) {
-    mf <- local_MIF2_search[[j]]
-    mif_params <- coef(mf)
-
-    registerDoRNG((j * 38763911) %% 7919)
-
-    pf3_loglik_matrix <- foreach(i=1:search4$NREPS_EVAL, .combine = rbind,
-                                 .packages = 'panelPomp') %dopar% {
-                                   unitlogLik(pfilter(mf, params = mif_params, Np = search4$NP_EVAL))
-                                 }
-
-    mif_logLik[j, 1:10] <- apply(pf3_loglik_matrix, 2, logmeanexp)
-  }
-
-  # Save results from the global search
-  search4_results <- list()
-  search4_results$logLiks <- mif_logLik
-  search4_results$params  <- t(sapply(local_MIF2_search, coef))
-
   # Save the maximum log-likes for each unit within each grouped shared parameter
-  search4_results$group_logLiks <- mif_logLik %>%
+  search3_results$group_logLiks <- mif_logLik %>%
     dplyr::group_by(starting_set) %>%
     dplyr::summarize(dplyr::across(Artibonite:`Sud-Est`, max, na.rm = TRUE))
 
   # Record which set of parameters within a group resulted in best unit parameter
-  search4_results$which_logLiks <- mif_logLik %>%
+  search3_results$which_logLiks <- mif_logLik %>%
     dplyr::group_by(starting_set) %>%
     dplyr::summarize(dplyr::across(Artibonite:`Sud-Est`, which.max))
 
   # For convenience, save the shared starting values (did not change after this search)
   shared_params_finish <- t(sapply(
-    unique(search4_results$which_logLiks$starting_set),
+    unique(search3_results$which_logLiks$starting_set),
     function(x) {
-      panelPomp::pParams(results$search3$params[x, ])$shared
+      panelPomp::pParams(results$search2$params[x, ])$shared
     }
   ))
 
-  search4_results$shared_params_finish <- shared_params_finish
+  search3_results$shared_params_finish <- shared_params_finish
 
   # Get matrix of all unit parameters after doing MIF
   unit_params_finish <- lapply(
-    1:nrow(search4_results$params),
+    1:nrow(search3_results$params),
     function(x) {
-      panelPomp::pParams(search4_results$params[x, ])$specific
+      panelPomp::pParams(search3_results$params[x, ])$specific
     }
   )
 
   best_unit_combo <- list()
-  best_ll <- numeric(nrow(search4_results$which_logLiks))
+  best_ll <- numeric(nrow(search3_results$which_logLiks))
 
   # Loop through each group (starting shared parameters)
-  for (i in 1:nrow(search4_results$which_logLiks)) {
+  for (i in 1:nrow(search3_results$which_logLiks)) {
 
     # Find which likelihoods are the largest for group g
-    which_unit_max <- unlist(search4_results$which_logLiks[i, -1])
+    which_unit_max <- unlist(search3_results$which_logLiks[i, -1])
 
     # Create a list of only the unit specific parameters for this particular group
-    group_unit_params <- unit_params_finish[((i - 1) * search4$NREPS + 1):(i * search4$NREPS)]
+    group_unit_params <- unit_params_finish[((i - 1) * search3$NREPS + 1):(i * search3$NREPS)]
 
     # Create a matrix of unit specific parameters where the parameters for unit u
     # are those that maximized the likelihood within the group.
@@ -715,92 +514,22 @@ fit_haiti3 <- function(
     colnames(best_pp) <- colnames(group_unit_params[[1]])
 
     best_unit_combo[[i]] <- best_pp
-    best_ll[i] <- sum(search4_results$group_logLiks[i, -1])
+    best_ll[i] <- sum(search3_results$group_logLiks[i, -1])
   }
 
-  search4_results$best_unit_combo <- best_unit_combo
-  search4_results$best_ll_combo <- best_ll
+  search3_results$best_unit_combo <- best_unit_combo
+  search3_results$best_ll_combo <- best_ll
 
-  results$search4 <- search4_results
+  results$search3 <- search3_results
 
-  rm(j, mf, mif_params, local_MIF2_search, mif_logLik, search4, pf3_loglik_matrix,
-     search3_results, best_ll, i, min_param_val, top_n_global, which_unit_max,
-     best_pp, best_unit_combo, group_unit_params, shared_params_finish,
-     unit_params_finish)
+  rm(j, mf, mif_params, local_MIF2_search, mif_logLik, search3, pf3_loglik_matrix,
+     top_n_local, search2_results, best_pp, best_unit_combo, group_unit_params,
+     unit_params_finish, best_ll, i, which_unit_max, shared_params_finish)
   gc()
 
-  if (n_searches == 4L) {
+  if (n_searches == 3L) {
     return(results)
   }
-
-  ####
-  #### End of search 4
-  ####
-
-  #### Start search 5: Local search of all parameters
-
-  list_unit_params <- rep(search4_results$best_unit_combo, each = search5$NREPS)
-  mat_shared_params <- search4_results$shared_params_finish[
-    rep(1:nrow(search4_results$shared_params_finish), each = search5$NREPS),
-  ]
-
-  registerDoRNG(904303541)
-
-  foreach(
-    i = 1:nrow(mat_shared_params),
-    .packages = c('panelPomp'),
-    .combine = c
-  ) %dopar% {
-
-    unit_start <- list_unit_params[[i]]
-    shared_start <- mat_shared_params[i, ]
-
-    mif2(
-      SIRB_panel,
-      Np = search5$NP,
-      Nmif = search5$NMIF,
-      shared.start = shared_start,
-      specific.start = unit_start,
-      cooling.fraction.50 = 0.5,
-      rw.sd = chol_rw5,
-      cooling.type = 'geometric',
-      block = TRUE
-    )
-  } -> local_MIF2_search
-
-  rm(chol_rw5, list_unit_params, mat_shared_params)
-  gc()
-
-
-  mif_logLik <- matrix(nrow = nrow(results$search4$which_logLiks) * search5$NREPS, ncol = 10)
-  colnames(mif_logLik) <- names(unitobjects(SIRB_panel))
-  mif_logLik <- as.data.frame(mif_logLik)
-  mif_logLik$starting_set <- rep(1:nrow(results$search4$which_logLiks), each = search5$NREPS)
-
-  for (j in 1:length(local_MIF2_search)) {
-    mf <- local_MIF2_search[[j]]
-    mif_params <- coef(mf)
-
-    registerDoRNG((j * 38763911) %% 7919)
-
-    pf3_loglik_matrix <- foreach(i=1:search5$NREPS_EVAL, .combine = rbind,
-                                 .packages = 'panelPomp') %dopar% {
-                                   unitlogLik(pfilter(mf, params = mif_params, Np = search5$NP_EVAL))
-                                 }
-
-    mif_logLik[j, 1:10] <- apply(pf3_loglik_matrix, 2, logmeanexp)
-  }
-
-  # Save results from the global search
-  search5_results <- list()
-  search5_results$logLiks <- mif_logLik
-  search5_results$params  <- t(sapply(local_MIF2_search, coef))
-
-  results$search5 <- search5_results
-
-  rm(j, mf, mif_params, local_MIF2_search, mif_logLik, search5, pf3_loglik_matrix,
-     search4_results)
-  gc()
 
   results
 }

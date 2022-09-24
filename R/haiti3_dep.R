@@ -26,8 +26,8 @@
 #' @export
 
 haiti3_dep <- function(departement = 'Artibonite',
-                               start_time = "2010-10-23",
-                               delta.t = 1/365.25) {
+                       start_time = "2010-10-23",
+                       delta.t = 1/365.25) {
 
   # function to convert dates to fractions of years for model
   dateToYears <- function(date, origin = as.Date("2014-01-01"), yr_offset = 2014) {
