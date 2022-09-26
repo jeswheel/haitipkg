@@ -954,7 +954,9 @@ pt <- pomp::parameter_trans(
   logit = paste0(rep(c(
     "XthetaA",
     "epsilon",
-    "cas_def", "Binit"
+    "cas_def",
+    "Binit",
+    "sigma"
   ), each = 10), 1:10)
 )
 

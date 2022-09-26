@@ -5,12 +5,10 @@
 \title{Fit Model 3}
 \usage{
 fit_haiti3(
-  n_searches = 5L,
+  n_searches = 3L,
   search1 = list(NP = 20, NMIF = 3, NREPS = 3, NREPS_EVAL = 3, NP_EVAL = 25),
   search2 = list(TOP_N = 1, NP = 20, NMIF = 3, NREPS = 3, NREPS_EVAL = 3, NP_EVAL = 25),
-  search3 = list(NP = 20, NMIF = 3, NREPS = 3, NREPS_EVAL = 3, NP_EVAL = 25),
-  search4 = list(TOP_N = 1, NP = 20, NMIF = 3, NREPS = 3, NREPS_EVAL = 3, NP_EVAL = 25),
-  search5 = list(NP = 20, NMIF = 3, NREPS = 3, NREPS_EVAL = 3, NP_EVAL = 25),
+  search3 = list(TOP_N = 1, NP = 20, NMIF = 3, NREPS = 3, NREPS_EVAL = 3, NP_EVAL = 25),
   ncores = 3
 )
 }
