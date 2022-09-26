@@ -976,7 +976,7 @@ all_unit_params[grepl("^r[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.31360
 all_unit_params[grepl("^std_W[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.008172280355938182
 all_unit_params[grepl("^epsilon[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.9750270707877388
 all_unit_params[grepl("^k[[:digit:]]{1,2}$", names(all_unit_params))] <- 101.2215999283583
-all_unit_params[grepl("^cas_def[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.10
+all_unit_params[grepl("^cas_def[[:digit:]]{1,2}$", names(all_unit_params))] <- 1
 all_unit_params[grepl("^Binit[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.24
 
 # These parameters are different for each departement, so these need to be set seperately.
