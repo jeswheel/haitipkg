@@ -4,21 +4,15 @@
 \alias{project_from_filter}
 \title{Project from Filtering Distribution}
 \usage{
-project_from_filter(
-  mod,
-  PF,
-  covarGen = NULL,
-  nsims = 100,
-  seed = 123,
-  cores = 1
-)
+project_from_filter(mod, end_states, covarGen = NULL, nsims = 100, seed = 123)
 }
 \arguments{
 \item{mod:}{POMP model that you would like to simulate from.}
 
-\item{PF:}{pfilter object, the result of calling
-pfilter(..., save.states = TRUE). Note that the states must be saved in
-this object for the function to work.}
+\item{end_states:}{The starting states from which to simulate. This is
+designed so that these states are draws from the filtering distribution
+at time $N$, but they can be any desired state from which to start the
+simulation.}
 
 \item{covarGen:}{function that is used to generate covariates, if the model
 needs covariates to run rprocess.}
@@ -26,9 +20,6 @@ needs covariates to run rprocess.}
 \item{nsims:}{Integer number of simulations desired.}
 
 \item{seed:}{seed for the random number generator.}
-
-\item{cores:}{Integer number of cores to be used. If this number is
-greater than 1, the simulations will be done in parallel.}
 }
 \description{
 This function simulates from a Haiti-cholera POMP model into the future
