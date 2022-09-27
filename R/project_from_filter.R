@@ -30,7 +30,7 @@
 #' @import progress
 #' @export
 
-project_from_filter2 <- function(mod, end_states, covarGen = NULL,
+project_from_filter <- function(mod, end_states, covarGen = NULL,
                                  nsims = 100, seed = 123) {
 
   # Define helper functions
