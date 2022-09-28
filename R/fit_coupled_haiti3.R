@@ -74,17 +74,17 @@ fit_coupled_haiti3 <- function(
   est_param_names_expanded <- paste0(rep(est_param_names, each = 10), 1:10)
 
   # Create rw.sd for each parameter, for search 1
-  reg_rw_1.sd <- lapply(est_param_names_expanded, function(x) 0.02)
+  reg_rw_1.sd <- lapply(est_param_names_expanded, function(x) 0.01)
   names(reg_rw_1.sd) <- est_param_names_expanded
   chol_rw_1.sd <- do.call(rw.sd, reg_rw_1.sd)
 
   # Create rw.sd for each parameter, for search 2
-  reg_rw_2.sd <- lapply(est_param_names_expanded, function(x) 0.0075)
+  reg_rw_2.sd <- lapply(est_param_names_expanded, function(x) 0.00175)
   names(reg_rw_2.sd) <- est_param_names_expanded
   chol_rw_2.sd <- do.call(rw.sd, reg_rw_2.sd)
 
   # Create rw.sd for each parameter, for search 3
-  reg_rw_3.sd <- lapply(est_param_names_expanded, function(x) 0.0025)
+  reg_rw_3.sd <- lapply(est_param_names_expanded, function(x) 0.001)
   names(reg_rw_3.sd) <- est_param_names_expanded
   chol_rw_3.sd <- do.call(rw.sd, reg_rw_3.sd)
 
@@ -148,7 +148,7 @@ fit_coupled_haiti3 <- function(
 
   t_global <- system.time(
     foreach(
-      i = 1:search1$NREPS_EVAL,
+      i = 1:search1$NREPS,
       .packages = c("spatPomp"),
       .combine = c
     ) %dopar% {
@@ -163,7 +163,7 @@ fit_coupled_haiti3 <- function(
         unitParNames = unit_specific_names,
         spat_regression = search1$SPAT_REGRESSION,
         rw.sd = chol_rw_1.sd,
-        cooling.fraction.50 = 0.5,
+        cooling.fraction.50 = 0.35,
         block_size = 1
         # params = r_params  Not yet implemented in spatPomp
       )
