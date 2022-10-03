@@ -24,7 +24,10 @@ fit_coupled_haiti3 <- function(
       SPAT_REGRESSION = 0.5,
       NREPS = 6,
       NP_EVAL = 100,
-      NREPS_EVAL = 6
+      NREPS_EVAL = 6,
+      RW_SD = NULL,
+      COOLING = 0.5,
+      KEEP_TRACES = FALSE
     ),
     search2 = list(
       TOP_N = 2,
@@ -33,7 +36,10 @@ fit_coupled_haiti3 <- function(
       SPAT_REGRESSION = 0.5,
       NREPS = 3,
       NP_EVAL = 100,
-      NREPS_EVAL = 6
+      NREPS_EVAL = 6,
+      RW_SD = NULL,
+      COOLING = 0.5,
+      KEEP_TRACES = FALSE
     ),
     search3 = list(
       TOP_N = 2,
@@ -42,7 +48,10 @@ fit_coupled_haiti3 <- function(
       SPAT_REGRESSION = 0.5,
       NREPS = 3,
       NP_EVAL = 100,
-      NREPS_EVAL = 6
+      NREPS_EVAL = 6,
+      RW_SD = NULL,
+      COOLING = 0.5,
+      KEEP_TRACES = FALSE
     ),
     ncores = 3,
     nsearches = 2
@@ -53,6 +62,18 @@ fit_coupled_haiti3 <- function(
   ### Search1: Global search
   ##
   #
+
+  if (is.null(search1$COOLING)) {
+    search1$COOLING <- 0.5
+  }
+
+  if (is.null(search2$COOLING)) {
+    search2$COOLING <- 0.5
+  }
+
+  if (is.null(search3$COOLING)) {
+    search3$COOLING <- 0.5
+  }
 
   # Create the model that will be fit to cholera incidence data
   h3_spat <- haiti3_spatPomp()
@@ -73,20 +94,38 @@ fit_coupled_haiti3 <- function(
   # Add unit numbers to each parameter
   est_param_names_expanded <- paste0(rep(est_param_names, each = 10), 1:10)
 
-  # Create rw.sd for each parameter, for search 1
-  reg_rw_1.sd <- lapply(est_param_names_expanded, function(x) 0.01)
-  names(reg_rw_1.sd) <- est_param_names_expanded
-  chol_rw_1.sd <- do.call(rw.sd, reg_rw_1.sd)
+  if (is.null(search1$RW_SD)) {
+    # Create rw.sd for each parameter, for search 1
+    reg_rw_1.sd <- lapply(est_param_names_expanded, function(x) 0.01)
+    names(reg_rw_1.sd) <- est_param_names_expanded
+    chol_rw_1.sd <- do.call(rw.sd, reg_rw_1.sd)
+    rm(reg_rw_1.sd)
+  } else {
+    chol_rw_1.sd <- search1$RW_SD
+  }
 
-  # Create rw.sd for each parameter, for search 2
-  reg_rw_2.sd <- lapply(est_param_names_expanded, function(x) 0.00175)
-  names(reg_rw_2.sd) <- est_param_names_expanded
-  chol_rw_2.sd <- do.call(rw.sd, reg_rw_2.sd)
 
-  # Create rw.sd for each parameter, for search 3
-  reg_rw_3.sd <- lapply(est_param_names_expanded, function(x) 0.001)
-  names(reg_rw_3.sd) <- est_param_names_expanded
-  chol_rw_3.sd <- do.call(rw.sd, reg_rw_3.sd)
+  if (is.null(search2$RW_SD)) {
+    # Create rw.sd for each parameter, for search 2
+    reg_rw_2.sd <- lapply(est_param_names_expanded, function(x) 0.00175)
+    names(reg_rw_2.sd) <- est_param_names_expanded
+    chol_rw_2.sd <- do.call(rw.sd, reg_rw_2.sd)
+    rm(reg_rw_2.sd)
+  } else {
+    chol_rw_2.sd <- search2$RW_SD
+  }
+
+
+  if (is.null(search3$RW_SD)) {
+    # Create rw.sd for each parameter, for search 3
+    reg_rw_3.sd <- lapply(est_param_names_expanded, function(x) 0.001)
+    names(reg_rw_3.sd) <- est_param_names_expanded
+    chol_rw_3.sd <- do.call(rw.sd, reg_rw_3.sd)
+    rm(reg_rw_3.sd)
+  } else {
+    chol_rw_3.sd <- search3$RW_SD
+  }
+
 
   # Get lower bound for unit parameters (global search)
   min_val <- 1e-8
@@ -139,8 +178,8 @@ fit_coupled_haiti3 <- function(
 
   # Memory clean-up
   rm(guesses_unit, guesses_shared, fixed_mat, min_val, shared_lb,
-     shared_ub, unit_lb, unit_ub, reg_rw_1.sd, reg_rw_2.sd, reg_rw_3.sd,
-     all_params, fixed_params, est_param_names, est_param_names_expanded)
+     shared_ub, unit_lb, unit_ub,  all_params, fixed_params,
+     est_param_names)
   gc()
 
   doParallel::registerDoParallel(ncores)
@@ -163,14 +202,14 @@ fit_coupled_haiti3 <- function(
         unitParNames = unit_specific_names,
         spat_regression = search1$SPAT_REGRESSION,
         rw.sd = chol_rw_1.sd,
-        cooling.fraction.50 = 0.35,
+        cooling.fraction.50 = search1$COOLING,
         block_size = 1
         # params = r_params  Not yet implemented in spatPomp
       )
     } -> Global_ibpf
   )
 
-  rm(chol_rw_1.sd, guesses_all)
+  rm(guesses_all)
 
   ibpf_logLik <- data.frame(
     'logLik' = rep(0, length(Global_ibpf)),
@@ -204,6 +243,10 @@ fit_coupled_haiti3 <- function(
   search1_results$ibpf_time <- t_global
   search1_results$bpf_time <- t_global_bpf
 
+  if (isTRUE(search1$KEEP_TRACES)) {
+    search1_results$traces <- lapply(Global_ibpf, function(x) x@traces[, c('loglik', names(chol_rw_1.sd@call)[-1])])
+  }
+
   results$search1 <- search1_results
 
   if (nsearches == 1) {
@@ -211,7 +254,7 @@ fit_coupled_haiti3 <- function(
   }
 
   rm(ibpf_parms, j, lls, ibpf_logLik, h3_bpf, guesses,
-     Global_ibpf, t_global, t_global_bpf)
+     Global_ibpf, chol_rw_1.sd, t_global, t_global_bpf)
   gc()
 
   #
@@ -242,14 +285,14 @@ fit_coupled_haiti3 <- function(
         unitParNames = unit_specific_names,
         spat_regression = search2$SPAT_REGRESSION,
         rw.sd = chol_rw_2.sd,
-        cooling.fraction.50 = 0.5,
+        cooling.fraction.50 = search2$COOLING,
         block_size = 1
         # params = r_params  Not yet implemented in spatPomp
       )
     } -> local_ibpf
   )
 
-  rm(chol_rw_2.sd, params)
+  rm(params)
 
   ibpf_logLik <- data.frame(
     'logLik' = rep(0, length(local_ibpf)),
@@ -283,14 +326,18 @@ fit_coupled_haiti3 <- function(
   search2_results$ibpf_time <- t_ibpf_local
   search2_results$bpf_time <- t_local_bpf
 
+  if (isTRUE(search2$KEEP_TRACES)) {
+    search2_results$traces <- lapply(local_ibpf, function(x) x@traces[, c('loglik', names(chol_rw_2.sd@call)[-1])])
+  }
+
   results$search2 <- search2_results
 
-  if (nsearches == 1) {
+  if (nsearches == 2) {
     return(results)
   }
 
   rm(search1, search1_results, ibpf_parms, j, lls, top_n_global, h3_bpf,
-     ibpf_logLik, local_ibpf)
+     ibpf_logLik, chol_rw_2.sd, local_ibpf)
 
   gc()
 
@@ -322,14 +369,14 @@ fit_coupled_haiti3 <- function(
         unitParNames = unit_specific_names,
         spat_regression = search3$SPAT_REGRESSION,
         rw.sd = chol_rw_3.sd,
-        cooling.fraction.50 = 0.5,
+        cooling.fraction.50 = search2$COOLING,
         block_size = 1
         # params = r_params  Not yet implemented in spatPomp
       )
     } -> local_ibpf
   )
 
-  rm(chol_rw_3.sd, params)
+  rm(params)
 
   ibpf_logLik <- data.frame(
     'logLik' = rep(0, length(local_ibpf)),
@@ -363,8 +410,11 @@ fit_coupled_haiti3 <- function(
   search3_results$ibpf_time <- t_ibpf_local
   search3_results$bpf_time <- t_local_bpf
 
-  results$search3 <- search3_results
+  if (isTRUE(search3$KEEP_TRACES)) {
+    search3_results$traces <- lapply(local_ibpf, function(x) x@traces[, c('loglik', c('loglik', names(chol_rw_3.sd@call)[-1]))])
+  }
 
+  results$search3 <- search3_results
 
   results
 }
