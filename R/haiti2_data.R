@@ -3,14 +3,23 @@
 #' Generate a data frame of department level reported cases of cholera
 #' in Haiti.
 #'
+#' @param recreate a boolean indicating whether or not we want to recreate the results from lee20.
+#'
 #' @importFrom magrittr %>%
 #' @return Data frame
 #' @examples
 #' haiti2_data()
 #' @export
 
-haiti2_data <- function(){
-  haiti <- haitiCholera
+haiti2_data <- function(recreate = TRUE){
+
+  if (recreate) {
+    path <- system.file("extdata", "haiti-data-from-2010-10-to-2019-01.csv", package = 'haitipkg')
+    haiti <- read.csv(path)
+  } else {
+    haiti <- haitiCholera
+  }
+
   haiti <- haiti %>% dplyr::select(-report)
 
   dates <- c("2017-04-22","2018-01-27","2018-09-22","2018-12-01")

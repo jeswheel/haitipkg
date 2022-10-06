@@ -4,7 +4,10 @@
 \alias{haiti2_data}
 \title{Clean haiti cases data for Model 2}
 \usage{
-haiti2_data()
+haiti2_data(recreate = TRUE)
+}
+\arguments{
+\item{recreate}{a boolean indicating whether or not we want to recreate the results from lee20.}
 }
 \value{
 Data frame
