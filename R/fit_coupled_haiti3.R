@@ -369,7 +369,7 @@ fit_coupled_haiti3 <- function(
         unitParNames = unit_specific_names,
         spat_regression = search3$SPAT_REGRESSION,
         rw.sd = chol_rw_3.sd,
-        cooling.fraction.50 = search2$COOLING,
+        cooling.fraction.50 = search3$COOLING,
         block_size = 1
         # params = r_params  Not yet implemented in spatPomp
       )
