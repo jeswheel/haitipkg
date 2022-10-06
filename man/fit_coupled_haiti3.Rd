@@ -12,7 +12,8 @@ fit_coupled_haiti3(
   search3 = list(TOP_N = 2, NBPF = 5, NP = 100, SPAT_REGRESSION = 0.5, NREPS = 3, NP_EVAL
     = 100, NREPS_EVAL = 6, RW_SD = NULL, COOLING = 0.5, KEEP_TRACES = FALSE),
   ncores = 3,
-  nsearches = 2
+  nsearches = 2,
+  gamma = 182.625
 )
 }
 \arguments{
