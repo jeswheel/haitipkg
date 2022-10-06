@@ -54,7 +54,8 @@ fit_coupled_haiti3 <- function(
       KEEP_TRACES = FALSE
     ),
     ncores = 3,
-    nsearches = 2
+    nsearches = 2,
+    gamma = 182.625
     ) {
 
   #
@@ -77,6 +78,8 @@ fit_coupled_haiti3 <- function(
 
   # Create the model that will be fit to cholera incidence data
   h3_spat <- haiti3_spatPomp()
+
+  h3_spat@params[paste0('gamma', 1:10)] <- gamma
 
   # Create a list to save all of the results.
   results <- list()

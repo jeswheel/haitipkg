@@ -306,7 +306,7 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
 
     double thetaA = thetaI[u] * XthetaA[u];
 
-    I[u] = nearbyint(1/epsilon[u] * cases_at_t_start[u][n_cases_start-1][1]/7 * 365 /(mu[u] + alpha[u] + gamma[u]));  // Steady state
+    I[u] = nearbyint((365 * cases_at_t_start[u][n_cases_start-1][1])/(7 * epsilon[u] * (mu[u] + alpha[u] + gamma[u])));  // Steady state
     A[u] = nearbyint((1-sigma[u]) * I[u] / sigma[u]);
     R_one[u] = nearbyint((cases_at_t_start[u][n_cases_start-1][1] / (epsilon[u] * sigma[u]) - (I[u] + A[u])) / 3);
     R_two[u] = R_one[u];
