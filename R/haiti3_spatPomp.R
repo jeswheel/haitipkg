@@ -306,21 +306,11 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
 
     double thetaA = thetaI[u] * XthetaA[u];
 
-    A[u] = nearbyint((1-sigma[u])/sigma[u] * 1/epsilon[u] * cases_at_t_start[u][n_cases_start-1][1]/7 * 365 /(mu[u] + gamma[u]));
     I[u] = nearbyint(1/epsilon[u] * cases_at_t_start[u][n_cases_start-1][1]/7 * 365 /(mu[u] + alpha[u] + gamma[u]));  // Steady state
-
-    // Reset R0 vector
-    R0[0] = 0;
-    R0[1] = 0;
-
-    for(int i = 0; i < n_cases_start; i++){
-      R0[0] +=                   cases_at_t_start[u][i][1]/epsilon[u]  * exp((cases_at_t_start[u][i][0] - t_start)  * (rho[u] + mu[u])); /* because t_i in past so t_ - t_0 negative */
-      R0[1] += (1-sigma[u])/sigma[u] * cases_at_t_start[u][i][1]/epsilon[u]  * exp((cases_at_t_start[u][i][0] - t_start)  * (rho[u] + mu[u]));
-    }
-
-    R_one[u] = nearbyint((R0[0] + R0[1]) / 3);
-    R_two[u] = nearbyint((R0[0] + R0[1]) / 3);
-    R_three[u] = nearbyint((R0[0] + R0[1]) / 3);
+    A[u] = nearbyint((1-sigma[u]) * I[u] / sigma[u]);
+    R_one[u] = nearbyint((cases_at_t_start[u][n_cases_start-1][1] / (epsilon[u] * sigma[u]) - (I[u] + A[u])) / 3);
+    R_two[u] = R_one[u];
+    R_three[u] = R_one[u];
 
     if (A[u] + I[u] + R_one[u] + R_two[u] + R_three[u] >= H[u]) {
       double R_tot = H[u] - A[u] - I[u] - 100.0;
