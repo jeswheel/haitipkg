@@ -291,7 +291,6 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
   const double *epsilon = &epsilon1;
   const double *alpha = &alpha1;
   const double *gamma = &gamma1;
-  const double *rho = &rho1;
   const double *Binit = &Binit1;
   const double *r = &r1;
   const double *mu_B = &mu_B1;
@@ -411,17 +410,17 @@ dmeas <- pomp::Csnippet(dmeasTemplate)
 
 # TODO: Below assumes that k, epsilon, and cas_def constant across units.
 unit_dmeasTemplate <- "
-  double k = k1;
-  double epsilon = epsilon1;
-  double cas_def = cas_def1;
+  double *k = &k1;
+  double *epsilon = &epsilon1;
+  double *cas_def = &cas_def1;
 
   if (ISNA(cases)) {
       lik = (give_log) ? 0 : 1;
   } else {
     if (t > 2018) {
-      lik = dnbinom_mu(cases, k, epsilon * C * cas_def, give_log);
+      lik = dnbinom_mu(cases, k[u], epsilon[u] * C * cas_def[u], give_log);
     } else {
-      lik = dnbinom_mu(cases, k, epsilon * C, give_log);
+      lik = dnbinom_mu(cases, k[u], epsilon[u] * C, give_log);
       }
     }
 "
@@ -477,22 +476,21 @@ const double *t_vacc_end_alt = &t_vacc_end_alt1;
 const double *p1d_reg_alt = &p1d_reg_alt1;
 const double *r_v_year_alt = &r_v_year_alt1;
 
-// Below I'm assuming that all these parameters are constant across the units.
-const double thetaI = thetaI1;
-const double XthetaA = XthetaA1;
+const double *thetaI = &thetaI1;
+const double *XthetaA = &XthetaA1;
+const double *sigma = &sigma1;
+const double *rho = &rho1;
+const double *r = &r1;
+const double *mu_B = &mu_B1;
+const double *lambdaR = &lambdaR1;
+const double *std_W = &std_W1;
+const double *k = &k1;
+const double *gamma = &gamma1;
+
+// Below I'm assuming that all these parameters are constants, so they don't get updated.
 const double mu = mu1;
-const double sigma = sigma1;
-const double epsilon = epsilon1;
 const double alpha = alpha1;
-const double gamma = gamma1;
-const double rho = rho1;
-// const double *Binit = &Binit1;  IVP
-const double r = r1;
-const double mu_B = mu_B1;
 const double *cases_ext = &cases_ext1;
-const double lambdaR = lambdaR1;
-const double std_W = std_W1;
-const double k = k1;
 const double cas_def = cas_def1;
 
 double foi, foi_stoc;   // force of infection and its stochastic version
@@ -514,53 +512,53 @@ rate[4] = mu;           // S -> natural death
 // I compartment
 rate[5] = mu;           // natural deaths
 rate[6] = alpha;        // cholera-induced deaths
-rate[7] = gamma;        // I -> R
+rate[7] = gamma[u];        // I -> R
 
 // A compartment
 rate[8] = mu;           // natural death
-rate[9] = gamma;        // A -> R_one
+rate[9] = gamma[u];        // A -> R_one
 
 // R_one
-rate[12] = 3 * rho;     // loss of natural immunity; R_one -> R_two
-rate[13] = mu;          // natural death R_one -> death
+rate[12] = 3 * rho[u];     // loss of natural immunity; R_one -> R_two
+rate[13] = mu;             // natural death R_one -> death
 
 // R_two
-rate[16] = 3 * rho;     // loss of natural immunity; R_two -> R_three
-rate[17] = mu;          // natural death R_two -> death
+rate[16] = 3 * rho[u];     // loss of natural immunity; R_two -> R_three
+rate[17] = mu;             // natural death R_two -> death
 
 // R_three
-rate[20] = 3 * rho;     // loss of natural immunity; R_three -> S
-rate[21] = mu;          // natural death R_three -> death
+rate[20] = 3 * rho[u];     // loss of natural immunity; R_three -> S
+rate[21] = mu;             // natural death R_three -> death
 
 // VSd
 rate[26] = mu;          // VSd -> death
 
 // VR1d
-rate[27] = mu;          // natural death:    VR1d -> death
-rate[28] = 3 * rho;     // loss of immunity: VR1d -> VR2d
+rate[27] = mu;             // natural death:    VR1d -> death
+rate[28] = 3 * rho[u];     // loss of immunity: VR1d -> VR2d
 
 // VR2d
-rate[29] = mu;          // natural death:    VR2d -> death
-rate[30] = 3 * rho;     // loss of immunity: VR2d -> VR3d
+rate[29] = mu;             // natural death:    VR2d -> death
+rate[30] = 3 * rho[u];     // loss of immunity: VR2d -> VR3d
 
 // VR3d
-rate[31] = mu;          // natural death:    VR3d -> death
-rate[32] = 3 * rho;     // loss of immunity: VR3d -> VSd
+rate[31] = mu;             // natural death:    VR3d -> death
+rate[32] = 3 * rho[u];     // loss of immunity: VR3d -> VSd
 
 // VSdd
-rate[35] = mu;          // natural death
+rate[35] = mu;             // natural death
 
 // VR1dd
-rate[36] = mu;          // natural death:    VR1dd -> death
-rate[37] = 3 * rho;     // loss of immunity: VR1dd -> VR2dd
+rate[36] = mu;                // natural death:    VR1dd -> death
+rate[37] = 3 * rho[u];        // loss of immunity: VR1dd -> VR2dd
 
 // VR2dd
-rate[38] = mu;          // natural death:    VR2dd -> death
-rate[39] = 3 * rho;     // loss of immunity: VR2dd -> VR3dd
+rate[38] = mu;             // natural death:    VR2dd -> death
+rate[39] = 3 * rho[u];     // loss of immunity: VR2dd -> VR3dd
 
 // VR3dd
-rate[40] = mu;          // natural death:    VR3dd -> death
-rate[41] = 3 * rho;     // loss of immunity: VR3dd -> VSdd
+rate[40] = mu;             // natural death:    VR3dd -> death
+rate[41] = 3 * rho[u];     // loss of immunity: VR3dd -> VSdd
 
 // VSd_alt
 rate[44] = mu;          // natural death
@@ -571,7 +569,7 @@ rate[47] = mu;          // natural death
 // Loop through each unit (departement)
 for (int u = 0; u < U; u++) {
   int scenario =  cases_ext[u];
-  double thetaA = thetaI * XthetaA;
+  double thetaA = thetaI[u] * XthetaA[u];
 
   previous_vacc_campaign = TRUE;
   r_v_wdn = 0;
@@ -584,8 +582,8 @@ for (int u = 0; u < U; u++) {
   // force of infection
   foi = betaB[u] * (B[u] / (1 + B[u])) + foi_add[u] * mobility;
 
-  if(std_W > 0.0) {
-    dw = rgammawn(std_W, dt);   // white noise (extra-demographic stochasticity)
+  if(std_W[u] > 0.0) {
+    dw = rgammawn(std_W[u], dt);   // white noise (extra-demographic stochasticity)
     foi_stoc = foi * dw/dt;     // apply stochasticity
   } else {
     foi_stoc = foi;
@@ -619,8 +617,8 @@ for (int u = 0; u < U; u++) {
   // define transition rates for each type of event (i.e what multplies the thing)
 
   // S compartment
-  rate[0] = sigma * foi_stoc;         // infections
-  rate[1] = (1 - sigma) * foi_stoc;   // asymptomatic infections
+  rate[0] = sigma[u] * foi_stoc;         // infections
+  rate[1] = (1 - sigma[u]) * foi_stoc;   // asymptomatic infections
   rate[2] = p1d * r_v_wdn;            // S -> VSd
   rate[3] = pdd * r_v_wdn;            // S -> VSdd
 
@@ -641,22 +639,22 @@ for (int u = 0; u < U; u++) {
   rate[23] = pdd * r_v_wdn;  // R_three -> VR3dd
 
   // VSd
-  rate[24] = sigma * (1 - eff_v_1d(t_eff, scenario)) * foi_stoc;       // VSd -> I
-  rate[25] = (1 - sigma) * (1 - eff_v_1d(t_eff, scenario)) * foi_stoc; // VSd -> A
+  rate[24] = sigma[u] * (1 - eff_v_1d(t_eff, scenario)) * foi_stoc;       // VSd -> I
+  rate[25] = (1 - sigma[u]) * (1 - eff_v_1d(t_eff, scenario)) * foi_stoc; // VSd -> A
 
   // VSdd
-  rate[33] = sigma * (1 - eff_v_2d(t_eff, scenario)) * foi_stoc;       // VSdd -> I
-  rate[34] = (1 - sigma) * (1 - eff_v_2d(t_eff, scenario)) * foi_stoc; // VSdd -> A
+  rate[33] = sigma[u] * (1 - eff_v_2d(t_eff, scenario)) * foi_stoc;       // VSdd -> I
+  rate[34] = (1 - sigma[u]) * (1 - eff_v_2d(t_eff, scenario)) * foi_stoc; // VSdd -> A
 
   /* For previous vacc campagain */
 
   // VSd_alt
-  rate[42] = sigma       * (1 - eff_v_1d(t_eff_alt, scenario)) * foi_stoc; // VSd -> I
-  rate[43] = (1 - sigma) * (1 - eff_v_1d(t_eff_alt, scenario)) * foi_stoc; // VSd -> A
+  rate[42] = sigma[u]       * (1 - eff_v_1d(t_eff_alt, scenario)) * foi_stoc; // VSd -> I
+  rate[43] = (1 - sigma[u]) * (1 - eff_v_1d(t_eff_alt, scenario)) * foi_stoc; // VSd -> A
 
   // VSdd_alt
-  rate[45] = sigma       * (1 - eff_v_2d(t_eff_alt, scenario)) * foi_stoc; // VSdd -> I
-  rate[46] = (1 - sigma) * (1 - eff_v_2d(t_eff_alt, scenario)) * foi_stoc; // VSdd -> A
+  rate[45] = sigma[u]       * (1 - eff_v_2d(t_eff_alt, scenario)) * foi_stoc; // VSdd -> I
+  rate[46] = (1 - sigma[u]) * (1 - eff_v_2d(t_eff_alt, scenario)) * foi_stoc; // VSdd -> A
 
   // All other alts already defined.
 
@@ -696,10 +694,10 @@ for (int u = 0; u < U; u++) {
 
   // bacteria as continous state variable
   // implement Runge-Kutta integration assuming S, I, R, V* stay constant during dt
-  RK1 = dt * fB(I[u], A[u], B[u], mu_B, thetaI, thetaA, lambdaR, rain_std[u], r, D[u]);
-  RK2 = dt * fB(I[u], A[u], B[u], mu_B, thetaI, thetaA, lambdaR, rain_std[u], r, D[u]);
-  RK3 = dt * fB(I[u], A[u], B[u], mu_B, thetaI, thetaA, lambdaR, rain_std[u], r, D[u]);
-  RK4 = dt * fB(I[u], A[u], B[u], mu_B, thetaI, thetaA, lambdaR, rain_std[u], r, D[u]);
+  RK1 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA[u], lambdaR[u], rain_std[u], r[u], D[u]);
+  RK2 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA[u], lambdaR[u], rain_std[u], r[u], D[u]);
+  RK3 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA[u], lambdaR[u], rain_std[u], r[u], D[u]);
+  RK4 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA[u], lambdaR[u], rain_std[u], r[u], D[u]);
 
   // bacteria increment
   dB = (RK1 + 2*RK2 + 2*RK3 + RK4) / 6.0;
