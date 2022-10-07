@@ -298,9 +298,6 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
   const double *D = &D1;
   const double *lambdaR = &lambdaR1;
 
-
-  double R0[2] = {0,0};
-
   for (int u = 0; u < U; u++) {
 
     double thetaA = thetaI[u] * XthetaA[u];
@@ -512,22 +509,17 @@ rate[4] = mu;           // S -> natural death
 // I compartment
 rate[5] = mu;           // natural deaths
 rate[6] = alpha;        // cholera-induced deaths
-rate[7] = gamma[u];        // I -> R
 
 // A compartment
 rate[8] = mu;           // natural death
-rate[9] = gamma[u];        // A -> R_one
 
 // R_one
-rate[12] = 3 * rho[u];     // loss of natural immunity; R_one -> R_two
 rate[13] = mu;             // natural death R_one -> death
 
 // R_two
-rate[16] = 3 * rho[u];     // loss of natural immunity; R_two -> R_three
 rate[17] = mu;             // natural death R_two -> death
 
 // R_three
-rate[20] = 3 * rho[u];     // loss of natural immunity; R_three -> S
 rate[21] = mu;             // natural death R_three -> death
 
 // VSd
@@ -535,30 +527,24 @@ rate[26] = mu;          // VSd -> death
 
 // VR1d
 rate[27] = mu;             // natural death:    VR1d -> death
-rate[28] = 3 * rho[u];     // loss of immunity: VR1d -> VR2d
 
 // VR2d
 rate[29] = mu;             // natural death:    VR2d -> death
-rate[30] = 3 * rho[u];     // loss of immunity: VR2d -> VR3d
 
 // VR3d
 rate[31] = mu;             // natural death:    VR3d -> death
-rate[32] = 3 * rho[u];     // loss of immunity: VR3d -> VSd
 
 // VSdd
 rate[35] = mu;             // natural death
 
 // VR1dd
 rate[36] = mu;                // natural death:    VR1dd -> death
-rate[37] = 3 * rho[u];        // loss of immunity: VR1dd -> VR2dd
 
 // VR2dd
 rate[38] = mu;             // natural death:    VR2dd -> death
-rate[39] = 3 * rho[u];     // loss of immunity: VR2dd -> VR3dd
 
 // VR3dd
 rate[40] = mu;             // natural death:    VR3dd -> death
-rate[41] = 3 * rho[u];     // loss of immunity: VR3dd -> VSdd
 
 // VSd_alt
 rate[44] = mu;          // natural death
@@ -622,19 +608,26 @@ for (int u = 0; u < U; u++) {
   rate[2] = p1d * r_v_wdn;            // S -> VSd
   rate[3] = pdd * r_v_wdn;            // S -> VSdd
 
+  // I compartment
+  rate[7] = gamma[u];        // I -> R
+
   // A compartment
+  rate[9] = gamma[u];        // A -> R_one
   rate[10] = p1d * r_v_wdn;   // A -> VR1d
   rate[11] = pdd * r_v_wdn;   // A -> VR1dd
 
   // R_one
+  rate[12] = 3 * rho[u];     // loss of natural immunity; R_one -> R_two
   rate[14] = p1d * r_v_wdn;  // R_one -> VR1d
   rate[15] = pdd * r_v_wdn;  // R_one -> VR1dd
 
   // R_two
+  rate[16] = 3 * rho[u];     // loss of natural immunity; R_two -> R_three
   rate[18] = p1d * r_v_wdn;  // R_two -> VR2d
   rate[19] = pdd * r_v_wdn;  // R_two -> VR2dd
 
   // R_three
+  rate[20] = 3 * rho[u];     // loss of natural immunity; R_three -> S
   rate[22] = p1d * r_v_wdn;  // R_three -> VR3d
   rate[23] = pdd * r_v_wdn;  // R_three -> VR3dd
 
@@ -642,9 +635,27 @@ for (int u = 0; u < U; u++) {
   rate[24] = sigma[u] * (1 - eff_v_1d(t_eff, scenario)) * foi_stoc;       // VSd -> I
   rate[25] = (1 - sigma[u]) * (1 - eff_v_1d(t_eff, scenario)) * foi_stoc; // VSd -> A
 
+  // VR1d
+  rate[28] = 3 * rho[u];     // loss of immunity: VR1d -> VR2d
+
+  // VR2d
+  rate[30] = 3 * rho[u];     // loss of immunity: VR2d -> VR3d
+
+  // VR3d
+  rate[32] = 3 * rho[u];     // loss of immunity: VR3d -> VSd
+
   // VSdd
   rate[33] = sigma[u] * (1 - eff_v_2d(t_eff, scenario)) * foi_stoc;       // VSdd -> I
   rate[34] = (1 - sigma[u]) * (1 - eff_v_2d(t_eff, scenario)) * foi_stoc; // VSdd -> A
+
+  // VR1dd
+  rate[37] = 3 * rho[u];        // loss of immunity: VR1dd -> VR2dd
+
+  // VR2dd
+  rate[39] = 3 * rho[u];     // loss of immunity: VR2dd -> VR3dd
+
+  // VR3dd
+  rate[41] = 3 * rho[u];     // loss of immunity: VR3dd -> VSdd
 
   /* For previous vacc campagain */
 
@@ -694,10 +705,10 @@ for (int u = 0; u < U; u++) {
 
   // bacteria as continous state variable
   // implement Runge-Kutta integration assuming S, I, R, V* stay constant during dt
-  RK1 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA[u], lambdaR[u], rain_std[u], r[u], D[u]);
-  RK2 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA[u], lambdaR[u], rain_std[u], r[u], D[u]);
-  RK3 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA[u], lambdaR[u], rain_std[u], r[u], D[u]);
-  RK4 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA[u], lambdaR[u], rain_std[u], r[u], D[u]);
+  RK1 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
+  RK2 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
+  RK3 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
+  RK4 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
 
   // bacteria increment
   dB = (RK1 + 2*RK2 + 2*RK3 + RK4) / 6.0;
@@ -792,7 +803,7 @@ eff_v.c <- "
   double eff_v_2d = 0.0;
   switch(scenario){
   case 1:
-      if      (t_since_vacc <=   1./12) eff_v_2d =  0.76              ;
+      if      (t_since_vacc <=   1./12) eff_v_2d =  0.76             ;
       else if (t_since_vacc <=   2./12) eff_v_2d =  0.753527484533759;
       else if (t_since_vacc <=   3./12) eff_v_2d =  0.746961516042262;
       else if (t_since_vacc <=   4./12) eff_v_2d =  0.740300745209625;
