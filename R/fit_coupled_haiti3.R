@@ -214,37 +214,39 @@ fit_coupled_haiti3 <- function(
 
   rm(guesses_all)
 
-  ibpf_logLik <- data.frame(
-    'logLik' = rep(0, length(Global_ibpf)),
-    'se' = rep(0, length(Global_ibpf)),
-    'which' = 1:length(Global_ibpf)
+  pfilterLikes <- data.frame(
+    "ll" = rep(0, search1$NREPS_EVAL*search1$NREPS),
+    "which" = rep(1:search1$NREPS, each = search1$NREPS_EVAL)
   )
 
   t_global_bpf <- system.time(
-    for (j in 1:length(Global_ibpf)) {
-      ibpf_parms <- coef(Global_ibpf[[j]])
-
-      doRNG::registerDoRNG((j * 38763911) %% 7919)
-
-      coef(h3_spat) <- ibpf_parms
-
-      h3_bpf <- foreach(
-        i = 1:search1$NREPS_EVAL, .combine = c, .packages = 'spatPomp'
-      ) %dopar% {
-        bpfilter(h3_spat, Np = search1$NP_EVAL, block_size = 1,
-                 params = ibpf_parms)
-      }
-
-      lls <- logLik(h3_bpf)
-      ibpf_logLik[j, 1:2] <- logmeanexp(lls[!is.na(lls)], se = TRUE)
+    likMat <- foreach(  # Get log-likelihood for each unit and set of parameters, NREPS_EVAL times each
+      i = 1:(search1$NREPS_EVAL*search1$NREPS), .combine = rbind, .packages = 'spatPomp'
+    ) %dopar% {
+      p3 <- coef(Global_ibpf[[(i-1) %/% search1$NREPS_EVAL + 1]])
+      coef(h3_spat) <- p3
+      apply(bpfilter(
+        h3_spat, Np = search1$NP_EVAL,
+        block_size = 1, parms = p3
+      )@block.cond.loglik, 1, sum)
     }
   )
+
+  # Condense unit likelihoods into model likelihood
+  pfilterLikes$ll <- apply(likMat, 1, sum)
+
+  # Group by model parameter set.
+  ibpf_logLik <- pfilterLikes %>%
+    dplyr::group_by(which) %>%
+    dplyr::summarize(logLik = logmeanexp(ll),
+              se = logmeanexp(ll, se = TRUE)[2])
 
   search1_results <- list()
   search1_results$logLiks <- ibpf_logLik
   search1_results$params <- t(coef(Global_ibpf))
   search1_results$ibpf_time <- t_global
   search1_results$bpf_time <- t_global_bpf
+  search1_results$likMat <- likMat
 
   if (isTRUE(search1$KEEP_TRACES)) {
     search1_results$traces <- lapply(Global_ibpf, function(x) x@traces[, c('loglik', names(chol_rw_1.sd@call)[-1])])
@@ -256,7 +258,7 @@ fit_coupled_haiti3 <- function(
     return(results)
   }
 
-  rm(ibpf_parms, j, lls, ibpf_logLik, h3_bpf, guesses,
+  rm(ibpf_logLik, guesses, likMat, pfilterLikes,
      Global_ibpf, chol_rw_1.sd, t_global, t_global_bpf)
   gc()
 
@@ -297,37 +299,50 @@ fit_coupled_haiti3 <- function(
 
   rm(params)
 
-  ibpf_logLik <- data.frame(
-    'logLik' = rep(0, length(local_ibpf)),
-    'se' = rep(0, length(local_ibpf)),
-    'starting_set' = rep(top_n_global, each = search2$NREPS)
+  pfilterLikes <- data.frame(
+    "ll" = 0,
+    "starting_set" = rep(top_n_global, each = search2$NREPS * search2$NREPS_EVAL),
+    "which" = rep(1:(search2$NREPS * search2$TOP_N), each = search1$NREPS_EVAL)
   )
 
   t_local_bpf <- system.time(
-    for (j in 1:length(local_ibpf)) {
-      ibpf_parms <- coef(local_ibpf[[j]])
-
-      doRNG::registerDoRNG((j * 38763911) %% 7919)
-
-      coef(h3_spat) <- ibpf_parms
-
-      h3_bpf <- foreach(
-        i = 1:search2$NREPS_EVAL, .combine = c, .packages = 'spatPomp'
-      ) %dopar% {
-        bpfilter(h3_spat, Np = search2$NP_EVAL, block_size = 1,
-                 params = ibpf_parms)
-      }
-
-      lls <- logLik(h3_bpf)
-      ibpf_logLik[j, 1:2] <- logmeanexp(lls[!is.na(lls)], se = TRUE)
+    likMat <- foreach(  # Get log-likelihood for each unit and set of parameters, NREPS_EVAL times each
+      i = 1:(search2$NREPS_EVAL*search2$NREPS*search2$TOP_N), .combine = rbind, .packages = 'spatPomp'
+    ) %dopar% {
+      p3 <- coef(local_ibpf[[(i-1) %/% search2$NREPS_EVAL + 1]])
+      coef(h3_spat) <- p3
+      apply(bpfilter(
+        h3_spat, Np = search2$NP_EVAL,
+        block_size = 1, parms = p3
+      )@block.cond.loglik, 1, sum)
     }
   )
+
+  # Condense unit likelihoods into model likelihood
+  pfilterLikes$ll <- apply(likMat, 1, sum)
+
+  # Group by model parameter set.
+  ibpf_logLik_temp <- pfilterLikes %>%
+    dplyr::group_by(which) %>%
+    dplyr::summarize(logLik = logmeanexp(ll),
+                     se = logmeanexp(ll, se = TRUE)[2])
+
+  ibpf_logLik <- pfilterLikes %>%
+    dplyr::group_by(which) %>%
+    dplyr::summarise(starting_set = dplyr::first(starting_set)) %>%
+    dplyr::left_join(
+      x = ibpf_logLik_temp,
+      y = .,
+      by = "which"
+    ) %>%
+    dplyr::select(which, starting_set, logLik, se)
 
   search2_results <- list()
   search2_results$logLiks <- ibpf_logLik
   search2_results$params <- t(coef(local_ibpf))
   search2_results$ibpf_time <- t_ibpf_local
   search2_results$bpf_time <- t_local_bpf
+  search2_results$likMat <- likMat
 
   if (isTRUE(search2$KEEP_TRACES)) {
     search2_results$traces <- lapply(local_ibpf, function(x) x@traces[, c('loglik', names(chol_rw_2.sd@call)[-1])])
@@ -339,8 +354,10 @@ fit_coupled_haiti3 <- function(
     return(results)
   }
 
-  rm(search1, search1_results, ibpf_parms, j, lls, top_n_global, h3_bpf,
-     ibpf_logLik, chol_rw_2.sd, local_ibpf)
+  rm(
+    search1, search1_results, top_n_global, t_ibpf_local, t_local_bpf,
+    pfilterLikes, ibpf_logLik, chol_rw_2.sd, local_ibpf, likMat, ibpf_logLik_temp
+  )
 
   gc()
 
@@ -381,37 +398,50 @@ fit_coupled_haiti3 <- function(
 
   rm(params)
 
-  ibpf_logLik <- data.frame(
-    'logLik' = rep(0, length(local_ibpf)),
-    'se' = rep(0, length(local_ibpf)),
-    'starting_set' = rep(top_n_local, each = search3$NREPS)
+  pfilterLikes <- data.frame(
+    "ll" = 0,
+    "starting_set" = rep(top_n_local, each = search3$NREPS * search3$NREPS_EVAL),
+    "which" = rep(1:(search3$NREPS * search3$TOP_N), each = search3$NREPS_EVAL)
   )
 
   t_local_bpf <- system.time(
-    for (j in 1:length(local_ibpf)) {
-      ibpf_parms <- coef(local_ibpf[[j]])
-
-      doRNG::registerDoRNG((j * 38763911) %% 7919)
-
-      coef(h3_spat) <- ibpf_parms
-
-      h3_bpf <- foreach(
-        i = 1:search2$NREPS_EVAL, .combine = c, .packages = 'spatPomp'
-      ) %dopar% {
-        bpfilter(h3_spat, Np = search2$NP_EVAL, block_size = 1,
-                 params = ibpf_parms)
-      }
-
-      lls <- logLik(h3_bpf)
-      ibpf_logLik[j, 1:2] <- logmeanexp(lls[!is.na(lls)], se = TRUE)
+    likMat <- foreach(  # Get log-likelihood for each unit and set of parameters, NREPS_EVAL times each
+      i = 1:(search3$NREPS_EVAL*search3$NREPS*search3$TOP_N), .combine = rbind, .packages = 'spatPomp'
+    ) %dopar% {
+      p3 <- coef(local_ibpf[[(i-1) %/% search3$NREPS_EVAL + 1]])
+      coef(h3_spat) <- p3
+      apply(bpfilter(
+        h3_spat, Np = search3$NP_EVAL,
+        block_size = 1, parms = p3
+      )@block.cond.loglik, 1, sum)
     }
   )
+
+  # Condense unit likelihoods into model likelihood
+  pfilterLikes$ll <- apply(likMat, 1, sum)
+
+  # Group by model parameter set.
+  ibpf_logLik_temp <- pfilterLikes %>%
+    dplyr::group_by(which) %>%
+    dplyr::summarize(logLik = logmeanexp(ll),
+                     se = logmeanexp(ll, se = TRUE)[2])
+
+  ibpf_logLik <- pfilterLikes %>%
+    dplyr::group_by(which) %>%
+    dplyr::summarise(starting_set = dplyr::first(starting_set)) %>%
+    dplyr::left_join(
+      x = ibpf_logLik_temp,
+      y = .,
+      by = "which"
+    ) %>%
+    dplyr::select(which, starting_set, logLik, se)
 
   search3_results <- list()
   search3_results$logLiks <- ibpf_logLik
   search3_results$params <- t(coef(local_ibpf))
   search3_results$ibpf_time <- t_ibpf_local
   search3_results$bpf_time <- t_local_bpf
+  search3_results$likMat <- likMat
 
   if (isTRUE(search3$KEEP_TRACES)) {
     search3_results$traces <- lapply(local_ibpf, function(x) x@traces[, c('loglik', c('loglik', names(chol_rw_3.sd@call)[-1]))])
