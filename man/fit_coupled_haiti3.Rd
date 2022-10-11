@@ -13,7 +13,8 @@ fit_coupled_haiti3(
     = 100, NREPS_EVAL = 6, RW_SD = NULL, COOLING = 0.5, KEEP_TRACES = FALSE),
   ncores = 3,
   nsearches = 2,
-  gamma = 182.625
+  search_rho = FALSE,
+  search_gamma = FALSE
 )
 }
 \arguments{

@@ -55,7 +55,8 @@ fit_coupled_haiti3 <- function(
     ),
     ncores = 3,
     nsearches = 2,
-    gamma = 182.625
+    search_rho = FALSE,
+    search_gamma = FALSE
     ) {
 
   #
@@ -79,7 +80,7 @@ fit_coupled_haiti3 <- function(
   # Create the model that will be fit to cholera incidence data
   h3_spat <- haiti3_spatPomp()
 
-  h3_spat@params[paste0('gamma', 1:10)] <- gamma
+  # h3_spat@params[paste0('gamma', 1:10)] <- gamma
 
   # Create a list to save all of the results.
   results <- list()
@@ -90,6 +91,15 @@ fit_coupled_haiti3 <- function(
     "mu_B", "XthetaA", "thetaI", "lambdaR", "r", "std_W",
     "epsilon", "k", "sigma"
   )
+
+  if (search_rho) {
+    shared_param_names <- c(shared_param_names, "rho")
+  }
+
+  if (search_gamma) {
+    shared_param_names <- c(shared_param_names, "gamma")
+  }
+
   est_param_names <- c(
     unit_specific_names, shared_param_names
   )
@@ -140,12 +150,32 @@ fit_coupled_haiti3 <- function(
   names(unit_ub) <- paste0(rep(unit_specific_names, each = 10), 1:10)
 
   # Get lower bound for shared parameters (global search)
-  shared_lb <- rep(c(5, min_val, min_val, min_val,
-                     min_val, min_val, 0.25, 5, 0.01))
+  shared_lb <- c(
+    5, min_val, min_val, min_val,
+    min_val, min_val, 0.25, 5, 0.01
+  )
+
+  if (search_rho) {
+    shared_lb <- c(shared_lb, 1/8)
+  }
+
+  if (search_gamma) {
+    shared_lb <- c(shared_lb, 365.25 / 5)
+  }
+
   names(shared_lb) <- shared_param_names
 
   # Get upper bound for shared parameters (global search)
   shared_ub <- c(300, 1, 2e-3, 5, 1.2, 0.15, 1, 1000, 0.5)
+
+  if (search_rho) {
+    shared_ub <- c(shared_ub, 1/(0.2))
+  }
+
+  if (search_gamma) {
+    shared_ub <- c(shared_ub, 365.25 / 2)
+  }
+
   names(shared_ub) <- shared_param_names
 
   # Create data.frame with random unit parameters
