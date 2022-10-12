@@ -789,8 +789,8 @@ final_rproc_c <- pomp::Csnippet(rprocTemplate)
 
 # C function to compute the time-derivative of bacterial concentration OK
 derivativeBacteria.c <- " double fB(int I, int A, double B,
-double mu_B, double thetaI, double XthetaA, double lambdaR, double rain, double r, double D) {
-  double thetaA = thetaI * XthetaA;
+double mu_B, double thetaI, double thetaA, double lambdaR, double rain, double r, double D) {
+  // double thetaA = thetaI * XthetaA;
   double dB;
   dB = -mu_B * B +  (1 + lambdaR * pow(rain, r)) * D * (thetaI * (double) I + thetaA * (double) A);
   return(dB);
@@ -948,7 +948,7 @@ zeronameUnit = paste0(c("C"), 1:10)
 pt <- pomp::parameter_trans(
   log = paste0(rep(c(
     "mu_B", "thetaI", "lambdaR", "r", "std_W", "k",
-    "betaB", "foi_add"
+    "betaB", "foi_add", "rho", "gamma"
   ), each = 10), 1:10),
   logit = paste0(rep(c(
     "XthetaA",

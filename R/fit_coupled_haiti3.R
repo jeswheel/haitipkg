@@ -146,13 +146,22 @@ fit_coupled_haiti3 <- function(
   names(unit_lb) <- paste0(rep(unit_specific_names, each = 10), 1:10)
 
   # Get upper bound for unit parameters (global search)
-  unit_ub <- rep(c(50, 1e-5), each = 10)
+  unit_ub <- rep(c(50, 5e-6), each = 10)
   names(unit_ub) <- paste0(rep(unit_specific_names, each = 10), 1:10)
+  unit_ub['betaB1'] <- 30
+  unit_ub['betaB10'] <- 30
+  unit_ub['betaB5'] <- 20
+  unit_ub['betaB7'] <- 25
+  unit_ub['betaB8'] <- 30
+  unit_ub['betaB9'] <- 25
+  unit_ub['foi_add7'] <- 3e-6
+  unit_ub['foi_add3'] <- 3e-6
+  unit_ub['foi_add4'] <- 2e-6
 
   # Get lower bound for shared parameters (global search)
   shared_lb <- c(
     5, min_val, min_val, min_val,
-    min_val, min_val, 0.25, 5, 0.01
+    0.3, min_val, 0.25, 50, 0.01
   )
 
   if (search_rho) {
@@ -166,7 +175,7 @@ fit_coupled_haiti3 <- function(
   names(shared_lb) <- shared_param_names
 
   # Get upper bound for shared parameters (global search)
-  shared_ub <- c(300, 1, 2e-3, 5, 1.2, 0.15, 1, 1000, 0.5)
+  shared_ub <- c(300, 1, 0.00075, 5, 1.2, 0.15, 1, 1000, 0.25)
 
   if (search_rho) {
     shared_ub <- c(shared_ub, 1/(0.2))
