@@ -179,7 +179,7 @@ fit_coupled_haiti3 <- function(
   names(shared_lb) <- shared_param_names
 
   # Get upper bound for shared parameters (global search)
-  shared_ub <- c(500, 0.8, 0.0002, 5, 1.5, 0.15, 1, 1000, 0.25)
+  shared_ub <- c(500, 0.8, 0.0001, 5, 1.75, 0.15, 1, 1000, 0.3)
 
   if (search_rho) {
     shared_ub <- c(shared_ub, 1/(0.2))
