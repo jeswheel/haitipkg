@@ -270,7 +270,7 @@ fit_coupled_haiti3 <- function(
       coef(h3_spat) <- p3
       apply(bpfilter(
         h3_spat, Np = search1$NP_EVAL,
-        block_size = 1, parms = p3
+        block_size = 1
       )@block.cond.loglik, 1, sum)
     }
   )
@@ -356,7 +356,7 @@ fit_coupled_haiti3 <- function(
       coef(h3_spat) <- p3
       apply(bpfilter(
         h3_spat, Np = search2$NP_EVAL,
-        block_size = 1, parms = p3
+        block_size = 1
       )@block.cond.loglik, 1, sum)
     }
   )
@@ -455,7 +455,7 @@ fit_coupled_haiti3 <- function(
       coef(h3_spat) <- p3
       apply(bpfilter(
         h3_spat, Np = search3$NP_EVAL,
-        block_size = 1, parms = p3
+        block_size = 1
       )@block.cond.loglik, 1, sum)
     }
   )

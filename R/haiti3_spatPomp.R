@@ -322,7 +322,8 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
     }
 
     S[u]   = nearbyint(H[u] - A[u] - I[u] - R_one[u] - R_two[u] - R_three[u]);
-    B[u]   = (I[u] * thetaI[u]/mu_B[u] + A[u] * thetaA/mu_B[u]) * D[u] * (1 + lambdaR[u] * pow(Binit[u], r[u]));
+    // B[u]   = (I[u] * thetaI[u]/mu_B[u] + A[u] * thetaA/mu_B[u]) * D[u] * (1 + lambdaR[u] * pow(Binit[u], r[u]));
+    B[u] = Binit[u];
     C[u]   = 0;
 
     VSd[u] = 0;
@@ -948,13 +949,12 @@ zeronameUnit = paste0(c("C"), 1:10)
 pt <- pomp::parameter_trans(
   log = paste0(rep(c(
     "mu_B", "thetaI", "lambdaR", "r", "std_W", "k",
-    "betaB", "foi_add", "rho", "gamma"
+    "betaB", "foi_add", "rho", "gamma", "Binit"
   ), each = 10), 1:10),
   logit = paste0(rep(c(
     "XthetaA",
     "epsilon",
     "cas_def",
-    "Binit",
     "sigma"
   ), each = 10), 1:10)
 )
@@ -976,7 +976,18 @@ all_unit_params[grepl("^std_W[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.0
 all_unit_params[grepl("^epsilon[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.9750270707877388
 all_unit_params[grepl("^k[[:digit:]]{1,2}$", names(all_unit_params))] <- 101.2215999283583
 all_unit_params[grepl("^cas_def[[:digit:]]{1,2}$", names(all_unit_params))] <- 1
-all_unit_params[grepl("^Binit[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.24
+# all_unit_params[grepl("^Binit[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.24
+
+all_unit_params["Binit1"]  <- 2.203050532
+all_unit_params["Binit2"]  <- 0.108408269
+all_unit_params["Binit3"]  <- 1e-15
+all_unit_params["Binit4"]  <- 1e-15
+all_unit_params["Binit5"]  <- 0.008701471
+all_unit_params["Binit6"]  <- 1e-15
+all_unit_params["Binit7"]  <- 0.001195806
+all_unit_params["Binit8"]  <- 0.437702954
+all_unit_params["Binit9"]  <- 1e-15
+all_unit_params["Binit10"] <- 1e-15
 
 # These parameters are different for each departement, so these need to be set seperately.
 
