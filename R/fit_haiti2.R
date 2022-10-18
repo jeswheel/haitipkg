@@ -63,7 +63,7 @@ fit_haiti2 <- function() {
   lee_end_ll <- -end_fit_v$value
 
   mod2_leeFit_ll <- lee_epi_ll + lee_end_ll
-  mod2_leeFit_num_parms <- 26
+  mod2_leeFit_num_parms <- 6
 
   rm(
     epi_params, epi_ofun_v, theta, epi_fit_v, epi_params_update_v,
