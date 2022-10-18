@@ -37,6 +37,7 @@
 #' @param search[i] list containing parameters used to fit the model. See details.
 #' @param search_rho Boolean indicating whether or not rho should be estimated.
 #' @param search_gamma Boolean indicating whether or not gamma should be estimated.
+#' @param search_Binit Boolean indicating whether or not Binit should be estimated.
 #' @param ncores Number of cores used to fit the model. The code is written
 #'    so that the optimal number of cores with `RUN_LEVEL = 3` is 36.
 #'
@@ -66,7 +67,8 @@ fit_coupled_haiti3 <- function(
     ncores = 3,
     nsearches = 1,
     search_rho = TRUE,
-    search_gamma = TRUE
+    search_gamma = TRUE,
+    search_Binit = TRUE
     ) {
 
   #
@@ -100,13 +102,18 @@ fit_coupled_haiti3 <- function(
   }
 
   # Create the model that will be fit to cholera incidence data
-  h3_spat <- haiti3_spatPomp()
+  h3_spat <- haiti3_spatPomp(search_Binit = search_Binit)
 
   # Create a list to save all of the results.
   results <- list()
 
   # Create vectors for the unit and shared parameters
-  unit_specific_names <- c("betaB", "foi_add", "Binit")
+  unit_specific_names <- c("betaB", "foi_add")
+
+  if (search_Binit) {
+    unit_specific_names <- c(unit_specific_names, "Binit")
+  }
+
   shared_param_names <- c(
     "mu_B", "XthetaA", "thetaI", "lambdaR", "r", "std_W",
     "epsilon", "k", "sigma"
@@ -145,7 +152,6 @@ fit_coupled_haiti3 <- function(
     chol_rw_3.sd <- search3$RW_SD
   }
 
-
   # Get lower bound for unit parameters (global search)
   min_val <- 1e-8
   unit_lb <- rep(c(min_val, min_val), each = 10)
@@ -170,30 +176,31 @@ fit_coupled_haiti3 <- function(
   unit_ub['foi_add6'] <- 2e-6
   unit_ub['foi_add9'] <- 2e-6
 
-  # Set unique lower-bounds for Binit, based on run_level_2 search results.
-  unit_lb["Binit1"]  <- 1
-  unit_lb["Binit2"]  <- 0.04
-  unit_lb["Binit3"]  <- 1e-15
-  unit_lb["Binit4"]  <- 1e-15
-  unit_lb["Binit5"]  <- 0.005
-  unit_lb["Binit6"]  <- 1e-15
-  unit_lb["Binit7"]  <- 0.00075
-  unit_lb["Binit8"]  <- 0.2
-  unit_lb["Binit9"]  <- 1e-15
-  unit_lb["Binit10"] <- 1e-15
+  if (search_Binit) {
+    # Set unique lower-bounds for Binit, based on run_level_2 search results.
+    unit_lb["Binit1"]  <- 1
+    unit_lb["Binit2"]  <- 0.04
+    unit_lb["Binit3"]  <- 1e-15
+    unit_lb["Binit4"]  <- 1e-15
+    unit_lb["Binit5"]  <- 0.005
+    unit_lb["Binit6"]  <- 1e-15
+    unit_lb["Binit7"]  <- 0.00075
+    unit_lb["Binit8"]  <- 0.2
+    unit_lb["Binit9"]  <- 1e-15
+    unit_lb["Binit10"] <- 1e-15
 
-  # Set unique upper-bounds for Binit, based on run_level_2 search results.
-  unit_ub["Binit1"]  <- 2.3
-  unit_ub["Binit2"]  <- 0.1
-  unit_ub["Binit3"]  <- 1e-8
-  unit_ub["Binit4"]  <- 1e-8
-  unit_ub["Binit5"]  <- 0.01
-  unit_ub["Binit6"]  <- 0.00075
-  unit_ub["Binit7"]  <- 0.0015
-  unit_ub["Binit8"]  <- 0.4
-  unit_ub["Binit9"]  <- 1e-8
-  unit_ub["Binit10"] <- 1e-8
-
+    # Set unique upper-bounds for Binit, based on run_level_2 search results.
+    unit_ub["Binit1"]  <- 2.3
+    unit_ub["Binit2"]  <- 0.1
+    unit_ub["Binit3"]  <- 1e-8
+    unit_ub["Binit4"]  <- 1e-8
+    unit_ub["Binit5"]  <- 0.01
+    unit_ub["Binit6"]  <- 0.00075
+    unit_ub["Binit7"]  <- 0.0015
+    unit_ub["Binit8"]  <- 0.4
+    unit_ub["Binit9"]  <- 1e-8
+    unit_ub["Binit10"] <- 1e-8
+  }
 
   # Get lower bound for shared parameters (global search)
   shared_lb <- c(

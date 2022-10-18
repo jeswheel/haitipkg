@@ -13,7 +13,8 @@ fit_coupled_haiti3(
   ncores = 3,
   nsearches = 1,
   search_rho = TRUE,
-  search_gamma = TRUE
+  search_gamma = TRUE,
+  search_Binit = TRUE
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ so that the optimal number of cores with \code{RUN_LEVEL = 3} is 36.}
 \item{search_rho}{Boolean indicating whether or not rho should be estimated.}
 
 \item{search_gamma}{Boolean indicating whether or not gamma should be estimated.}
+
+\item{search_Binit}{Boolean indicating whether or not Binit should be estimated.}
 
 \item{search[i]}{list containing parameters used to fit the model. See details.}
 }

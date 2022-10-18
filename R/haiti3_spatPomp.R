@@ -25,7 +25,11 @@
 #'    of Ecohydrology, Ecole Polytechnique Federale de Lausanne (CH).
 #'
 #'
-#'
+#' @param dt_years step size, in years, for the euler approximation.
+#' @param search_Binit Boolean indicating whether or not Binit will be estimated
+#'    or set as a constant. If the value is FALSE, the Bacertia compartment B
+#'    will be initialized using the dynamics of the differential equation.
+#'    If the value is TRUE, the initial value of the compartment is estimated.
 #' @importFrom magrittr %>%
 #' @importFrom foreach %do%
 #' @importFrom foreach foreach
@@ -39,7 +43,8 @@
 #' mod3 <- haiti3_spatPomp()
 #' @export
 
-haiti3_spatPomp <- function(dt_years = 1/365.25) {
+haiti3_spatPomp <- function(dt_years = 1/365.25,
+                            search_Binit = FALSE) {
 
   # Create vector of departement names
   departements = c(
@@ -257,7 +262,91 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
     all_unit_params[paste0("r_v_year_alt", i)] = r_v_alt_year_dep
   }
 
-  initalizeStatesTemplate =   "
+
+  initializeStatesString =   "
+  double *S = &S1;
+  double *I = &I1;
+  double *A = &A1;
+  double *R_one = &R_one1;
+  double *R_two = &R_two1;
+  double *R_three = &R_three1;
+  double *VSd = &VSd1;
+  double *VR1d = &VR1d1;
+  double *VR2d = &VR2d1;
+  double *VR3d = &VR3d1;
+  double *VSdd = &VSdd1;
+  double *VR1dd = &VR1dd1;
+  double *VR2dd = &VR2dd1;
+  double *VR3dd = &VR3dd1;
+  double *VSd_alt = &VSd_alt1;
+  double *VR1d_alt = &VR1d_alt1;
+  double *VR2d_alt = &VR2d_alt1;
+  double *VR3d_alt = &VR3d_alt1;
+  double *VSdd_alt = &VSdd_alt1;
+  double *VR1dd_alt = &VR1dd_alt1;
+  double *VR2dd_alt = &VR2dd_alt1;
+  double *VR3dd_alt = &VR3dd_alt1;
+  double *C = &C1;
+  double *B = &B1;
+  double *Doses = &Doses1;
+  double *totInc = &totInc1;
+  const double *thetaI = &thetaI1;
+  const double *XthetaA = &XthetaA1;
+  const double *mu = &mu1;
+  const double *sigma = &sigma1;
+  const double *epsilon = &epsilon1;
+  const double *alpha = &alpha1;
+  const double *gamma = &gamma1;
+  const double *Binit = &Binit1;
+  const double *r = &r1;
+  const double *mu_B = &mu_B1;
+  const double *H = &H1;
+  const double *D = &D1;
+  const double *lambdaR = &lambdaR1;
+  for (int u = 0; u < U; u++) {
+    double thetaA = thetaI[u] * XthetaA[u];
+    I[u] = nearbyint((365 * cases_at_t_start[u][n_cases_start-1][1])/(7 * epsilon[u] * (mu[u] + alpha[u] + gamma[u])));  // Steady state
+    A[u] = nearbyint((1-sigma[u]) * I[u] / sigma[u]);
+    R_one[u] = nearbyint((cases_at_t_start[u][n_cases_start-1][1] / (epsilon[u] * sigma[u]) - (I[u] + A[u])) / 3);
+    R_two[u] = R_one[u];
+    R_three[u] = R_one[u];
+    if (A[u] + I[u] + R_one[u] + R_two[u] + R_three[u] >= H[u]) {
+      double R_tot = H[u] - A[u] - I[u] - 100.0;
+      if (R_tot <= 0)
+      {
+      I[u]     = nearbyint(H[u] - 100);
+      A[u]     = nearbyint(0);
+      R_tot = nearbyint(0);
+      }
+      R_one[u] = nearbyint(R_tot / 3);
+      R_two[u] = nearbyint(R_tot / 3);
+      R_three[u] = nearbyint(R_tot / 3);
+    }
+    S[u]   = nearbyint(H[u] - A[u] - I[u] - R_one[u] - R_two[u] - R_three[u]);
+    B[u]   = (I[u] * thetaI[u]/mu_B[u] + A[u] * thetaA/mu_B[u]) * D[u] * (1 + lambdaR[u] * pow(Binit[u], r[u]));
+    C[u]   = 0;
+    VSd[u] = 0;
+    VR1d[u] = 0;
+    VR2d[u] = 0;
+    VR3d[u] = 0;
+    VSdd[u] = 0;
+    VR1dd[u] = 0;
+    VR2dd[u] = 0;
+    VR3dd[u] = 0;
+    VSd_alt[u] = 0;
+    VR1d_alt[u] = 0;
+    VR2d_alt[u] = 0;
+    VR3d_alt[u] = 0;
+    VSdd_alt[u] = 0;
+    VR1dd_alt[u] = 0;
+    VR2dd_alt[u] = 0;
+    VR3dd_alt[u] = 0;
+    Doses[u] = 0;
+    totInc[u] = 0;
+  }
+"
+
+  initializeStatesString_B0 =   "
   double *S = &S1;
   double *I = &I1;
   double *A = &A1;
@@ -352,7 +441,11 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
   }
 "
 
-  initalizeStates <- pomp::Csnippet(initalizeStatesTemplate)
+  if (search_Binit) {
+    initializeStates <- pomp::Csnippet(initializeStatesString_B0)
+  } else {
+    initializeStates <- pomp::Csnippet(initializeStatesString)
+  }
 
   ###
   ### rmeas
@@ -405,8 +498,6 @@ for (u = 0; u < U; u++) {
 
 dmeas <- pomp::Csnippet(dmeasTemplate)
 
-
-# TODO: Below assumes that k, epsilon, and cas_def constant across units.
 unit_dmeasTemplate <- "
   double *k = &k1;
   double *epsilon = &epsilon1;
@@ -978,21 +1069,24 @@ all_unit_params[grepl("^k[[:digit:]]{1,2}$", names(all_unit_params))] <- 101.221
 all_unit_params[grepl("^cas_def[[:digit:]]{1,2}$", names(all_unit_params))] <- 1
 # all_unit_params[grepl("^Binit[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.24
 
-# These initial values were chosen by setting them to the output of rinit
-# after running a run_level_2 to fit the parameters.
-all_unit_params["Binit1"]  <- 2.203050532
-all_unit_params["Binit2"]  <- 0.108408269
-all_unit_params["Binit3"]  <- 1e-15
-all_unit_params["Binit4"]  <- 1e-15
-all_unit_params["Binit5"]  <- 0.008701471
-all_unit_params["Binit6"]  <- 1e-15
-all_unit_params["Binit7"]  <- 0.001195806
-all_unit_params["Binit8"]  <- 0.437702954
-all_unit_params["Binit9"]  <- 1e-15
-all_unit_params["Binit10"] <- 1e-15
+if (search_Binit) {
+  # These initial values were chosen by setting them to the output of rinit
+  # after running a run_level_2 to fit the parameters.
+  all_unit_params["Binit1"]  <- 2.203050532
+  all_unit_params["Binit2"]  <- 0.108408269
+  all_unit_params["Binit3"]  <- 1e-15
+  all_unit_params["Binit4"]  <- 1e-15
+  all_unit_params["Binit5"]  <- 0.008701471
+  all_unit_params["Binit6"]  <- 1e-15
+  all_unit_params["Binit7"]  <- 0.001195806
+  all_unit_params["Binit8"]  <- 0.437702954
+  all_unit_params["Binit9"]  <- 1e-15
+  all_unit_params["Binit10"] <- 1e-15
+} else {
+  all_unit_params[grepl("^Binit[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.24
+}
 
 # These parameters are different for each departement, so these need to be set seperately.
-
 old_params <- c()
 
 old_params["betaBArtibonite"] =   0.516191
@@ -1022,10 +1116,6 @@ for (i in 1:10) {
   all_unit_params[paste0("foi_add", i)] <- old_params[paste0('foi_add', dp)]
 }
 
-
-# all_rain <- all_rain %>% dplyr::select(time, dplyr::starts_with('rain_std'))
-
-
 sirb_cholera <- spatPomp::spatPomp(
   data = as.data.frame(all_cases),
   units = "departement",
@@ -1049,7 +1139,7 @@ sirb_cholera <- spatPomp::spatPomp(
       sep = " "
     )
   ),
-  rinit = initalizeStates,
+  rinit = initializeStates,
   dmeasure = dmeas,
   dunit_measure = unit_dmeas,
   rmeasure = rmeas,
