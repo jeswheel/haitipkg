@@ -978,6 +978,8 @@ all_unit_params[grepl("^k[[:digit:]]{1,2}$", names(all_unit_params))] <- 101.221
 all_unit_params[grepl("^cas_def[[:digit:]]{1,2}$", names(all_unit_params))] <- 1
 # all_unit_params[grepl("^Binit[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.24
 
+# These initial values were chosen by setting them to the output of rinit
+# after running a run_level_2 to fit the parameters.
 all_unit_params["Binit1"]  <- 2.203050532
 all_unit_params["Binit2"]  <- 0.108408269
 all_unit_params["Binit3"]  <- 1e-15

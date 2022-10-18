@@ -2,10 +2,41 @@
 #'
 #' This function fits the spatPomp version of Model 3 to cholera incidence
 #' data from Oct 2010 - Jan 2019 in Haiti. The data are measured at a
-#' weekly timescale.
+#' weekly timescale. The function allows a user to fit the model in up to 3
+#' stages by setting \emph{nsearches} equal to 3. Any number larger than 3
+#' is ignored.
+#'
+#' Hyper-parameters to the IBPF algorithm can be adjusted as inputs into a list
+#' for each search (e.g. search1 = list(TOP_N = 3, ...)). The possible list
+#' options are:
+#' \itemize{
+#'    \item{TOP_N: }{Number of results from the previous search to use as a
+#'    starting point for the next search. Note that this argument is ignored for
+#'    the first global search, and for searches after local unit searches.}
+#'    \item{NBPF: }{Number of IBPF iterations.}
+#'    \item{NP: }{Number of particles to use in in the IBPF algorithm.}
+#'    \item{SPAT_REGRESSION: }{The regression coefficient for shared parameters}
+#'    \item{NREPS: }{For each starting point, how many replicated searches should
+#'    be conducted. Here, we recommend that NREPS * TOP_N be a multiple of
+#'    ncores.}
+#'    \item{NP_EVAL: }{Number of particles to use in model evaluation.}
+#'    \item{NREPS_EVAL: }{Number of times to replicate the evaluation using a
+#'    particle filter.}
+#'    \item{RW_SD: }{Specification of the rw.sd used in the IBPF algorithm.}
+#'    \item{COOLING: }{Optional, defaults to 0.5. Specifies the
+#'    cooling.fraction.50 for the rw.sd used in the IBPF algorithm.}
+#'    \item{KEEP_TRACES: }{Optional, defaults to FALSE. Saves the traces of the
+#'    IBPF output. This is a large list, so is primarily saved for debugging and
+#'    testing purposes.}
+#'    \item{KEEP_LIK_MAT: }{Optional, defaults to FALSE. Saves a likelihood
+#'    matrix containing likelihood estimates for each unit. This is a large
+#'    matrix, so it is primarily saved for debugging and testing purposes.}
+#' }
 #'
 #' @param nsearches integer number of searches to conduct. See details below.
 #' @param search[i] list containing parameters used to fit the model. See details.
+#' @param search_rho Boolean indicating whether or not rho should be estimated.
+#' @param search_gamma Boolean indicating whether or not gamma should be estimated.
 #' @param ncores Number of cores used to fit the model. The code is written
 #'    so that the optimal number of cores with `RUN_LEVEL = 3` is 36.
 #'
@@ -27,36 +58,15 @@ fit_coupled_haiti3 <- function(
       NREPS_EVAL = 6,
       RW_SD = NULL,
       COOLING = 0.5,
-      KEEP_TRACES = FALSE
+      KEEP_TRACES = FALSE,
+      KEEP_LIK_MAT = TRUE
     ),
-    search2 = list(
-      TOP_N = 2,
-      NBPF = 5,
-      NP = 50,
-      SPAT_REGRESSION = 0.5,
-      NREPS = 3,
-      NP_EVAL = 100,
-      NREPS_EVAL = 6,
-      RW_SD = NULL,
-      COOLING = 0.5,
-      KEEP_TRACES = FALSE
-    ),
-    search3 = list(
-      TOP_N = 2,
-      NBPF = 5,
-      NP = 100,
-      SPAT_REGRESSION = 0.5,
-      NREPS = 3,
-      NP_EVAL = 100,
-      NREPS_EVAL = 6,
-      RW_SD = NULL,
-      COOLING = 0.5,
-      KEEP_TRACES = FALSE
-    ),
+    search2 = NULL,
+    search3 = NULL,
     ncores = 3,
-    nsearches = 2,
-    search_rho = FALSE,
-    search_gamma = FALSE
+    nsearches = 1,
+    search_rho = TRUE,
+    search_gamma = TRUE
     ) {
 
   #
@@ -69,24 +79,34 @@ fit_coupled_haiti3 <- function(
     search1$COOLING <- 0.5
   }
 
-  if (is.null(search2$COOLING)) {
+  if (is.null(search1$KEEP_LIK_MAT)) {
+    search1$KEEP_LIK_MAT <- FALSE
+  }
+
+  if (nsearches >= 2 && is.null(search2$COOLING)) {
     search2$COOLING <- 0.5
   }
 
-  if (is.null(search3$COOLING)) {
+  if (nsearches >= 2 && is.null(search2$KEEP_LIK_MAT)) {
+    search2$KEEP_LIK_MAT <- FALSE
+  }
+
+  if (nsearches >= 3 && is.null(search3$COOLING)) {
     search3$COOLING <- 0.5
+  }
+
+  if (nsearches >= 3 && is.null(search3$KEEP_LIK_MAT)) {
+    search3$KEEP_LIK_MAT <- FALSE
   }
 
   # Create the model that will be fit to cholera incidence data
   h3_spat <- haiti3_spatPomp()
 
-  # h3_spat@params[paste0('gamma', 1:10)] <- gamma
-
   # Create a list to save all of the results.
   results <- list()
 
   # Create vectors for the unit and shared parameters
-  unit_specific_names <- c("betaB", "foi_add")
+  unit_specific_names <- c("betaB", "foi_add", "Binit")
   shared_param_names <- c(
     "mu_B", "XthetaA", "thetaI", "lambdaR", "r", "std_W",
     "epsilon", "k", "sigma"
@@ -108,33 +128,19 @@ fit_coupled_haiti3 <- function(
   est_param_names_expanded <- paste0(rep(est_param_names, each = 10), 1:10)
 
   if (is.null(search1$RW_SD)) {
-    # Create rw.sd for each parameter, for search 1
-    reg_rw_1.sd <- lapply(est_param_names_expanded, function(x) 0.01)
-    names(reg_rw_1.sd) <- est_param_names_expanded
-    chol_rw_1.sd <- do.call(rw.sd, reg_rw_1.sd)
-    rm(reg_rw_1.sd)
+    stop("RW_SD must be supplied for search 1.")
   } else {
     chol_rw_1.sd <- search1$RW_SD
   }
 
-
-  if (is.null(search2$RW_SD)) {
-    # Create rw.sd for each parameter, for search 2
-    reg_rw_2.sd <- lapply(est_param_names_expanded, function(x) 0.00175)
-    names(reg_rw_2.sd) <- est_param_names_expanded
-    chol_rw_2.sd <- do.call(rw.sd, reg_rw_2.sd)
-    rm(reg_rw_2.sd)
+  if (nsearches >= 2 && is.null(search2$RW_SD)) {
+    stop("RW_SD must be supplied for search 2.")
   } else {
     chol_rw_2.sd <- search2$RW_SD
   }
 
-
-  if (is.null(search3$RW_SD)) {
-    # Create rw.sd for each parameter, for search 3
-    reg_rw_3.sd <- lapply(est_param_names_expanded, function(x) 0.001)
-    names(reg_rw_3.sd) <- est_param_names_expanded
-    chol_rw_3.sd <- do.call(rw.sd, reg_rw_3.sd)
-    rm(reg_rw_3.sd)
+  if (nsearches >= 3 && is.null(search3$RW_SD)) {
+    stop("RW_SD must be supplied for search 3.")
   } else {
     chol_rw_3.sd <- search3$RW_SD
   }
@@ -143,11 +149,13 @@ fit_coupled_haiti3 <- function(
   # Get lower bound for unit parameters (global search)
   min_val <- 1e-8
   unit_lb <- rep(c(min_val, min_val), each = 10)
-  names(unit_lb) <- paste0(rep(unit_specific_names, each = 10), 1:10)
+  names(unit_lb) <- paste0(rep(unit_specific_names[1:2], each = 10), 1:10)
 
   # Get upper bound for unit parameters (global search)
   unit_ub <- rep(c(50, 5e-6), each = 10)
-  names(unit_ub) <- paste0(rep(unit_specific_names, each = 10), 1:10)
+  names(unit_ub) <- paste0(rep(unit_specific_names[1:2], each = 10), 1:10)
+
+  # Set unique upper-bounds for betaB, based on run_level_2 search results.
   unit_ub['betaB1'] <- 15
   unit_ub['betaB10'] <- 20
   unit_ub['betaB5'] <- 15
@@ -161,6 +169,31 @@ fit_coupled_haiti3 <- function(
   unit_ub['foi_add5'] <- 3e-6
   unit_ub['foi_add6'] <- 2e-6
   unit_ub['foi_add9'] <- 2e-6
+
+  # Set unique lower-bounds for Binit, based on run_level_2 search results.
+  unit_lb["Binit1"]  <- 1
+  unit_lb["Binit2"]  <- 0.04
+  unit_lb["Binit3"]  <- 1e-15
+  unit_lb["Binit4"]  <- 1e-15
+  unit_lb["Binit5"]  <- 0.005
+  unit_lb["Binit6"]  <- 1e-15
+  unit_lb["Binit7"]  <- 0.00075
+  unit_lb["Binit8"]  <- 0.2
+  unit_lb["Binit9"]  <- 1e-15
+  unit_lb["Binit10"] <- 1e-15
+
+  # Set unique upper-bounds for Binit, based on run_level_2 search results.
+  unit_ub["Binit1"]  <- 2.3
+  unit_ub["Binit2"]  <- 0.1
+  unit_ub["Binit3"]  <- 1e-8
+  unit_ub["Binit4"]  <- 1e-8
+  unit_ub["Binit5"]  <- 0.01
+  unit_ub["Binit6"]  <- 0.00075
+  unit_ub["Binit7"]  <- 0.0015
+  unit_ub["Binit8"]  <- 0.4
+  unit_ub["Binit9"]  <- 1e-8
+  unit_ub["Binit10"] <- 1e-8
+
 
   # Get lower bound for shared parameters (global search)
   shared_lb <- c(
@@ -220,7 +253,9 @@ fit_coupled_haiti3 <- function(
     byrow = TRUE, nrow = search1$NREPS_EVAL
   )
   colnames(fixed_mat) <- names(all_params[!names(all_params) %in% colnames(guesses)])
-  guesses_all <- cbind(guesses, fixed_mat)[names(coef(h3_spat))]
+
+  # Combine estimated and fixed parameters, and reorder based on original order.
+  guesses_all <- cbind(guesses, fixed_mat)[, names(coef(h3_spat))]
 
   # Memory clean-up
   rm(guesses_unit, guesses_shared, fixed_mat, min_val, shared_lb,
@@ -289,7 +324,10 @@ fit_coupled_haiti3 <- function(
   search1_results$params <- t(coef(Global_ibpf))
   search1_results$ibpf_time <- t_global
   search1_results$bpf_time <- t_global_bpf
-  search1_results$likMat <- likMat
+
+  if (isTRUE(search1$KEEP_LIK_MAT)) {
+    search1_results$likMat <- likMat
+  }
 
   if (isTRUE(search1$KEEP_TRACES)) {
     search1_results$traces <- lapply(Global_ibpf, function(x) x@traces[, c('loglik', names(chol_rw_1.sd@call)[-1])])
@@ -385,7 +423,10 @@ fit_coupled_haiti3 <- function(
   search2_results$params <- t(coef(local_ibpf))
   search2_results$ibpf_time <- t_ibpf_local
   search2_results$bpf_time <- t_local_bpf
-  search2_results$likMat <- likMat
+
+  if (isTRUE(search2$KEEP_LIK_MAT)) {
+    search2_results$likMat <- likMat
+  }
 
   if (isTRUE(search2$KEEP_TRACES)) {
     search2_results$traces <- lapply(local_ibpf, function(x) x@traces[, c('loglik', names(chol_rw_2.sd@call)[-1])])
@@ -484,10 +525,13 @@ fit_coupled_haiti3 <- function(
   search3_results$params <- t(coef(local_ibpf))
   search3_results$ibpf_time <- t_ibpf_local
   search3_results$bpf_time <- t_local_bpf
-  search3_results$likMat <- likMat
+
+  if (isTRUE(search3$KEEP_LIK_MAT)) {
+    search3_results$likMat <- likMat
+  }
 
   if (isTRUE(search3$KEEP_TRACES)) {
-    search3_results$traces <- lapply(local_ibpf, function(x) x@traces[, c('loglik', c('loglik', names(chol_rw_3.sd@call)[-1]))])
+    search3_results$traces <- lapply(local_ibpf, function(x) x@traces[, c('loglik', names(chol_rw_3.sd@call)[-1])])
   }
 
   results$search3 <- search3_results
