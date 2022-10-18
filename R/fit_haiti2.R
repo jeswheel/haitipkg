@@ -79,10 +79,13 @@ fit_haiti2 <- function() {
   h2 <- haiti2(cutoff = 10000, measure = "log")  # Default is epidemic period
   h2_params <- h2@params
 
+  est_params <- c('Mu', 'Beta', 'BetaW', 'v', 'sigma', 'phase')
+  n_fit_params <- length(est_params)
+
   # Get objective function to minimize
   epi_ofun <- pomp::traj_objfun(
     h2,
-    est = c('Mu', 'Beta', 'BetaW', 'v', 'sigma', 'phase'),
+    est = est_params,
     params = h2_params
   )
 
@@ -110,6 +113,7 @@ fit_haiti2 <- function() {
   model2_fit_results <- list()
 
   model2_fit_results[['h2_params']] <- h2_params
+  model2_fit_results[["n_fit_params"]] <- n_fit_params
   # model2_fit_results[['end_params']] <- h2_end_params
   model2_fit_results[['leeFit_ll']] <- mod2_leeFit_ll
   model2_fit_results[['leeFit_n_params']] <- mod2_leeFit_num_parms
