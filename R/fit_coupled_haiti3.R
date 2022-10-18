@@ -249,8 +249,8 @@ fit_coupled_haiti3 <- function(
   all_params <- coef(h3_spat)
   fixed_params <- all_params[!names(all_params) %in% colnames(guesses)]
   fixed_mat <- matrix(
-    rep(fixed_params, search1$NREPS_EVAL),
-    byrow = TRUE, nrow = search1$NREPS_EVAL
+    rep(fixed_params, search1$NREPS),
+    byrow = TRUE, nrow = search1$NREPS
   )
   colnames(fixed_mat) <- names(all_params[!names(all_params) %in% colnames(guesses)])
 
