@@ -303,6 +303,7 @@ haiti3_spatPomp <- function(dt_years = 1/365.25,
   const double *H = &H1;
   const double *D = &D1;
   const double *lambdaR = &lambdaR1;
+  const double *rain_std = &rain_std1;
   for (int u = 0; u < U; u++) {
     double thetaA = thetaI[u] * XthetaA[u];
     I[u] = nearbyint((365 * cases_at_t_start[u][n_cases_start-1][1])/(7 * epsilon[u] * (mu[u] + alpha[u] + gamma[u])));  // Steady state
@@ -323,7 +324,7 @@ haiti3_spatPomp <- function(dt_years = 1/365.25,
       R_three[u] = nearbyint(R_tot / 3);
     }
     S[u]   = nearbyint(H[u] - A[u] - I[u] - R_one[u] - R_two[u] - R_three[u]);
-    B[u]   = (I[u] * thetaI[u]/mu_B[u] + A[u] * thetaA/mu_B[u]) * D[u] * (1 + lambdaR[u] * pow(Binit[u], r[u]));
+    B[u]   = (I[u] * thetaI[u]/mu_B[u] + A[u] * thetaA/mu_B[u]) * D[u] * (1 + lambdaR[u] * pow(rain_std[u], r[u]));
     C[u]   = 0;
     VSd[u] = 0;
     VR1d[u] = 0;
@@ -1083,7 +1084,7 @@ if (search_Binit) {
   all_unit_params["Binit9"]  <- 1e-15
   all_unit_params["Binit10"] <- 1e-15
 } else {
-  all_unit_params[grepl("^Binit[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.24
+  all_unit_params[grepl("^Binit[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.024
 }
 
 # These parameters are different for each departement, so these need to be set seperately.
