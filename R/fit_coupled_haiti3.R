@@ -60,7 +60,7 @@ fit_coupled_haiti3 <- function(
       RW_SD = NULL,
       COOLING = 0.5,
       KEEP_TRACES = FALSE,
-      KEEP_LIK_MAT = TRUE
+      KEEP_LIK_MAT = FALSE
     ),
     search2 = NULL,
     search3 = NULL,
