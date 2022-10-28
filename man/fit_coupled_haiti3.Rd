@@ -7,14 +7,14 @@
 fit_coupled_haiti3(
   search1 = list(NBPF = 5, NP = 50, SPAT_REGRESSION = 0.5, NREPS = 6, NP_EVAL = 100,
     NREPS_EVAL = 6, RW_SD = NULL, COOLING = 0.5, KEEP_TRACES = FALSE, KEEP_LIK_MAT =
-    TRUE),
+    FALSE),
   search2 = NULL,
   search3 = NULL,
   ncores = 3,
   nsearches = 1,
   search_rho = TRUE,
   search_gamma = TRUE,
-  search_Binit = TRUE
+  search_Binit = FALSE
 )
 }
 \arguments{
