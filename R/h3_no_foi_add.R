@@ -108,7 +108,7 @@ h3_no_foi_add <- function(
   results <- list()
 
   # Create vectors for the unit and shared parameters
-  unit_specific_names <- c("betaB", "foi_add")
+  unit_specific_names <- c("betaB")
 
   if (search_Binit) {
     unit_specific_names <- c(unit_specific_names, "Binit")
@@ -154,12 +154,12 @@ h3_no_foi_add <- function(
 
   # Get lower bound for unit parameters (global search)
   min_val <- 1e-8
-  unit_lb <- rep(c(min_val, min_val), each = 10)
-  names(unit_lb) <- paste0(rep(unit_specific_names[1:2], each = 10), 1:10)
+  unit_lb <- rep(c(min_val), each = 10)
+  names(unit_lb) <- paste0(rep(unit_specific_names, each = 10), 1:10)
 
   # Get upper bound for unit parameters (global search)
-  unit_ub <- rep(c(50, 5e-6), each = 10)
-  names(unit_ub) <- paste0(rep(unit_specific_names[1:2], each = 10), 1:10)
+  unit_ub <- rep(c(50), each = 10)
+  names(unit_ub) <- paste0(rep(unit_specific_names, each = 10), 1:10)
 
   # Set unique upper-bounds for betaB, based on run_level_2 search results.
   unit_ub['betaB1'] <- 15
@@ -168,13 +168,6 @@ h3_no_foi_add <- function(
   unit_ub['betaB7'] <- 20
   unit_ub['betaB8'] <- 15
   unit_ub['betaB9'] <- 25
-  unit_ub['foi_add10'] <- 2e-6
-  unit_ub['foi_add7'] <- 1.5e-6
-  unit_ub['foi_add3'] <- 1.5e-6
-  unit_ub['foi_add4'] <- 1e-6
-  unit_ub['foi_add5'] <- 3e-6
-  unit_ub['foi_add6'] <- 2e-6
-  unit_ub['foi_add9'] <- 2e-6
 
   if (search_Binit) {
     # Set unique lower-bounds for Binit, based on run_level_2 search results.
@@ -263,6 +256,8 @@ h3_no_foi_add <- function(
 
   # Combine estimated and fixed parameters, and reorder based on original order.
   guesses_all <- cbind(guesses, fixed_mat)[, names(coef(h3_spat))]
+
+  guesses_all[, paste0("foi_add", 1:10)] <- 0
 
   # Memory clean-up
   rm(guesses_unit, guesses_shared, fixed_mat, min_val, shared_lb,
