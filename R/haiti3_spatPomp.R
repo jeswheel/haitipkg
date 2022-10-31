@@ -264,6 +264,7 @@ haiti3_spatPomp <- function(dt_years = 1/365.25,
 
 
   initializeStatesString =   "
+  // double mobility;
   double *S = &S1;
   double *I = &I1;
   double *A = &A1;
@@ -292,6 +293,8 @@ haiti3_spatPomp <- function(dt_years = 1/365.25,
   double *totInc = &totInc1;
   const double *thetaI = &thetaI1;
   const double *XthetaA = &XthetaA1;
+  // const double *foi_add = &foi_add1;
+  // const double *betaB = &betaB1;
   const double *mu = &mu1;
   const double *sigma = &sigma1;
   const double *epsilon = &epsilon1;
@@ -304,11 +307,12 @@ haiti3_spatPomp <- function(dt_years = 1/365.25,
   const double *D = &D1;
   const double *lambdaR = &lambdaR1;
   const double *rain_std = &rain_std1;
+
   for (int u = 0; u < U; u++) {
     double thetaA = thetaI[u] * XthetaA[u];
-    I[u] = nearbyint((365 * cases_at_t_start[u][n_cases_start-1][1])/(7 * epsilon[u] * (mu[u] + alpha[u] + gamma[u])));  // Steady state
+    I[u] = nearbyint((365 * cases_at_t_start[u][0][1])/(7 * epsilon[u] * (mu[u] + alpha[u] + gamma[u])));  // Steady state
     A[u] = nearbyint((1-sigma[u]) * I[u] / sigma[u]);
-    R_one[u] = nearbyint((cases_at_t_start[u][n_cases_start-1][1] / (epsilon[u] * sigma[u]) - (I[u] + A[u])) / 3);
+    R_one[u] = nearbyint((cases_at_t_start[u][0][1] / (epsilon[u] * sigma[u]) - (I[u] + A[u])) / 3);
     R_two[u] = R_one[u];
     R_three[u] = R_one[u];
     if (A[u] + I[u] + R_one[u] + R_two[u] + R_three[u] >= H[u]) {
@@ -345,6 +349,14 @@ haiti3_spatPomp <- function(dt_years = 1/365.25,
     Doses[u] = 0;
     totInc[u] = 0;
   }
+
+  // for (int u = 0; u < U; u++) {
+  //   mobility = I[0] + I[1] + I[2] + I[3] + I[4] + I[5] + I[6] + I[7] + I[8] + I[9] +
+  //            A[0] + A[1] + A[2] + A[3] + A[4] + A[5] + A[6] + A[7] + A[8] + A[9] -
+  //            (I[u] + A[u]);
+  //   C[u] = nearbyint(cases_at_t_start[u][0][1] * epsilon[u] - sigma[u] * S[u] * ((betaB[u] * B[u]) / (1 + B[u]) + foi_add[u] * mobility) / 365.25);
+  //   if (C[u] < 0) C[u] = 0.0;
+  // }
 "
 
   initializeStatesString_B0 =   "
@@ -392,9 +404,9 @@ haiti3_spatPomp <- function(dt_years = 1/365.25,
 
     double thetaA = thetaI[u] * XthetaA[u];
 
-    I[u] = nearbyint((365 * cases_at_t_start[u][n_cases_start-1][1])/(7 * epsilon[u] * (mu[u] + alpha[u] + gamma[u])));  // Steady state
+    I[u] = nearbyint((365 * cases_at_t_start[u][0][1])/(7 * epsilon[u] * (mu[u] + alpha[u] + gamma[u])));  // Steady state
     A[u] = nearbyint((1-sigma[u]) * I[u] / sigma[u]);
-    R_one[u] = nearbyint((cases_at_t_start[u][n_cases_start-1][1] / (epsilon[u] * sigma[u]) - (I[u] + A[u])) / 3);
+    R_one[u] = nearbyint((cases_at_t_start[u][0][1] / (epsilon[u] * sigma[u]) - (I[u] + A[u])) / 3);
     R_two[u] = R_one[u];
     R_three[u] = R_one[u];
 
@@ -1120,10 +1132,10 @@ for (i in 1:10) {
 }
 
 sirb_cholera <- spatPomp::spatPomp(
-  data = as.data.frame(all_cases),
+  data = as.data.frame(all_cases)[-1, ],
   units = "departement",
   times = "time",
-  t0 = t_start - dt_years,
+  t0 = t_start,
   unit_statenames = unit_state_names,
   covar = as.data.frame(all_rain),
   rprocess = euler(step.fun = final_rproc_c, delta.t = dt_years),
