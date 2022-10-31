@@ -482,6 +482,7 @@ const double *k = &k1;
 const double *cas_def = &cas_def1;
 const double *cases = &cases1;
 const double *C = &C1;
+double tol = 1e-15;
 
 lik = 0;
 for (u = 0; u < U; u++) {
@@ -489,9 +490,9 @@ for (u = 0; u < U; u++) {
       lik += (give_log) ? 0 : 1;
   } else {
     if (t > 2018) {
-      lik += dnbinom_mu(cases[u], k[u], epsilon[u] * C[u] * cas_def[u], give_log);
+      lik += dnbinom_mu(cases[u], k[u], epsilon[u] * C[u] * cas_def[u] + tol, give_log);
     } else {
-      lik += dnbinom_mu(cases[u], k[u], epsilon[u] * C[u], give_log);
+      lik += dnbinom_mu(cases[u], k[u], epsilon[u] * C[u] + tol, give_log);
       }
     }
 }
@@ -503,14 +504,15 @@ unit_dmeasTemplate <- "
   double *k = &k1;
   double *epsilon = &epsilon1;
   double *cas_def = &cas_def1;
+  double tol = 1e-15;
 
   if (ISNA(cases)) {
       lik = (give_log) ? 0 : 1;
   } else {
     if (t > 2018) {
-      lik = dnbinom_mu(cases, k[u], epsilon[u] * C * cas_def[u], give_log);
+      lik = dnbinom_mu(cases, k[u], epsilon[u] * C * cas_def[u] + tol, give_log);
     } else {
-      lik = dnbinom_mu(cases, k[u], epsilon[u] * C, give_log);
+      lik = dnbinom_mu(cases, k[u], epsilon[u] * C + tol, give_log);
       }
     }
 "

@@ -307,11 +307,12 @@ h3_all_unit <- function(
 
   ibpf_params <- t(coef(Global_ibpf))
 
-  for (i in 1:nrow(ibpf_params)) {
-    for (sp in shared_param_names) {
-      ibpf_params[i, paste0(sp, 1:10)] <- mean(ibpf_params[i, paste0(sp, 1:10)])
-    }
-  }
+  # No shared parameters.
+  # for (i in 1:nrow(ibpf_params)) {
+  #   for (sp in shared_param_names) {
+  #     ibpf_params[i, paste0(sp, 1:10)] <- mean(ibpf_params[i, paste0(sp, 1:10)])
+  #   }
+  # }
 
   t_global_bpf <- system.time(
     likMat <- foreach(  # Get log-likelihood for each unit and set of parameters, NREPS_EVAL times each
@@ -385,7 +386,7 @@ h3_all_unit <- function(
   # set 3 is best for unit 2, the unit-specific parameters for unit 1 are
   # set to the unit specific parameters from search 5, and the shared parameters
   # are an (weighted?) average from shared parameters of parameters 5 and 3).
-  params_shared_average <- params
+  # params_shared_average <- params
 
   # Save all of the likelihood values for each unit
   pfilterLikes <- as.data.frame(search1_results$likMat)
@@ -427,41 +428,42 @@ h3_all_unit <- function(
 
         # Do the same for params_shared_average, so the unit-specific parameters
         # for the two datasets are the same.
-        params_shared_average[((search2$NREPS * (p-1)) + 1):(search2$NREPS * p), paste0(pname, u)] <- search1_results$params[top_unit_p_id, paste0(pname, u)]
+        # params_shared_average[((search2$NREPS * (p-1)) + 1):(search2$NREPS * p), paste0(pname, u)] <- search1_results$params[top_unit_p_id, paste0(pname, u)]
       }
     }
   }
 
   # for the top p parameters, take the average of the shared parameters that
   # were the best for unit units.
-  for (p in 1:search2$TOP_N) {
-    for (pname in shared_param_names) {
-
-      # Get the id's for the top pth parameter set for each unit (length=10)
-      top_unit_ps <- best_unit_parm_id %>%
-        dplyr::slice(p) %>%
-        dplyr::pull(which)
-
-      # Set shared parameters to average of the top pth parameter set for each unit.
-      params_shared_average[((search2$NREPS * (p-1)) + 1):(search2$NREPS * p), paste0(pname, 1:10)] <- mean(search1_results$params[top_unit_ps, paste0(pname, 1)])  # All are same across each unit
-    }
-  }
+  # NO SHARED PARAMETERS
+  # for (p in 1:search2$TOP_N) {
+  #   for (pname in shared_param_names) {
+  #
+  #     # Get the id's for the top pth parameter set for each unit (length=10)
+  #     top_unit_ps <- best_unit_parm_id %>%
+  #       dplyr::slice(p) %>%
+  #       dplyr::pull(which)
+  #
+  #     # Set shared parameters to average of the top pth parameter set for each unit.
+  #     params_shared_average[((search2$NREPS * (p-1)) + 1):(search2$NREPS * p), paste0(pname, 1:10)] <- mean(search1_results$params[top_unit_ps, paste0(pname, 1)])  # All are same across each unit
+  #   }
+  # }
 
 
   all_params <- rbind(
     params,
-    params_unit_best,
-    params_shared_average
+    params_unit_best
+    # params_shared_average
   )
 
-  rm(params, params_shared_average, params_unit_best, pfilterLikes, p,
+  rm(params, params_unit_best, pfilterLikes, p,
      pname, top_unit_p_id, top_unit_ps, u, best_unit_parm_id)
 
   registerDoRNG(327498615)
 
   t_ibpf_local <- system.time(
     foreach(
-      i = 1:(search2$TOP_N * search2$NREPS * 3),
+      i = 1:(search2$TOP_N * search2$NREPS * 2),
       .packages = c("spatPomp"),
       .combine = c
     ) %dopar% {
@@ -488,20 +490,21 @@ h3_all_unit <- function(
   pfilterLikes <- data.frame(
     "ll" = NA_real_,
     "starting_set" = rep(rep(top_n_global, each = search2$NREPS * search2$NREPS_EVAL), 3),
-    "which" = rep(1:(search2$NREPS * search2$TOP_N * 3), each = search2$NREPS_EVAL)
+    "which" = rep(1:(search2$NREPS * search2$TOP_N * 2), each = search2$NREPS_EVAL)
   )
 
   ibpf_params <- t(coef(local_ibpf))
 
-  for (i in 1:nrow(ibpf_params)) {
-    for (sp in shared_param_names) {
-      ibpf_params[i, paste0(sp, 1:10)] <- mean(ibpf_params[i, paste0(sp, 1:10)])
-    }
-  }
+  # NO SHARED PARAMETERS
+  # for (i in 1:nrow(ibpf_params)) {
+  #   for (sp in shared_param_names) {
+  #     ibpf_params[i, paste0(sp, 1:10)] <- mean(ibpf_params[i, paste0(sp, 1:10)])
+  #   }
+  # }
 
   t_local_bpf <- system.time(
     likMat <- foreach(  # Get log-likelihood for each unit and set of parameters, NREPS_EVAL times each
-      i = 1:(search2$NREPS_EVAL*search2$NREPS*search2$TOP_N*3), .combine = rbind, .packages = 'spatPomp'
+      i = 1:(search2$NREPS_EVAL*search2$NREPS*search2$TOP_N*2), .combine = rbind, .packages = 'spatPomp'
     ) %dopar% {
       # p3 <- coef(local_ibpf[[(i-1) %/% search2$NREPS_EVAL + 1]])
       p3 <- ibpf_params[(i-1) %/% search2$NREPS_EVAL + 1, ]
@@ -584,7 +587,7 @@ h3_all_unit <- function(
   # set 3 is best for unit 2, the unit-specific parameters for unit 1 are
   # set to the unit specific parameters from search 5, and the shared parameters
   # are an (weighted?) average from shared parameters of parameters 5 and 3).
-  params_shared_average <- params
+  # params_shared_average <- params
 
   # Save all of the likelihood values for each unit
   pfilterLikes <- as.data.frame(search2_results$likMat)
@@ -626,38 +629,39 @@ h3_all_unit <- function(
 
         # Do the same for params_shared_average, so the unit-specific parameters
         # for the two datasets are the same.
-        params_shared_average[((search3$NREPS * (p-1)) + 1):(search3$NREPS * p), paste0(pname, u)] <- search2_results$params[top_unit_p_id, paste0(pname, u)]
+        # params_shared_average[((search3$NREPS * (p-1)) + 1):(search3$NREPS * p), paste0(pname, u)] <- search2_results$params[top_unit_p_id, paste0(pname, u)]
       }
     }
   }
 
   # for the top p parameters, take the average of the shared parameters that
   # were the best for unit units.
-  for (p in 1:search3$TOP_N) {
-    for (pname in shared_param_names) {
-
-      # Get the id's for the top pth parameter set for each unit (length=10)
-      top_unit_ps <- best_unit_parm_id %>%
-        dplyr::slice(p) %>%
-        dplyr::pull(which)
-
-      # Set shared parameters to average of the top pth parameter set for each unit.
-      params_shared_average[((search3$NREPS * (p-1)) + 1):(search3$NREPS * p), paste0(pname, 1:10)] <- mean(search2_results$params[top_unit_ps, paste0(pname, 1)])  # All are same across each unit
-    }
-  }
+  # NO SHARED PARAMETERS
+  # for (p in 1:search3$TOP_N) {
+  #   for (pname in shared_param_names) {
+  #
+  #     # Get the id's for the top pth parameter set for each unit (length=10)
+  #     top_unit_ps <- best_unit_parm_id %>%
+  #       dplyr::slice(p) %>%
+  #       dplyr::pull(which)
+  #
+  #     # Set shared parameters to average of the top pth parameter set for each unit.
+  #     params_shared_average[((search3$NREPS * (p-1)) + 1):(search3$NREPS * p), paste0(pname, 1:10)] <- mean(search2_results$params[top_unit_ps, paste0(pname, 1)])  # All are same across each unit
+  #   }
+  # }
 
 
   all_params <- rbind(
     params,
-    params_unit_best,
-    params_shared_average
+    params_unit_best
+    # params_shared_average
   )
 
   registerDoRNG(327498615)
 
   t_ibpf_local <- system.time(
     foreach(
-      i = 1:(search3$TOP_N * search3$NREPS * 3),
+      i = 1:(search3$TOP_N * search3$NREPS * 2),
       .packages = c("spatPomp"),
       .combine = c
     ) %dopar% {
@@ -684,20 +688,20 @@ h3_all_unit <- function(
   pfilterLikes <- data.frame(
     "ll" = NA_real_,
     "starting_set" = rep(rep(top_n_local, each = search3$NREPS * search3$NREPS_EVAL), 3),
-    "which" = rep(1:(search3$NREPS * search3$TOP_N * 3), each = search3$NREPS_EVAL)
+    "which" = rep(1:(search3$NREPS * search3$TOP_N * 2), each = search3$NREPS_EVAL)
   )
 
   ibpf_params <- t(coef(local_ibpf))
 
-  for (i in 1:nrow(ibpf_params)) {
-    for (sp in shared_param_names) {
-      ibpf_params[i, paste0(sp, 1:10)] <- mean(ibpf_params[i, paste0(sp, 1:10)])
-    }
-  }
+  # for (i in 1:nrow(ibpf_params)) {
+  #   for (sp in shared_param_names) {
+  #     ibpf_params[i, paste0(sp, 1:10)] <- mean(ibpf_params[i, paste0(sp, 1:10)])
+  #   }
+  # }
 
   t_local_bpf <- system.time(
     likMat <- foreach(  # Get log-likelihood for each unit and set of parameters, NREPS_EVAL times each
-      i = 1:(search3$NREPS_EVAL*search3$NREPS*search3$TOP_N*3), .combine = rbind, .packages = 'spatPomp'
+      i = 1:(search3$NREPS_EVAL*search3$NREPS*search3$TOP_N*2), .combine = rbind, .packages = 'spatPomp'
     ) %dopar% {
       # p3 <- coef(local_ibpf[[(i-1) %/% search3$NREPS_EVAL + 1]])
       p3 <- ibpf_params[(i-1) %/% search3$NREPS_EVAL + 1, ]
