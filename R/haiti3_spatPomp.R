@@ -1131,8 +1131,11 @@ for (i in 1:10) {
   all_unit_params[paste0("foi_add", i)] <- old_params[paste0('foi_add', dp)]
 }
 
+all_cases <- all_cases %>%
+  dplyr::filter(time != min(time))
+
 sirb_cholera <- spatPomp::spatPomp(
-  data = as.data.frame(all_cases)[-1, ],
+  data = as.data.frame(all_cases),
   units = "departement",
   times = "time",
   t0 = t_start,
