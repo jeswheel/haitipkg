@@ -26,10 +26,6 @@
 #'
 #'
 #' @param dt_years step size, in years, for the euler approximation.
-#' @param search_Binit Boolean indicating whether or not Binit will be estimated
-#'    or set as a constant. If the value is FALSE, the Bacertia compartment B
-#'    will be initialized using the dynamics of the differential equation.
-#'    If the value is TRUE, the initial value of the compartment is estimated.
 #' @importFrom magrittr %>%
 #' @importFrom foreach %do%
 #' @importFrom foreach foreach
@@ -43,8 +39,7 @@
 #' mod3 <- haiti3_spatPomp()
 #' @export
 
-haiti3_spatPomp <- function(dt_years = 1/365.25,
-                            search_Binit = FALSE) {
+haiti3_spatPomp <- function(dt_years = 1/365.25) {
 
   # Create vector of departement names
   departements = c(
@@ -52,32 +47,6 @@ haiti3_spatPomp <- function(dt_years = 1/365.25,
     'Nippes', 'Nord', 'Nord_Est', 'Nord_Ouest',
     'Ouest', 'Sud', 'Sud_Est'
   )
-
-  # First Define some helper functions:
-  dateToYears <- function(date, origin = as.Date("2014-01-01"), yr_offset = 2014) {
-    # This function converts a date to a decimal representation
-    #
-    # ex: "1976-03-01" -> 1976.163
-
-    julian(date, origin = origin) / 365.25 + yr_offset
-  }
-
-  yearsToDate <- function(year_frac, origin = as.Date("2014-01-01"), yr_offset = 2014.0) {
-    # This function is the inverse function of dateToYears; it takes
-    # a decimal representation of a date and converts it into a Date.
-    #
-    # ex: 1976.163 -> "1976-03-01"
-
-    as.Date((year_frac - yr_offset) * 365.25, origin = origin)
-  }
-
-  yearsToDateTime <- function(year_frac, origin = as.Date("2014-01-01"), yr_offset = 2014.0) {
-    # Same as the function above, but a DateTime object rather than a Date
-    # object.
-    #
-    # ex: 1976.163 -> "1976-03-01"
-    as.POSIXct((year_frac - yr_offset) * 365.25 * 3600 * 24, origin = origin)
-  }
 
   # List all state-names in pomp object:
   unit_state_names <- c(
@@ -102,7 +71,8 @@ haiti3_spatPomp <- function(dt_years = 1/365.25,
   params_diff <- c(
     "foi_add", "betaB", "H", "D", "t_vacc_start",
     "t_vacc_end", "p1d_reg", "r_v_year", "t_vacc_start_alt",
-    "t_vacc_end_alt", "p1d_reg_alt", "r_v_year_alt", "Binit"
+    "t_vacc_end_alt", "p1d_reg_alt", "r_v_year_alt", "Iinit",
+    "aHur", "hHur"
   )
 
   all_params_names <- c(params_common, params_diff)
@@ -111,12 +81,8 @@ haiti3_spatPomp <- function(dt_years = 1/365.25,
   names(all_unit_params) <- all_unit_params_names
 
   # Load the input parameters
-  # t_start <- dateToYears(as.Date(MODEL3_INPUT_PARAMETERS$t_start))
-  t_start <- dateToYears(as.Date("2010-10-23"))
-  t_end   <- dateToYears(as.Date(haitipkg:::MODEL3_INPUT_PARAMETERS$t_end))
-
-  # all_state_names <- c('DosesAll', 'CasesAll')
-  # all_param_names <- params_common
+  t_start <- lubridate::decimal_date(as.Date("2010-10-23"))
+  t_end   <- lubridate::decimal_date(as.Date(MODEL3_INPUT_PARAMETERS$t_end))
 
   all_matrix_cases_at_t_start.string <- ""
 
@@ -133,7 +99,7 @@ haiti3_spatPomp <- function(dt_years = 1/365.25,
   all_cases <- MODEL3_CASES %>%
     dplyr::mutate(
       date = as.Date(date, format = '%Y-%m-%d'),
-      time = dateToYears(date)
+      time = lubridate::decimal_date(date)
     ) %>%
     tidyr::pivot_longer(
       data = .,
@@ -150,14 +116,13 @@ haiti3_spatPomp <- function(dt_years = 1/365.25,
   }
 
   all_rain <- haitiRainfall %>%
+    dplyr::filter(date >= as.Date("2010-10-23") - lubridate::days(8) & date <= as.Date(haitipkg:::MODEL3_INPUT_PARAMETERS$t_end) + lubridate::days(8)) %>%
     dplyr::summarize(
       date = date, dplyr::across(Artibonite:`Sud-Est`, std_rain)
     ) %>%
     dplyr::mutate(
-      time = dateToYears(date)
-    ) %>%
-    dplyr::filter(time > t_start - 0.01 & time < (t_end + 0.01))
-
+      time2 = lubridate::decimal_date(date)
+    )
 
   colnames(all_rain) <- c(
     "date",
@@ -251,8 +216,8 @@ haiti3_spatPomp <- function(dt_years = 1/365.25,
     all_unit_params[paste0('D', i)] <- densities[dp]
 
     # Vaccination information:
-    t_vacc_start_alt_dep = dateToYears(as.Date(t_vacc_start_alt[dp]))
-    t_vacc_end_alt_dep   = dateToYears(as.Date(t_vacc_end_alt[dp]))
+    t_vacc_start_alt_dep = lubridate::decimal_date(as.Date(t_vacc_start_alt[dp]))
+    t_vacc_end_alt_dep   = lubridate::decimal_date(as.Date(t_vacc_end_alt[dp]))
     r_v_alt_year_dep = nb_doses_alt_year[dp] / (t_vacc_end_alt_dep - t_vacc_start_alt_dep)
     p1d_alt_dep = p1d_alt_year[dp]
 
@@ -261,7 +226,6 @@ haiti3_spatPomp <- function(dt_years = 1/365.25,
     all_unit_params[paste0("p1d_reg_alt", i)] = p1d_alt_dep
     all_unit_params[paste0("r_v_year_alt", i)] = r_v_alt_year_dep
   }
-
 
   initializeStatesString =   "
   // double mobility;
@@ -300,33 +264,34 @@ haiti3_spatPomp <- function(dt_years = 1/365.25,
   const double *epsilon = &epsilon1;
   const double *alpha = &alpha1;
   const double *gamma = &gamma1;
-  const double *Binit = &Binit1;
+  const double *Iinit = &Iinit1;
   const double *r = &r1;
   const double *mu_B = &mu_B1;
   const double *H = &H1;
   const double *D = &D1;
   const double *lambdaR = &lambdaR1;
   const double *rain_std = &rain_std1;
+  double thetaA;
 
   for (int u = 0; u < U; u++) {
-    double thetaA = thetaI[u] * XthetaA[u];
-    I[u] = nearbyint((365 * cases_at_t_start[u][0][1])/(7 * epsilon[u] * (mu[u] + alpha[u] + gamma[u])));  // Steady state
-    A[u] = nearbyint((1-sigma[u]) * I[u] / sigma[u]);
+
+    thetaA = thetaI[u] * XthetaA[u];
+
+    if (cases_at_t_start[u][0][1] <= 10) {  // If cases < 10, we assume that it's posible that we are initially under-reporting, so we allow for more cases to be asymptomatic than normal.
+       I[u] = nearbyint(H[u] * Iinit[u]);  // estimated number of asymptomatic individuals
+       // thetaA = (sigma[u] + (1 - sigma[u]) * XthetaA[u]) * thetaI[u];  // Assuming all infected individuals are not reported (i.e., all individuals in A instead of I), this gives the proper shedding
+    } else {
+       I[u] = nearbyint((365 * cases_at_t_start[u][0][1])/(7 * epsilon[u] * (mu[u] + alpha[u] + gamma[u])));  // Steady state
+    }
+
+    A[u] = nearbyint((1 - sigma[u]) * I[u] / sigma[u]);
+
     R_one[u] = nearbyint((cases_at_t_start[u][0][1] / (epsilon[u] * sigma[u]) - (I[u] + A[u])) / 3);
+    if (R_one[u] < 0) R_one[u] = 0;
+
     R_two[u] = R_one[u];
     R_three[u] = R_one[u];
-    if (A[u] + I[u] + R_one[u] + R_two[u] + R_three[u] >= H[u]) {
-      double R_tot = H[u] - A[u] - I[u] - 100.0;
-      if (R_tot <= 0)
-      {
-      I[u]     = nearbyint(H[u] - 100);
-      A[u]     = nearbyint(0);
-      R_tot = nearbyint(0);
-      }
-      R_one[u] = nearbyint(R_tot / 3);
-      R_two[u] = nearbyint(R_tot / 3);
-      R_three[u] = nearbyint(R_tot / 3);
-    }
+
     S[u]   = nearbyint(H[u] - A[u] - I[u] - R_one[u] - R_two[u] - R_three[u]);
     B[u]   = (I[u] * thetaI[u]/mu_B[u] + A[u] * thetaA/mu_B[u]) * D[u] * (1 + lambdaR[u] * pow(rain_std[u], r[u]));
     C[u]   = 0;
@@ -349,116 +314,9 @@ haiti3_spatPomp <- function(dt_years = 1/365.25,
     Doses[u] = 0;
     totInc[u] = 0;
   }
-
-  // for (int u = 0; u < U; u++) {
-  //   mobility = I[0] + I[1] + I[2] + I[3] + I[4] + I[5] + I[6] + I[7] + I[8] + I[9] +
-  //            A[0] + A[1] + A[2] + A[3] + A[4] + A[5] + A[6] + A[7] + A[8] + A[9] -
-  //            (I[u] + A[u]);
-  //   C[u] = nearbyint(cases_at_t_start[u][0][1] * epsilon[u] - sigma[u] * S[u] * ((betaB[u] * B[u]) / (1 + B[u]) + foi_add[u] * mobility) / 365.25);
-  //   if (C[u] < 0) C[u] = 0.0;
-  // }
 "
 
-  initializeStatesString_B0 =   "
-  double *S = &S1;
-  double *I = &I1;
-  double *A = &A1;
-  double *R_one = &R_one1;
-  double *R_two = &R_two1;
-  double *R_three = &R_three1;
-  double *VSd = &VSd1;
-  double *VR1d = &VR1d1;
-  double *VR2d = &VR2d1;
-  double *VR3d = &VR3d1;
-  double *VSdd = &VSdd1;
-  double *VR1dd = &VR1dd1;
-  double *VR2dd = &VR2dd1;
-  double *VR3dd = &VR3dd1;
-  double *VSd_alt = &VSd_alt1;
-  double *VR1d_alt = &VR1d_alt1;
-  double *VR2d_alt = &VR2d_alt1;
-  double *VR3d_alt = &VR3d_alt1;
-  double *VSdd_alt = &VSdd_alt1;
-  double *VR1dd_alt = &VR1dd_alt1;
-  double *VR2dd_alt = &VR2dd_alt1;
-  double *VR3dd_alt = &VR3dd_alt1;
-  double *C = &C1;
-  double *B = &B1;
-  double *Doses = &Doses1;
-  double *totInc = &totInc1;
-  const double *thetaI = &thetaI1;
-  const double *XthetaA = &XthetaA1;
-  const double *mu = &mu1;
-  const double *sigma = &sigma1;
-  const double *epsilon = &epsilon1;
-  const double *alpha = &alpha1;
-  const double *gamma = &gamma1;
-  const double *Binit = &Binit1;
-  const double *r = &r1;
-  const double *mu_B = &mu_B1;
-  const double *H = &H1;
-  const double *D = &D1;
-  const double *lambdaR = &lambdaR1;
-
-  for (int u = 0; u < U; u++) {
-
-    double thetaA = thetaI[u] * XthetaA[u];
-
-    I[u] = nearbyint((365 * cases_at_t_start[u][0][1])/(7 * epsilon[u] * (mu[u] + alpha[u] + gamma[u])));  // Steady state
-    A[u] = nearbyint((1-sigma[u]) * I[u] / sigma[u]);
-    R_one[u] = nearbyint((cases_at_t_start[u][0][1] / (epsilon[u] * sigma[u]) - (I[u] + A[u])) / 3);
-    R_two[u] = R_one[u];
-    R_three[u] = R_one[u];
-
-    if (A[u] + I[u] + R_one[u] + R_two[u] + R_three[u] >= H[u]) {
-      double R_tot = H[u] - A[u] - I[u] - 100.0;
-      if (R_tot <= 0)
-      {
-      I[u]     = nearbyint(H[u] - 100);
-      A[u]     = nearbyint(0);
-      R_tot = nearbyint(0);
-      }
-      R_one[u] = nearbyint(R_tot / 3);
-      R_two[u] = nearbyint(R_tot / 3);
-      R_three[u] = nearbyint(R_tot / 3);
-    }
-
-    S[u]   = nearbyint(H[u] - A[u] - I[u] - R_one[u] - R_two[u] - R_three[u]);
-    // B[u]   = (I[u] * thetaI[u]/mu_B[u] + A[u] * thetaA/mu_B[u]) * D[u] * (1 + lambdaR[u] * pow(Binit[u], r[u]));
-    B[u] = Binit[u];
-    C[u]   = 0;
-
-    VSd[u] = 0;
-    VR1d[u] = 0;
-    VR2d[u] = 0;
-    VR3d[u] = 0;
-
-    VSdd[u] = 0;
-    VR1dd[u] = 0;
-    VR2dd[u] = 0;
-    VR3dd[u] = 0;
-
-    VSd_alt[u] = 0;
-    VR1d_alt[u] = 0;
-    VR2d_alt[u] = 0;
-    VR3d_alt[u] = 0;
-
-    VSdd_alt[u] = 0;
-    VR1dd_alt[u] = 0;
-    VR2dd_alt[u] = 0;
-    VR3dd_alt[u] = 0;
-
-    Doses[u] = 0;
-    totInc[u] = 0;
-
-  }
-"
-
-  if (search_Binit) {
-    initializeStates <- pomp::Csnippet(initializeStatesString_B0)
-  } else {
-    initializeStates <- pomp::Csnippet(initializeStatesString)
-  }
+  initializeStates <- pomp::Csnippet(initializeStatesString)
 
   ###
   ### rmeas
@@ -568,6 +426,8 @@ const double *rain_std = &rain_std1;
 
 // getting all non-constant parameters used in the model
 const double *betaB = &betaB1;
+const double *aHur = &aHur1;
+const double *hHur = &hHur1;
 const double *foi_add = &foi_add1;
 const double *H = &H1;
 const double *D = &D1;
@@ -596,6 +456,7 @@ const double mu = mu1;
 const double alpha = alpha1;
 const double *cases_ext = &cases_ext1;
 const double cas_def = cas_def1;
+double beta_hurricane[10];
 
 double foi, foi_stoc;   // force of infection and its stochastic version
 double dw;              // extra-demographic stochasticity on foi
@@ -673,7 +534,12 @@ for (int u = 0; u < U; u++) {
              (I[u] + A[u]);
 
   // force of infection
-  foi = betaB[u] * (B[u] / (1 + B[u])) + foi_add[u] * mobility;
+  if (t >= 2016.757) {
+     beta_hurricane[u] = betaB[u] + aHur[u] * exp(-hHur[u] * (t - 2016.757));
+  } else {
+     beta_hurricane[u] = betaB[u];
+  }
+  foi = beta_hurricane[u] * (B[u] / (1 + B[u])) + foi_add[u] * mobility;
 
   if(std_W[u] > 0.0) {
     dw = rgammawn(std_W[u], dt);   // white noise (extra-demographic stochasticity)
@@ -681,7 +547,6 @@ for (int u = 0; u < U; u++) {
   } else {
     foi_stoc = foi;
   }
-
 
   if (t <= (t_vacc_end_alt[u] + dt)){
 	  previous_vacc_campaign = TRUE;
@@ -1055,7 +920,7 @@ zeronameUnit = paste0(c("C"), 1:10)
 pt <- pomp::parameter_trans(
   log = paste0(rep(c(
     "mu_B", "thetaI", "lambdaR", "r", "std_W", "k",
-    "betaB", "foi_add", "rho", "gamma", "Binit"
+    "betaB", "foi_add", "rho", "gamma", "Iinit", "aHur", "hHur"
   ), each = 10), 1:10),
   logit = paste0(rep(c(
     "XthetaA",
@@ -1066,40 +931,33 @@ pt <- pomp::parameter_trans(
 )
 
 # These params are constant for all departements, so use regex to set all values at once.
-all_unit_params[grepl("^sigma[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.25
-all_unit_params[grepl("^gamma[[:digit:]]{1,2}$", names(all_unit_params))] <- 182.625
-all_unit_params[grepl("^rho[[:digit:]]{1,2}$", names(all_unit_params))] <- 1 / (365 * 8) * 365.25
-all_unit_params[grepl("^cases_ext[[:digit:]]{1,2}$", names(all_unit_params))] <- 1
+all_unit_params[paste0("sigma", 1:10)] <- 0.25
+all_unit_params[paste0("gamma", 1:10)] <- 182.625
+all_unit_params[paste0("rho", 1:10)] <- 1 / (365 * 8) * 365.25
+all_unit_params[paste0("cases_ext", 1:10)] <- 1
 
-all_unit_params[grepl("^mu[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.01586625546
-all_unit_params[grepl("^alpha[[:digit:]]{1,2}$", names(all_unit_params))] <- 1.461
-all_unit_params[grepl("^mu_B[[:digit:]]{1,2}$", names(all_unit_params))] <- 133.19716102404308
-all_unit_params[grepl("^XthetaA[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.0436160721505241
-all_unit_params[grepl("^thetaI[[:digit:]]{1,2}$", names(all_unit_params))] <- 3.4476623459780395e-4
-all_unit_params[grepl("^lambdaR[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.2774237712085347
-all_unit_params[grepl("^r[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.31360358752214235
-all_unit_params[grepl("^std_W[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.008172280355938182
-all_unit_params[grepl("^epsilon[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.9750270707877388
-all_unit_params[grepl("^k[[:digit:]]{1,2}$", names(all_unit_params))] <- 101.2215999283583
-all_unit_params[grepl("^cas_def[[:digit:]]{1,2}$", names(all_unit_params))] <- 1
-# all_unit_params[grepl("^Binit[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.24
+all_unit_params[paste0("mu", 1:10)] <- 0.01586625546
+all_unit_params[paste0("alpha", 1:10)] <- 1.461
+all_unit_params[paste0("mu_B", 1:10)] <- 133.19716102404308
+all_unit_params[paste0("XthetaA", 1:10)] <- 0.0436160721505241
+all_unit_params[paste0("thetaI", 1:10)] <- 3.4476623459780395e-4
+all_unit_params[paste0("lambdaR", 1:10)] <- 0.2774237712085347
+all_unit_params[paste0("r", 1:10)] <- 0.31360358752214235
+all_unit_params[paste0("std_W", 1:10)] <- 0.008172280355938182
+all_unit_params[paste0("epsilon", 1:10)] <- 0.9750270707877388
+all_unit_params[paste0("k", 1:10)] <- 101.2215999283583
+all_unit_params[paste0("cas_def", 1:10)] <- 1
+all_unit_params[paste0("aHur", 1:10)] <- 0
+all_unit_params[paste0("hHur", 1:10)] <- 0
 
-if (search_Binit) {
-  # These initial values were chosen by setting them to the output of rinit
-  # after running a run_level_2 to fit the parameters.
-  all_unit_params["Binit1"]  <- 2.203050532
-  all_unit_params["Binit2"]  <- 0.108408269
-  all_unit_params["Binit3"]  <- 1e-15
-  all_unit_params["Binit4"]  <- 1e-15
-  all_unit_params["Binit5"]  <- 0.008701471
-  all_unit_params["Binit6"]  <- 1e-15
-  all_unit_params["Binit7"]  <- 0.001195806
-  all_unit_params["Binit8"]  <- 0.437702954
-  all_unit_params["Binit9"]  <- 1e-15
-  all_unit_params["Binit10"] <- 1e-15
-} else {
-  all_unit_params[grepl("^Binit[[:digit:]]{1,2}$", names(all_unit_params))] <- 0.024
-}
+all_unit_params["aHur9"] <- 2  # Corresponds to approximately doubled transmission
+all_unit_params["aHur3"] <- 2
+all_unit_params["hHur9"] <- 91  # Corresponds to approximately one month of hurricane effect
+all_unit_params["hHur3"] <- 91
+
+all_unit_params[paste0("Iinit", 1:10)] <- 0.4 / all_unit_params[paste0("H", 1:10)]
+# all_unit_params['Iinit7'] <- 1000 / all_unit_params["H7"]
+# TODO: Make a sensible initialization of this parameter
 
 # These parameters are different for each departement, so these need to be set seperately.
 old_params <- c()
@@ -1131,14 +989,11 @@ for (i in 1:10) {
   all_unit_params[paste0("foi_add", i)] <- old_params[paste0('foi_add', dp)]
 }
 
-all_cases <- all_cases %>%
-  dplyr::filter(time != min(time))
-
 sirb_cholera <- spatPomp::spatPomp(
   data = as.data.frame(all_cases),
   units = "departement",
   times = "time",
-  t0 = t_start,
+  t0 = lubridate::decimal_date(as.Date("2010-10-23") - lubridate::weeks(1)),
   unit_statenames = unit_state_names,
   covar = as.data.frame(all_rain),
   rprocess = euler(step.fun = final_rproc_c, delta.t = dt_years),

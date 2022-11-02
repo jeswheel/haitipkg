@@ -4,15 +4,10 @@
 \alias{haiti3_spatPomp}
 \title{Build pomp object for model 3.}
 \usage{
-haiti3_spatPomp(dt_years = 1/365.25, search_Binit = FALSE)
+haiti3_spatPomp(dt_years = 1/365.25)
 }
 \arguments{
 \item{dt_years}{step size, in years, for the euler approximation.}
-
-\item{search_Binit}{Boolean indicating whether or not Binit will be estimated
-or set as a constant. If the value is FALSE, the Bacertia compartment B
-will be initialized using the dynamics of the differential equation.
-If the value is TRUE, the initial value of the compartment is estimated.}
 }
 \value{
 \code{\link[spatPomp]{spatPomp}} representation of model 3 described in \href{https://www.sciencedirect.com/science/article/pii/S2214109X20303107}{Lee, Elizabeth et. al.} and it's accompanying \href{https://ars.els-cdn.com/content/image/1-s2.0-S2214109X20303107-mmc3.pdf}{Supplemental Material}.

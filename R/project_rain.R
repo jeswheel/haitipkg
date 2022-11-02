@@ -120,7 +120,7 @@ project_rain <- function(end_date = as.Date("2029-12-20"),
 
 
   result <- all_rain %>%
-    dplyr::filter(date >= as.Date("2010-10-23") - 7) %>%
+    dplyr::filter(date >= as.Date("2010-10-23") - 4) %>%
     dplyr::summarize(
       date = date, dplyr::across(Artibonite:`Sud-Est`, std_rain)
     ) %>%
