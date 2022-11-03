@@ -183,13 +183,13 @@ fit_coupled_haiti3 <- function(
   unit_lb['Iinit3'] <- 0.45 / 468301  # H3
   unit_lb['Iinit7'] <- 0.45 / 728807  # H7
 
-  unit_ub['Iinit3'] <- 7 / 468301
-  unit_ub['Iinit7'] <- 15 / 728807
+  unit_ub['Iinit3'] <- 8.1 / 468301
+  unit_ub['Iinit7'] <- 16.1 / 728807
 
   # Get lower bound for shared parameters (global search)
   shared_lb <- c(
     25, 0.02, min_val, min_val,
-    0.3, min_val, 0.25, 50, 0.01
+    0.75, min_val, 0.25, 1, 0.1
   )
 
   if (search_rho) {
@@ -203,7 +203,7 @@ fit_coupled_haiti3 <- function(
   names(shared_lb) <- shared_param_names
 
   # Get upper bound for shared parameters (global search)
-  shared_ub <- c(500, 0.8, 0.0001, 5, 1.75, 0.15, 1, 1000, 0.3)
+  shared_ub <- c(500, 0.8, 0.0001, 5, 1.75, 0.15, 1, 500, 0.3)
 
   if (search_rho) {
     shared_ub <- c(shared_ub, 1/(0.2))
@@ -356,11 +356,6 @@ fit_coupled_haiti3 <- function(
   # Contains the best set of parameters, measure for the coupled model
   params <- search1_results$params[rep(top_n_global, each = search2$NREPS), ]
 
-  # Creates set of parameters where the shared come from the best set for
-  # the entire model, but the unit parameters are chosen to optimize the
-  # unit specific likelihoods.
-  params_unit_best <- params
-
   # This is a set of parameters where the unit parameters come from the set
   # of parameters that are best for the unit in question, and the shared
   # parameters are averaged based on the best for each unit (i.e., if
@@ -405,9 +400,6 @@ fit_coupled_haiti3 <- function(
         # For unit u, which indicates the parameter set with the pth best log-likelihood.
         top_unit_p_id <- best_unit_parm_id[best_unit_parm_id$unit == u, 'which'][p, ] %>% as.numeric()
 
-        # set search2$NREPS rows to the best unit parameter for unit u
-        params_unit_best[((search2$NREPS * (p-1)) + 1):(search2$NREPS * p), paste0(pname, u)] <- search1_results$params[top_unit_p_id, paste0(pname, u)]
-
         # Do the same for params_shared_average, so the unit-specific parameters
         # for the two datasets are the same.
         params_shared_average[((search2$NREPS * (p-1)) + 1):(search2$NREPS * p), paste0(pname, u)] <- search1_results$params[top_unit_p_id, paste0(pname, u)]
@@ -433,7 +425,6 @@ fit_coupled_haiti3 <- function(
 
   all_params <- rbind(
     params,
-    params_unit_best,
     params_shared_average
   )
 
@@ -444,7 +435,7 @@ fit_coupled_haiti3 <- function(
 
   t_ibpf_local <- system.time(
     foreach(
-      i = 1:(search2$TOP_N * search2$NREPS * 3),
+      i = 1:(search2$TOP_N * search2$NREPS * 2),
       .packages = c("spatPomp"),
       .combine = c
     ) %dopar% {
@@ -470,8 +461,8 @@ fit_coupled_haiti3 <- function(
 
   pfilterLikes <- data.frame(
     "ll" = NA_real_,
-    "starting_set" = rep(rep(top_n_global, each = search2$NREPS * search2$NREPS_EVAL), 3),
-    "which" = rep(1:(search2$NREPS * search2$TOP_N * 3), each = search2$NREPS_EVAL)
+    "starting_set" = rep(rep(top_n_global, each = search2$NREPS * search2$NREPS_EVAL), 2),
+    "which" = rep(1:(search2$NREPS * search2$TOP_N * 2), each = search2$NREPS_EVAL)
   )
 
   ibpf_params <- t(coef(local_ibpf))
@@ -484,7 +475,7 @@ fit_coupled_haiti3 <- function(
 
   t_local_bpf <- system.time(
     likMat <- foreach(  # Get log-likelihood for each unit and set of parameters, NREPS_EVAL times each
-      i = 1:(search2$NREPS_EVAL*search2$NREPS*search2$TOP_N*3), .combine = rbind, .packages = 'spatPomp'
+      i = 1:(search2$NREPS_EVAL*search2$NREPS*search2$TOP_N*2), .combine = rbind, .packages = 'spatPomp'
     ) %dopar% {
       # p3 <- coef(local_ibpf[[(i-1) %/% search2$NREPS_EVAL + 1]])
       p3 <- ibpf_params[(i-1) %/% search2$NREPS_EVAL + 1, ]
@@ -560,15 +551,6 @@ fit_coupled_haiti3 <- function(
   # unit specific likelihoods.
   params_unit_best <- params
 
-  # This is a set of parameters where the unit parameters come from the set
-  # of parameters that are best for the unit in question, and the shared
-  # parameters are averaged based on the best for each unit (i.e., if
-  # there are 2 units and parameter set 5 is the best for unit 1 and parameter
-  # set 3 is best for unit 2, the unit-specific parameters for unit 1 are
-  # set to the unit specific parameters from search 5, and the shared parameters
-  # are an (weighted?) average from shared parameters of parameters 5 and 3).
-  params_shared_average <- params
-
   # Save all of the likelihood values for each unit
   pfilterLikes <- as.data.frame(search2_results$likMat)
   pfilterLikes$which <- rep(1:search2$NREPS, each = search2$NREPS_EVAL)
@@ -606,41 +588,20 @@ fit_coupled_haiti3 <- function(
 
         # set search3$NREPS rows to the best unit parameter for unit u
         params_unit_best[((search3$NREPS * (p-1)) + 1):(search3$NREPS * p), paste0(pname, u)] <- search2_results$params[top_unit_p_id, paste0(pname, u)]
-
-        # Do the same for params_shared_average, so the unit-specific parameters
-        # for the two datasets are the same.
-        params_shared_average[((search3$NREPS * (p-1)) + 1):(search3$NREPS * p), paste0(pname, u)] <- search2_results$params[top_unit_p_id, paste0(pname, u)]
       }
     }
   }
 
-  # for the top p parameters, take the average of the shared parameters that
-  # were the best for unit units.
-  for (p in 1:search3$TOP_N) {
-    for (pname in shared_param_names) {
-
-      # Get the id's for the top pth parameter set for each unit (length=10)
-      top_unit_ps <- best_unit_parm_id %>%
-        dplyr::slice(p) %>%
-        dplyr::pull(which)
-
-      # Set shared parameters to average of the top pth parameter set for each unit.
-      params_shared_average[((search3$NREPS * (p-1)) + 1):(search3$NREPS * p), paste0(pname, 1:10)] <- mean(search2_results$params[top_unit_ps, paste0(pname, 1)])  # All are same across each unit
-    }
-  }
-
-
   all_params <- rbind(
     params,
-    params_unit_best,
-    params_shared_average
+    params_unit_best
   )
 
   registerDoRNG(327498615)
 
   t_ibpf_local <- system.time(
     foreach(
-      i = 1:(search3$TOP_N * search3$NREPS * 3),
+      i = 1:(search3$TOP_N * search3$NREPS * 2),
       .packages = c("spatPomp"),
       .combine = c
     ) %dopar% {
@@ -666,8 +627,8 @@ fit_coupled_haiti3 <- function(
 
   pfilterLikes <- data.frame(
     "ll" = NA_real_,
-    "starting_set" = rep(rep(top_n_local, each = search3$NREPS * search3$NREPS_EVAL), 3),
-    "which" = rep(1:(search3$NREPS * search3$TOP_N * 3), each = search3$NREPS_EVAL)
+    "starting_set" = rep(rep(top_n_local, each = search3$NREPS * search3$NREPS_EVAL), 2),
+    "which" = rep(1:(search3$NREPS * search3$TOP_N * 2), each = search3$NREPS_EVAL)
   )
 
   ibpf_params <- t(coef(local_ibpf))
@@ -680,7 +641,7 @@ fit_coupled_haiti3 <- function(
 
   t_local_bpf <- system.time(
     likMat <- foreach(  # Get log-likelihood for each unit and set of parameters, NREPS_EVAL times each
-      i = 1:(search3$NREPS_EVAL*search3$NREPS*search3$TOP_N*3), .combine = rbind, .packages = 'spatPomp'
+      i = 1:(search3$NREPS_EVAL*search3$NREPS*search3$TOP_N*2), .combine = rbind, .packages = 'spatPomp'
     ) %dopar% {
       # p3 <- coef(local_ibpf[[(i-1) %/% search3$NREPS_EVAL + 1]])
       p3 <- ibpf_params[(i-1) %/% search3$NREPS_EVAL + 1, ]
