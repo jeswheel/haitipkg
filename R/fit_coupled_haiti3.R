@@ -180,8 +180,8 @@ fit_coupled_haiti3 <- function(
   unit_lb['hHur3'] <- 30
   unit_lb['hHur9'] <- 30
 
-  unit_lb['Iinit3'] <- 0.45 / 468301  # H3
-  unit_lb['Iinit7'] <- 0.45 / 728807  # H7
+  unit_lb['Iinit3'] <- 0.8 / 468301  # H3
+  unit_lb['Iinit7'] <- 2.4 / 728807  # H7, there were at least 2 cases, so that should be our min.
 
   unit_ub['Iinit3'] <- 8.1 / 468301
   unit_ub['Iinit7'] <- 16.1 / 728807

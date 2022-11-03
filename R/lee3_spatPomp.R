@@ -1,4 +1,4 @@
-#' Build pomp object for model 3.
+#' Build spatPomp version of model 3 of lee et al (2020).
 #'
 #' Generate a \sQuote{spatPomp} object for fitting to Haiti cholera data.
 #'    This model is a stochastic compartmental model applied at the
@@ -26,6 +26,7 @@
 #'
 #'
 #' @param dt_years step size, in years, for the euler approximation.
+#' @param start_date the start date of the model.
 #' @importFrom magrittr %>%
 #' @importFrom foreach %do%
 #' @importFrom foreach foreach
@@ -36,10 +37,10 @@
 #' @return \code{\link[spatPomp]{spatPomp}} representation of model 3 described in \href{https://www.sciencedirect.com/science/article/pii/S2214109X20303107}{Lee, Elizabeth et. al.} and it's accompanying \href{https://ars.els-cdn.com/content/image/1-s2.0-S2214109X20303107-mmc3.pdf}{Supplemental Material}.
 #'
 #' @examples
-#' mod3 <- haiti3_spatPomp()
+#' mod3 <- lee3_spatPomp()
 #' @export
 
-haiti3_spatPomp <- function(dt_years = 1/365.25) {
+lee3_spatPomp <- function(dt_years = 0.2/365.25, start_date = "2014-03-01") {
 
   # Create vector of departement names
   departements = c(
@@ -64,15 +65,14 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
   params_common <- c(
     "sigma", "mu_B", "thetaI", "XthetaA", "lambdaR", "r",
     "gamma", "rho", "epsilon", "k",
-    "std_W", "mu", "alpha", "cases_ext"
+    "std_W", "cas_def", "mu", "alpha", "cases_ext"
   )
 
   # Parameters that are unique to each department:
   params_diff <- c(
     "foi_add", "betaB", "H", "D", "t_vacc_start",
     "t_vacc_end", "p1d_reg", "r_v_year", "t_vacc_start_alt",
-    "t_vacc_end_alt", "p1d_reg_alt", "r_v_year_alt", "Iinit",
-    "aHur", "hHur"
+    "t_vacc_end_alt", "p1d_reg_alt", "r_v_year_alt"
   )
 
   all_params_names <- c(params_common, params_diff)
@@ -81,8 +81,10 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
   names(all_unit_params) <- all_unit_params_names
 
   # Load the input parameters
-  t_start <- lubridate::decimal_date(as.Date("2010-10-23"))
+  t_start <- lubridate::decimal_date(as.Date(start_date))
   t_end   <- lubridate::decimal_date(as.Date(MODEL3_INPUT_PARAMETERS$t_end))
+
+  all_matrix_cases_at_t_start.string <- ""
 
   # haitiCholera is a saved data.frame in the package
   MODEL3_CASES <- haitiCholera %>%
@@ -114,13 +116,14 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
   }
 
   all_rain <- haitiRainfall %>%
-    dplyr::filter(date >= as.Date("2010-10-23") - lubridate::days(8) & date <= as.Date(haitipkg:::MODEL3_INPUT_PARAMETERS$t_end) + lubridate::days(8)) %>%
+    # dplyr::filter(date >= as.Date("2010-10-23") - lubridate::days(8) & date <= as.Date(haitipkg:::MODEL3_INPUT_PARAMETERS$t_end) + lubridate::days(8)) %>%
     dplyr::summarize(
       date = date, dplyr::across(Artibonite:`Sud-Est`, std_rain)
     ) %>%
     dplyr::mutate(
       time2 = lubridate::decimal_date(date)
-    )
+    ) %>%
+    dplyr::filter(time2 > t_start - 0.01 & time2 < (t_end + 0.01))
 
   colnames(all_rain) <- c(
     "date",
@@ -187,10 +190,11 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
       )
     }
 
+    # all_matrix_cases_at_t_start.string <- stringr::str_c(all_matrix_cases_at_t_start.string, matrix_cases_at_t_start.string)
     all_cases_at_t_start.string <- paste0(all_cases_at_t_start.string, cases_at_t_start.string)
   }
 
-  MODEL3_INPUT_PARAMETERS <- MODEL3_INPUT_PARAMETERS
+  MODEL3_INPUT_PARAMETERS <- haitipkg:::MODEL3_INPUT_PARAMETERS
 
   populations <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS["population"]))
   densities <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS["density"]))
@@ -225,6 +229,7 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
   }
 
   initializeStatesString =   "
+  // double mobility;
   double *S = &S1;
   double *I = &I1;
   double *A = &A1;
@@ -253,37 +258,59 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
   double *totInc = &totInc1;
   const double *thetaI = &thetaI1;
   const double *XthetaA = &XthetaA1;
-  // const double mu = mu1;
+  // const double *foi_add = &foi_add1;
+  // const double *betaB = &betaB1;
+  const double *mu = &mu1;
   const double *sigma = &sigma1;
   const double *epsilon = &epsilon1;
-  // const double alpha = &alpha1;
+  const double *alpha = &alpha1;
   const double *gamma = &gamma1;
-  const double *Iinit = &Iinit1;
+  const double *rho = &rho1;
   const double *r = &r1;
   const double *mu_B = &mu_B1;
   const double *H = &H1;
   const double *D = &D1;
   const double *lambdaR = &lambdaR1;
-  const double *rain_std = &rain_std1;
+  double thetaA;
+  double Rzero[2] = {0, 0};
+  double B_acc;
 
   for (int u = 0; u < U; u++) {
 
-    if (cases_at_t_start[u][0][1] <= 10) {  // If cases < 10, we assume that it's posible that we are initially under-reporting, so we allow for more cases to be asymptomatic than normal.
-       I[u] = nearbyint(H[u] * Iinit[u]);  // estimated number of asymptomatic individuals
-    } else {
-       I[u] = nearbyint((365 * cases_at_t_start[u][0][1])/(7 * epsilon[u] * (mu1 + alpha1 + gamma[u])));  // Steady state
+    thetaA = thetaI[u] * XthetaA[u];
+
+    A[u] = nearbyint((1-sigma[u])/sigma[u]  * 1/epsilon[u] * cases_at_t_start[u][n_cases_start-1][1]/7 * 365 /(mu[u]+gamma[u]));
+    I[u] = nearbyint(1/epsilon[u] * cases_at_t_start[u][n_cases_start-1][1]/7 * 365 /(mu[u]+alpha[u]+gamma[u]))  ;  // Steady state, DP says its correct.
+    Rzero[0] = 0;
+    Rzero[1] = 0;
+    B_acc = 0;
+
+    for (int i = 0; i < n_cases_start; i++) {
+       Rzero[0] +=                   cases_at_t_start[u][i][1]/epsilon[u]  * exp((cases_at_t_start[u][i][0] - t_start)  * (rho[u]+mu[u])); /* because t_i in past so t_ - t_0 negative */
+       Rzero[1] += (1-sigma[u])/sigma[u] * cases_at_t_start[u][i][1]/epsilon[u]  * exp((cases_at_t_start[u][i][0] - t_start)  * (rho[u]+mu[u]));
+       B_acc += (thetaA * (1-sigma[u])/sigma[u] * cases_at_t_start[u][i][1]/epsilon[u] + thetaI[u] * cases_at_t_start[u][i][1]/epsilon[u]) *
+          (1 + lambdaR[u] * pow(0.024, r[u])) * D[u] * exp((cases_at_t_start[u][i][0] - t_start)  * mu_B[u]);
     }
 
-    A[u] = nearbyint((1 - sigma[u]) * I[u] / sigma[u]);
+    B[u] = B_acc;
+    R_one[u]     = nearbyint((Rzero[0] + Rzero[1])/3);
+    R_two[u]     = nearbyint((Rzero[0] + Rzero[1])/3);
+    R_three[u]   = nearbyint((Rzero[0] + Rzero[1])/3);
 
-    R_one[u] = nearbyint((cases_at_t_start[u][0][1] / (epsilon[u] * sigma[u]) - (I[u] + A[u])) / 3);
-    if (R_one[u] < 0) R_one[u] = 0;
-
-    R_two[u] = R_one[u];
-    R_three[u] = R_one[u];
+    if (A[u] + I[u] + R_one[u] + R_two[u] + R_three[u] >= H[u]) {
+      double R_tot = H[u] - A[u] - I[u] - 100.0;
+      if (R_tot <= 0) {
+         I[u]     = nearbyint(H[u] - 100);
+         A[u]     = nearbyint(0);
+         R_tot    = nearbyint(0);
+      }
+      R_one[u]     = nearbyint(R_tot/3.0);
+      R_two[u]     = nearbyint(R_tot/3.0);
+      R_three[u]   = nearbyint(R_tot/3.0);
+    }
 
     S[u]   = nearbyint(H[u] - A[u] - I[u] - R_one[u] - R_two[u] - R_three[u]);
-    B[u]   = (I[u] * thetaI[u]/mu_B[u] + A[u] * thetaI[u] * XthetaA[u]/mu_B[u]) * D[u] * (1 + lambdaR[u] * pow(rain_std[u], r[u]));
+    B[u]   = (I[u] * thetaI[u]/mu_B[u] + A[u] * thetaA/mu_B[u]) * D[u] * (1 + lambdaR[u] * pow(0.024, r[u])); // TODO custom initial conditions equivalent to the 'forcing' in the continous model
     C[u]   = 0;
     VSd[u] = 0;
     VR1d[u] = 0;
@@ -303,6 +330,8 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
     VR3dd_alt[u] = 0;
     Doses[u] = 0;
     totInc[u] = 0;
+
+
   }
 "
 
@@ -317,10 +346,15 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
   double *cases = &cases1;
   const double *epsilon = &epsilon1;
   const double *k = &k1;
+  const double *cas_def = &cas_def1;
   int u;
 
   for (u = 0; u < U; u++) {
-     cases[u] = rnbinom_mu(k[u], epsilon[u] * C[u]);
+    if (t > 2018) {
+      cases[u] = rnbinom_mu(k[u], epsilon[u] * C[u] * cas_def[u]);
+    } else {
+      cases[u] = rnbinom_mu(k[u], epsilon[u] * C[u]);
+    }
   }
   "
 
@@ -334,6 +368,7 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
 int u;
 const double *epsilon = &epsilon1;
 const double *k = &k1;
+const double *cas_def = &cas_def1;
 const double *cases = &cases1;
 const double *C = &C1;
 double tol = 1e-15;
@@ -341,10 +376,14 @@ double tol = 1e-15;
 lik = 0;
 for (u = 0; u < U; u++) {
   if (ISNA(cases[u])) {
-     lik += (give_log) ? 0 : 1;
+      lik += (give_log) ? 0 : 1;
   } else {
-     lik += dnbinom_mu(cases[u], k[u], epsilon[u] * C[u] + tol, give_log);
-  }
+    if (t > 2018) {
+      lik += dnbinom_mu(cases[u], k[u], epsilon[u] * C[u] * cas_def[u] + tol, give_log);
+    } else {
+      lik += dnbinom_mu(cases[u], k[u], epsilon[u] * C[u] + tol, give_log);
+      }
+    }
 }
 "
 
@@ -353,13 +392,18 @@ dmeas <- pomp::Csnippet(dmeasTemplate)
 unit_dmeasTemplate <- "
   double *k = &k1;
   double *epsilon = &epsilon1;
+  double *cas_def = &cas_def1;
   double tol = 1e-15;
 
   if (ISNA(cases)) {
-     lik = (give_log) ? 0 : 1;
+      lik = (give_log) ? 0 : 1;
   } else {
-     lik = dnbinom_mu(cases, k[u], epsilon[u] * C + tol, give_log);
-  }
+    if (t > 2018) {
+      lik = dnbinom_mu(cases, k[u], epsilon[u] * C * cas_def[u] + tol, give_log);
+    } else {
+      lik = dnbinom_mu(cases, k[u], epsilon[u] * C + tol, give_log);
+      }
+    }
 "
 
 unit_dmeas <- pomp::Csnippet(unit_dmeasTemplate)
@@ -401,8 +445,6 @@ const double *rain_std = &rain_std1;
 
 // getting all non-constant parameters used in the model
 const double *betaB = &betaB1;
-const double *aHur = &aHur1;
-const double *hHur = &hHur1;
 const double *foi_add = &foi_add1;
 const double *H = &H1;
 const double *D = &D1;
@@ -425,12 +467,14 @@ const double *lambdaR = &lambdaR1;
 const double *std_W = &std_W1;
 const double *k = &k1;
 const double *gamma = &gamma1;
+const double *epsilon = &epsilon1;
 
 // Below I'm assuming that all these parameters are constants, so they don't get updated.
-// const double mu = mu1;
-// const double alpha = alpha1;
+const double mu = mu1;
+const double alpha = alpha1;
 const double *cases_ext = &cases_ext1;
-// double beta_hurricane[10];
+const double cas_def = cas_def1;
+double beta_hurricane[10];
 
 double foi, foi_stoc;   // force of infection and its stochastic version
 double dw;              // extra-demographic stochasticity on foi
@@ -443,76 +487,74 @@ double p1d, pdd;
 double r_v_wdn = 0.0;   // rate of vaccination: 0 if out of time window, r_v if not
 int previous_vacc_campaign; // flag that indicate if we are on the first or second campain
 double t_eff, t_eff_alt;
-double thetaA;
 
 // Define rates that are constant for all units (departements):
 // S compartment
-rate[4] = mu1;           // S -> natural death
+rate[4] = mu;           // S -> natural death
 
 // I compartment
-rate[5] = mu1;           // natural deaths
-rate[6] = alpha1;        // cholera-induced deaths
+rate[5] = mu;           // natural deaths
+rate[6] = alpha;        // cholera-induced deaths
 
 // A compartment
-rate[8] = mu1;           // natural death
+rate[8] = mu;           // natural death
 
 // R_one
-rate[13] = mu1;             // natural death R_one -> death
+rate[13] = mu;             // natural death R_one -> death
 
 // R_two
-rate[17] = mu1;             // natural death R_two -> death
+rate[17] = mu;             // natural death R_two -> death
 
 // R_three
-rate[21] = mu1;             // natural death R_three -> death
+rate[21] = mu;             // natural death R_three -> death
 
 // VSd
-rate[26] = mu1;          // VSd -> death
+rate[26] = mu;          // VSd -> death
 
 // VR1d
-rate[27] = mu1;             // natural death:    VR1d -> death
+rate[27] = mu;             // natural death:    VR1d -> death
 
 // VR2d
-rate[29] = mu1;             // natural death:    VR2d -> death
+rate[29] = mu;             // natural death:    VR2d -> death
 
 // VR3d
-rate[31] = mu1;             // natural death:    VR3d -> death
+rate[31] = mu;             // natural death:    VR3d -> death
 
 // VSdd
-rate[35] = mu1;             // natural death
+rate[35] = mu;             // natural death
 
 // VR1dd
-rate[36] = mu1;                // natural death:    VR1dd -> death
+rate[36] = mu;                // natural death:    VR1dd -> death
 
 // VR2dd
-rate[38] = mu1;             // natural death:    VR2dd -> death
+rate[38] = mu;             // natural death:    VR2dd -> death
 
 // VR3dd
-rate[40] = mu1;             // natural death:    VR3dd -> death
+rate[40] = mu;             // natural death:    VR3dd -> death
 
 // VSd_alt
-rate[44] = mu1;          // natural death
+rate[44] = mu;          // natural death
 
 // VSdd_alt
-rate[47] = mu1;          // natural death
+rate[47] = mu;          // natural death
 
 // Loop through each unit (departement)
 for (int u = 0; u < U; u++) {
-  thetaA = thetaI[u] * XthetaA[u];
   int scenario =  cases_ext[u];
+  double thetaA = thetaI[u] * XthetaA[u];
 
   previous_vacc_campaign = TRUE;
   r_v_wdn = 0;
+  dw = 0;
 
-  mobility = I[0] + I[1] + I[2] + I[3] + I[4] + I[5] + I[6] + I[7] + I[8] + I[9] +
-             A[0] + A[1] + A[2] + A[3] + A[4] + A[5] + A[6] + A[7] + A[8] + A[9] -
-             (I[u] + A[u]);
+  // mobility = I[0] + I[1] + I[2] + I[3] + I[4] + I[5] + I[6] + I[7] + I[8] + I[9] +
+  //            A[0] + A[1] + A[2] + A[3] + A[4] + A[5] + A[6] + A[7] + A[8] + A[9] -
+  //            (I[u] + A[u]);
+
+  mobility = (I[0] + I[1] + I[2] + I[3] + I[4] + I[5] + I[6] + I[7] + I[8] + I[9] - I[u]) * epsilon[u] * 3.5;
 
   // force of infection
-  if (t >= 2016.754) {
-     foi = (betaB[u] + aHur[u] * exp(-hHur[u] * (t - 2016.754))) * (B[u] / (1 + B[u])) + foi_add[u] * mobility;
-  } else {
-     foi = betaB[u] * (B[u] / (1 + B[u])) + foi_add[u] * mobility;
-  }
+  foi = betaB[u] * (B[u] / (1 + B[u])) + foi_add[u] * mobility;
 
   if(std_W[u] > 0.0) {
     dw = rgammawn(std_W[u], dt);   // white noise (extra-demographic stochasticity)
@@ -734,7 +776,8 @@ final_rproc_c <- pomp::Csnippet(rprocTemplate)
 
 # C function to compute the time-derivative of bacterial concentration OK
 derivativeBacteria.c <- " double fB(int I, int A, double B,
-double mu_B, double thetaI, double thetaA, double lambdaR, double rain, double r, double D) {
+double mu_B, double thetaI, double XthetaA, double lambdaR, double rain, double r, double D) {
+  double thetaA = thetaI * XthetaA;
   double dB;
   dB = -mu_B * B +  (1 + lambdaR * pow(rain, r)) * D * (thetaI * (double) I + thetaA * (double) A);
   return(dB);
@@ -892,11 +935,12 @@ zeronameUnit = paste0(c("C"), 1:10)
 pt <- pomp::parameter_trans(
   log = paste0(rep(c(
     "mu_B", "thetaI", "lambdaR", "r", "std_W", "k",
-    "betaB", "foi_add", "rho", "gamma", "Iinit", "aHur", "hHur"
+    "betaB", "foi_add", "rho", "gamma"
   ), each = 10), 1:10),
   logit = paste0(rep(c(
     "XthetaA",
     "epsilon",
+    "cas_def",
     "sigma"
   ), each = 10), 1:10)
 )
@@ -917,13 +961,7 @@ all_unit_params[paste0("r", 1:10)] <- 0.31360358752214235
 all_unit_params[paste0("std_W", 1:10)] <- 0.008172280355938182
 all_unit_params[paste0("epsilon", 1:10)] <- 0.9750270707877388
 all_unit_params[paste0("k", 1:10)] <- 101.2215999283583
-all_unit_params[paste0("aHur", 1:10)] <- 0
-all_unit_params[paste0("hHur", 1:10)] <- 0
-
-all_unit_params["aHur9"] <- 2  # Corresponds to approximately doubled transmission
-all_unit_params["aHur3"] <- 2
-all_unit_params["hHur9"] <- 91  # Corresponds to approximately one month of hurricane effect
-all_unit_params["hHur3"] <- 91
+all_unit_params[paste0("cas_def", 1:10)] <- 0.10
 
 # These parameters are different for each departement, so these need to be set seperately.
 old_params <- c()
@@ -953,14 +991,17 @@ for (i in 1:10) {
   dp <- departements[i]
   all_unit_params[paste0("betaB", i)] <- old_params[paste0('betaB', dp)]
   all_unit_params[paste0("foi_add", i)] <- old_params[paste0('foi_add', dp)]
-  all_unit_params[paste0("Iinit", i)] <- dplyr::filter(all_cases, time == min(time), departement == dp) %>% dplyr::pull(cases) / all_unit_params[paste0("H", i)]
 }
 
+all_cases <- all_cases %>%
+  dplyr::filter(time > t_start & time < (t_end + 0.01)) %>%
+  as.data.frame()
+
 sirb_cholera <- spatPomp::spatPomp(
-  data = as.data.frame(all_cases),
+  data = all_cases,
   units = "departement",
   times = "time",
-  t0 = lubridate::decimal_date(as.Date("2010-10-23") - lubridate::weeks(1)),
+  t0 = t_start - dt_years,
   unit_statenames = unit_state_names,
   covar = as.data.frame(all_rain),
   rprocess = euler(step.fun = final_rproc_c, delta.t = dt_years),
