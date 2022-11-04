@@ -48,7 +48,7 @@
 #' @importFrom magrittr %>%
 #'
 #' @export
-fit_coupled_haiti3 <- function(
+fit_coupled_haiti3_unitK <- function(
     search1 = list(
       NBPF = 5,
       NP = 50,
@@ -106,11 +106,11 @@ fit_coupled_haiti3 <- function(
   results <- list()
 
   # Create vectors for the unit and shared parameters
-  unit_specific_names <- c("betaB", "foi_add", "aHur", "hHur")
+  unit_specific_names <- c("betaB", "foi_add", "k", "aHur", "hHur")
 
   shared_param_names <- c(
     "mu_B", "XthetaA", "thetaI", "lambdaR", "r", "std_W",
-    "epsilon", "k", "sigma"
+    "epsilon", "sigma"
   )
 
   if (search_rho) {
@@ -148,12 +148,12 @@ fit_coupled_haiti3 <- function(
 
   # Get lower bound for unit parameters (global search)
   min_val <- 1e-8
-  unit_lb <- rep(c(min_val, min_val, 0, 0), each = 10)
-  names(unit_lb) <- paste0(rep(unit_specific_names[1:4], each = 10), 1:10)
+  unit_lb <- rep(c(min_val, min_val, 1, 0, 0), each = 10)
+  names(unit_lb) <- paste0(rep(unit_specific_names[1:5], each = 10), 1:10)
 
   # Get upper bound for unit parameters (global search)
-  unit_ub <- rep(c(50, 5e-6, 0, 0), each = 10)
-  names(unit_ub) <- paste0(rep(unit_specific_names[1:4], each = 10), 1:10)
+  unit_ub <- rep(c(50, 5e-6, 250, 0, 0), each = 10)
+  names(unit_ub) <- paste0(rep(unit_specific_names[1:5], each = 10), 1:10)
 
   # Set unique upper-bounds for betaB, based on run_level_2 search results.
   unit_ub['betaB1'] <- 15
@@ -189,7 +189,7 @@ fit_coupled_haiti3 <- function(
   # Get lower bound for shared parameters (global search)
   shared_lb <- c(
     25, 0.02, min_val, min_val,
-    0.75, min_val, 0.25, 1, 0.1
+    0.75, min_val, 0.25, 0.1
   )
 
   if (search_rho) {
@@ -203,7 +203,7 @@ fit_coupled_haiti3 <- function(
   names(shared_lb) <- shared_param_names
 
   # Get upper bound for shared parameters (global search)
-  shared_ub <- c(500, 0.8, 0.0001, 5, 1.75, 0.15, 1, 250, 0.3)
+  shared_ub <- c(500, 0.8, 0.0001, 5, 1.75, 0.15, 1, 0.3)
 
   if (search_rho) {
     shared_ub <- c(shared_ub, 1/(0.2))
@@ -427,7 +427,6 @@ fit_coupled_haiti3 <- function(
   #   params,
   #   params_shared_average
   # )
-
   all_params <- params
 
   # rm(params, params_shared_average, params_unit_best, pfilterLikes, p,
