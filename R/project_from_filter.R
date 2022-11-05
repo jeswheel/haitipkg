@@ -69,9 +69,9 @@ project_from_filter <- function(mod, end_states, covarGen = NULL,
   if (mod@timename == "week") {
     new_times <- (max(mod@times) + 1):(max(mod@times) + 570)
   } else {
-    new_times <- dateToYears(
+    new_times <- lubridate::decimal_date(
       seq.Date(
-        yearsToDate(max(mod@times)) + 7,
+        as.Date(lubridate::date_decimal(max(mod@times)) + lubridate::weeks(1)),
         as.Date("2029-12-20"),
         by = "1 week"
       )

@@ -160,15 +160,15 @@ fit_coupled_haiti3 <- function(
   unit_ub['betaB10'] <- 20
   unit_ub['betaB5'] <- 15
   unit_ub['betaB7'] <- 20
-  unit_ub['betaB8'] <- 15
+  unit_ub['betaB8'] <- 8
   unit_ub['betaB9'] <- 25
   unit_ub['foi_add10'] <- 2e-6
   unit_ub['foi_add7'] <- 1.5e-6
-  unit_ub['foi_add3'] <- 1.5e-6
-  unit_ub['foi_add4'] <- 1e-6
+  unit_ub['foi_add3'] <- 1.1e-6
+  unit_ub['foi_add4'] <- 5e-7
   unit_ub['foi_add5'] <- 3e-6
-  unit_ub['foi_add6'] <- 2e-6
-  unit_ub['foi_add9'] <- 2e-6
+  unit_ub['foi_add6'] <- 1e-6
+  unit_ub['foi_add9'] <- 1.3e-6
 
   unit_ub['aHur3'] <- 50
   unit_ub['aHur9'] <- 25
