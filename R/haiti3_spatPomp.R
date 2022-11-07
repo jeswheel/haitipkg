@@ -711,7 +711,14 @@ for (int u = 0; u < U; u++) {
   VR3dd_alt[u]  +=  dN[57] - dN[58] - dN[59];
 
   C[u]   +=  dN[0] + dN[24] + dN[33] + dN[42] + dN[51]; // S -> I, VSd -> I, VSdd -> I, VSd_alt -> I, VSdd_alt -> I
-  B[u]   += (((dB) < -B[u]) ? (-B[u] + 1.0e-3) : (dB)); // condition to ensure B>0
+
+  if (dB < -B[u]) {
+     B[u] = 0;
+  } else {
+     B[u] += dB;
+  }
+
+  // B[u]   += (((dB) < -B[u]) ? (-B[u] + 1.0e-3) : (dB)); // condition to ensure B>0
 
   // susceptibles so as to match total population
   S[u] = nearbyint(H[u] - I[u] - A[u] - R_one[u] - R_two[u] - R_three[u] -
