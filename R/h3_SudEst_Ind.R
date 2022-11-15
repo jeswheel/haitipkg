@@ -162,7 +162,7 @@ h3_SudEst_Ind <- function(
   unit_ub['betaB7'] <- 20
   unit_ub['betaB8'] <- 8
   unit_ub['betaB9'] <- 25
-  unit_ub['foi_add10'] <- 2e-4
+  unit_ub['foi_add10'] <- 1e-3
   unit_ub['foi_add7'] <- 1.5e-6
   unit_ub['foi_add3'] <- 1.1e-6
   unit_ub['foi_add4'] <- 5e-7
