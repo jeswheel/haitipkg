@@ -503,9 +503,14 @@ for (int u = 0; u < U; u++) {
   previous_vacc_campaign = TRUE;
   r_v_wdn = 0;
 
-  mobility = I[0] + I[1] + I[2] + I[3] + I[4] + I[5] + I[6] + I[7] + I[8] + I[9] +
-             A[0] + A[1] + A[2] + A[3] + A[4] + A[5] + A[6] + A[7] + A[8] + A[9] -
-             (I[u] + A[u]);
+  if (u == 9) {
+     mobility = I[9] + A[9];
+     // Rprintf(\"Here!\\n\");
+  } else {
+     mobility = I[0] + I[1] + I[2] + I[3] + I[4] + I[5] + I[6] + I[7] + I[8] +
+                A[0] + A[1] + A[2] + A[3] + A[4] + A[5] + A[6] + A[7] + A[8] -
+                (I[u] + A[u]);
+  }
 
   // mobility = Tmat[u][0] * (I[0] + A[0]) +
   //            Tmat[u][1] * (I[1] + A[1]) +
