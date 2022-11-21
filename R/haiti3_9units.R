@@ -1,5 +1,9 @@
 #' Build pomp object for model 3.
 #'
+#' This function creates a version of the \sQuote{spatPomp} representation of
+#' Model 3, with only 9 units (excluding the Sud Est department, see the
+#' supplement material for details).
+#'
 #' Generate a \sQuote{spatPomp} object for fitting to Haiti cholera data.
 #'    This model is a stochastic compartmental model applied at the
 #'    level of the ten Haitian departments. It is the stochastic
@@ -36,16 +40,16 @@
 #' @return \code{\link[spatPomp]{spatPomp}} representation of model 3 described in \href{https://www.sciencedirect.com/science/article/pii/S2214109X20303107}{Lee, Elizabeth et. al.} and it's accompanying \href{https://ars.els-cdn.com/content/image/1-s2.0-S2214109X20303107-mmc3.pdf}{Supplemental Material}.
 #'
 #' @examples
-#' mod3 <- haiti3_spatPomp()
+#' mod3 <- haiti3_9units()
 #' @export
 
-h3_EMA_rain <- function(dt_years = 1/365.25) {
+haiti3_9units <- function(dt_years = 1/365.25) {
 
   # Create vector of departement names
   departements = c(
     'Artibonite', 'Centre', 'Grande_Anse',
     'Nippes', 'Nord', 'Nord_Est', 'Nord_Ouest',
-    'Ouest', 'Sud', 'Sud_Est'
+    'Ouest', 'Sud'
   )
 
   # List all state-names in pomp object:
@@ -58,13 +62,11 @@ h3_EMA_rain <- function(dt_years = 1/365.25) {
     "VR2dd_alt", "VR3dd_alt", "C", "B", "Doses", "totInc"
   )
 
-  # all_state_names <- paste0(rep(unit_state_names, each = 10), 1:10)
-
   # All parameters that are common to each departement (disease specific parameters)
   params_common <- c(
     "sigma", "mu_B", "thetaI", "XthetaA", "lambdaR", "r",
     "gamma", "rho", "epsilon", "k",
-    "std_W", "mu", "alpha", "cases_ext", "rd"
+    "std_W", "mu", "alpha", "cases_ext"
   )
 
   # Parameters that are unique to each department:
@@ -76,7 +78,7 @@ h3_EMA_rain <- function(dt_years = 1/365.25) {
   )
 
   all_params_names <- c(params_common, params_diff)
-  all_unit_params_names <- paste0(rep(all_params_names, each = 10), 1:10)
+  all_unit_params_names <- paste0(rep(all_params_names, each = 9), 1:9)
   all_unit_params <- rep(0, length(all_unit_params_names))
   names(all_unit_params) <- all_unit_params_names
 
@@ -86,10 +88,10 @@ h3_EMA_rain <- function(dt_years = 1/365.25) {
 
   # haitiCholera is a saved data.frame in the package
   MODEL3_CASES <- haitiCholera %>%
+    dplyr::select(-Sud.Est) %>%
     dplyr::rename(
       date = date_saturday, Grande_Anse = Grand.Anse,
-      Nord_Est = Nord.Est, Nord_Ouest = Nord.Ouest,
-      Sud_Est = Sud.Est
+      Nord_Est = Nord.Est, Nord_Ouest = Nord.Ouest
     ) %>%
     dplyr::mutate(date = as.Date(date)) %>%
     dplyr::select(-report)
@@ -101,7 +103,7 @@ h3_EMA_rain <- function(dt_years = 1/365.25) {
     ) %>%
     tidyr::pivot_longer(
       data = .,
-      cols = 2:11,
+      cols = 2:10,
       names_to = "departement",
       values_to = "cases"
     ) %>%
@@ -114,9 +116,9 @@ h3_EMA_rain <- function(dt_years = 1/365.25) {
   }
 
   all_rain <- haitiRainfall %>%
-    dplyr::filter(date >= as.Date("2010-10-23") - lubridate::weeks(2) & date <= as.Date(haitipkg:::MODEL3_INPUT_PARAMETERS$t_end) + lubridate::days(8)) %>%
+    dplyr::filter(date >= as.Date("2010-10-23") - lubridate::days(8) & date <= as.Date(haitipkg:::MODEL3_INPUT_PARAMETERS$t_end) + lubridate::days(8)) %>%
     dplyr::summarize(
-      date = date, dplyr::across(Artibonite:`Sud-Est`, std_rain)
+      date = date, dplyr::across(Artibonite:Sud, std_rain)
     ) %>%
     dplyr::mutate(
       time2 = lubridate::decimal_date(date)
@@ -128,7 +130,7 @@ h3_EMA_rain <- function(dt_years = 1/365.25) {
       'rain_std', c(
         'Artibonite', 'Centre', 'Grande_Anse',
         'Nippes', 'Nord', 'Nord_Est', 'Nord_Ouest',
-        'Ouest', 'Sud', 'Sud_Est'
+        'Ouest', 'Sud'
       )
     ),
     'time'
@@ -137,27 +139,17 @@ h3_EMA_rain <- function(dt_years = 1/365.25) {
   all_rain <- all_rain %>%
     tidyr::pivot_longer(
       data = .,
-      cols = 2:11,
+      cols = 2:10,
       names_to = "departement",
       values_to = "rain_std",
       names_prefix = "rain_std"
     ) %>%
     dplyr::arrange(departement, time) %>%
-    dplyr::select(-date) %>%
-    dplyr::group_by(departement) %>%
-    dplyr::mutate(
-      rain_std_la = lag(rain_std),
-      rain_std_lb = lag(rain_std, n = 2),
-      rain_std_lc = lag(rain_std, n = 3),
-      rain_std_ld = lag(rain_std, n = 4),
-      rain_std_le = lag(rain_std, n = 5),
-      rain_std_lf = lag(rain_std, n = 6),
-      rain_std_lg = lag(rain_std, n = 7)
-    ) %>%
-    dplyr::ungroup()
+    dplyr::select(-date)
+
 
   all_cases_at_t_start.string <- ""
-  for (i in 1:10) {  # Loop through data to get starting observations in each dep.
+  for (i in 1:9) {  # Loop through data to get starting observations in each dep.
 
     # Select the departement
     dp <- departements[i]
@@ -182,12 +174,12 @@ h3_EMA_rain <- function(dt_years = 1/365.25) {
     if (i == 1) {  # Start
       cases_at_t_start.string <- paste0(
         sprintf(
-          "double cases_at_t_start[10][%i][%i] = {\n",
+          "double cases_at_t_start[9][%i][%i] = {\n",
           nrow(cases_at_t_start),
           2
         ), cases_at_t_start.string, ',\n'
       )
-    } else if (i == 10) {  # End
+    } else if (i == 9) {  # End
       cases_at_t_start.string <- paste0(
         cases_at_t_start.string, "\n};"
       )
@@ -216,7 +208,7 @@ h3_EMA_rain <- function(dt_years = 1/365.25) {
   names(t_vacc_start_alt) <- gsub("-", "_", names(t_vacc_start_alt))
   names(t_vacc_end_alt) <- gsub("-", "_", names(t_vacc_end_alt))
 
-  for (i in 1:10) {
+  for (i in 1:9) {
     dp <- departements[i]
 
     all_unit_params[paste0('H', i)] <- populations[dp]
@@ -270,20 +262,11 @@ h3_EMA_rain <- function(dt_years = 1/365.25) {
   const double *gamma = &gamma1;
   const double *Iinit = &Iinit1;
   const double *r = &r1;
-  const double *rd = &rd1;
   const double *mu_B = &mu_B1;
   const double *H = &H1;
   const double *D = &D1;
   const double *lambdaR = &lambdaR1;
   const double *rain_std = &rain_std1;
-  const double *rain_std_l1 = &rain_std_la1;
-  const double *rain_std_l2 = &rain_std_lb1;
-  const double *rain_std_l3 = &rain_std_lc1;
-  const double *rain_std_l4 = &rain_std_ld1;
-  const double *rain_std_l5 = &rain_std_le1;
-  const double *rain_std_l6 = &rain_std_lf1;
-  const double *rain_std_l7 = &rain_std_lg1;
-  double totRain;
 
   for (int u = 0; u < U; u++) {
 
@@ -302,8 +285,7 @@ h3_EMA_rain <- function(dt_years = 1/365.25) {
     R_three[u] = R_one[u];
 
     S[u]   = nearbyint(H[u] - A[u] - I[u] - R_one[u] - R_two[u] - R_three[u]);
-    totRain = rain_std[u] + rd[u] * rain_std_l1[u] + pow(rd[u], 2) * rain_std_l2[u] + pow(rd[u], 3) * rain_std_l3[u] + pow(rd[u], 4) * rain_std_l4[u] + pow(rd[u], 5) * rain_std_l5[u] + pow(rd[u], 6) * rain_std_l6[u] + pow(rd[u], 7) * rain_std_l7[u];
-    B[u]   = (I[u] * thetaI[u]/mu_B[u] + A[u] * thetaI[u] * XthetaA[u]/mu_B[u]) * D[u] * (1 + lambdaR[u] * pow(totRain, r[u]));
+    B[u]   = (I[u] * thetaI[u]/mu_B[u] + A[u] * thetaI[u] * XthetaA[u]/mu_B[u]) * D[u] * (1 + lambdaR[u] * pow(rain_std[u], r[u]));
     C[u]   = 0;
     VSd[u] = 0;
     VR1d[u] = 0;
@@ -418,13 +400,6 @@ double *B = &B1;
 double *Doses = &Doses1;
 double *totInc = &totInc1;
 const double *rain_std = &rain_std1;
-const double *rain_std_l1 = &rain_std_la1;
-const double *rain_std_l2 = &rain_std_lb1;
-const double *rain_std_l3 = &rain_std_lc1;
-const double *rain_std_l4 = &rain_std_ld1;
-const double *rain_std_l5 = &rain_std_le1;
-const double *rain_std_l6 = &rain_std_lf1;
-const double *rain_std_l7 = &rain_std_lg1;
 
 // getting all non-constant parameters used in the model
 const double *betaB = &betaB1;
@@ -447,7 +422,6 @@ const double *XthetaA = &XthetaA1;
 const double *sigma = &sigma1;
 const double *rho = &rho1;
 const double *r = &r1;
-const double *rd = &rd1;
 const double *mu_B = &mu_B1;
 const double *lambdaR = &lambdaR1;
 const double *std_W = &std_W1;
@@ -455,10 +429,7 @@ const double *k = &k1;
 const double *gamma = &gamma1;
 
 // Below I'm assuming that all these parameters are constants, so they don't get updated.
-// const double mu = mu1;
-// const double alpha = alpha1;
 const double *cases_ext = &cases_ext1;
-// double beta_hurricane[10];
 
 double foi, foi_stoc;   // force of infection and its stochastic version
 double dw;              // extra-demographic stochasticity on foi
@@ -468,7 +439,7 @@ double rate[48];        // vector of all rates in model
 double dN[60];          // vector of transitions between classes during integration timestep
 double mobility;
 double p1d, pdd;
-double r_v_wdn = 0.0;       // rate of vaccination: 0 if out of time window, r_v if not
+double r_v_wdn = 0.0;   // rate of vaccination: 0 if out of time window, r_v if not
 int previous_vacc_campaign; // flag that indicate if we are on the first or second campain
 double t_eff, t_eff_alt;
 double thetaA;
@@ -531,18 +502,11 @@ for (int u = 0; u < U; u++) {
   previous_vacc_campaign = TRUE;
   r_v_wdn = 0;
 
-  mobility = Tmat[u][0] * (I[0] + A[0]) +
-             Tmat[u][1] * (I[1] + A[1]) +
-             Tmat[u][2] * (I[2] + A[2]) +
-             Tmat[u][3] * (I[3] + A[3]) +
-             Tmat[u][4] * (I[4] + A[4]) +
-             Tmat[u][5] * (I[5] + A[5]) +
-             Tmat[u][6] * (I[6] + A[6]) +
-             Tmat[u][7] * (I[7] + A[7]) +
-             Tmat[u][8] * (I[8] + A[8]) +
-             Tmat[u][9] * (I[9] + A[9]);
+  mobility = I[0] + I[1] + I[2] + I[3] + I[4] + I[5] + I[6] + I[7] + I[8] +
+             A[0] + A[1] + A[2] + A[3] + A[4] + A[5] + A[6] + A[7] + A[8] -
+             (I[u] + A[u]);
 
-  // force of infection
+  // force of infection. 2016.754 marks approximate time of Hurricane Matthew
   if (t >= 2016.754) {
      foi = (betaB[u] + aHur[u] * exp(-hHur[u] * (t - 2016.754))) * (B[u] / (1 + B[u])) + foi_add[u] * mobility;
   } else {
@@ -685,13 +649,18 @@ for (int u = 0; u < U; u++) {
 
   // bacteria as continous state variable
   // implement Runge-Kutta integration assuming S, I, R, V* stay constant during dt
-  RK1 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u], rd[u], rain_std_l1[u], rain_std_l2[u], rain_std_l3[u], rain_std_l4[u], rain_std_l5[u], rain_std_l6[u], rain_std_l7[u]);
-  // RK2 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u], rd[u], rain_std_l1[u], rain_std_l2[u], rain_std_l3[u], rain_std_l4[u], rain_std_l5[u], rain_std_l6[u], rain_std_l7[u]);
-  // RK3 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u], rd[u], rain_std_l1[u], rain_std_l2[u], rain_std_l3[u], rain_std_l4[u], rain_std_l5[u], rain_std_l6[u], rain_std_l7[u]);
-  // RK4 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u], rd[u], rain_std_l1[u], rain_std_l2[u], rain_std_l3[u], rain_std_l4[u], rain_std_l5[u], rain_std_l6[u], rain_std_l7[u]);
+  RK1 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
+
+  // All of the RK's are the same, so don't calculate it more than once.
+  // RK2 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
+  // RK3 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
+  // RK4 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
 
   // bacteria increment
   dB = RK1;
+
+  // Again, since they are all the same, don't add 6 of them and divide by 6.
+  // dB = (RK1 + 2*RK2 + 2*RK3 + RK4) / 6.0;
 
   // Update States
   I[u]  += dN[0] + dN[24] + dN[33] + dN[42] + dN[51] - dN[7] - dN[6] - dN[5];            // S -> I, VSd -> I, VSdd -> I, VSd_alt -> I, VSdd_alt -> I, I -> R, I-> death, I -> death
@@ -776,10 +745,9 @@ final_rproc_c <- pomp::Csnippet(rprocTemplate)
 
 # C function to compute the time-derivative of bacterial concentration OK
 derivativeBacteria.c <- " double fB(int I, int A, double B,
-double mu_B, double thetaI, double thetaA, double lambdaR, double rain, double r, double D, double rd, double rain1, double rain2, double rain3, double rain4, double rain5, double rain6, double rain7) {
+double mu_B, double thetaI, double thetaA, double lambdaR, double rain, double r, double D) {
   double dB;
-  double totRain = rain + rd * rain1 + pow(rd, 2) * rain2 + pow(rd, 3) * rain3 + pow(rd, 4) * rain4 + pow(rd, 5) * rain5 + pow(rd, 6) * rain6 + pow(rd, 7) * rain7;
-  dB = -mu_B * B +  (1 + lambdaR * pow(totRain, r)) * D * (thetaI * (double) I + thetaA * (double) A);
+  dB = -mu_B * B +  (1 + lambdaR * pow(rain, r)) * D * (thetaI * (double) I + thetaA * (double) A);
   return(dB);
 };
   "
@@ -832,7 +800,7 @@ eff_v.c <- "
       else if (t_since_vacc <=  40./12) eff_v_2d =  0.424213229764494;
       else if (t_since_vacc <=  41./12) eff_v_2d =  0.412892477212831;
       else if (t_since_vacc <=  42./12) eff_v_2d =  0.401408270656362;
-      else if (t_since_vacc <=  43./12) eff_v_2d =  0.38975825007427  ;
+      else if (t_since_vacc <=  43./12) eff_v_2d =  0.38975825007427 ;
       else if (t_since_vacc <=  44./12) eff_v_2d =  0.377940021370718;
       else if (t_since_vacc <=  45./12) eff_v_2d =  0.365951155882864;
       else if (t_since_vacc <=  46./12) eff_v_2d =  0.353789189881759;
@@ -841,7 +809,7 @@ eff_v.c <- "
       else if (t_since_vacc <=  49./12) eff_v_2d =  0.316239514834368;
       else if (t_since_vacc <=  50./12) eff_v_2d =  0.303359790293999;
       else if (t_since_vacc <=  51./12) eff_v_2d =  0.290294102625533;
-      else if (t_since_vacc <=  52./12) eff_v_2d =  0.27703976681153  ;
+      else if (t_since_vacc <=  52./12) eff_v_2d =  0.27703976681153 ;
       else if (t_since_vacc <=  53./12) eff_v_2d =  0.263594059067087;
       else if (t_since_vacc <=  54./12) eff_v_2d =  0.249954216280098;
       else if (t_since_vacc <=  55./12) eff_v_2d =  0.236117435443426;
@@ -849,7 +817,7 @@ eff_v.c <- "
       else if (t_since_vacc <=  57./12) eff_v_2d =  0.207841644652907;
       else if (t_since_vacc <=  58./12) eff_v_2d =  0.193396823983748;
       else if (t_since_vacc <=  59./12) eff_v_2d =  0.178743442640173;
-      else if (t_since_vacc <=  60./12) eff_v_2d = 0.163878489331427;
+      else if (t_since_vacc <=  60./12) eff_v_2d =  0.163878489331427;
       else if (t_since_vacc <=  61./12) eff_v_2d =  0.148798909288418;
    break;
     case 2:
@@ -930,40 +898,38 @@ eff_v.c <- "
                   };
   "
 
-zeronameUnit = paste0(c("C"), 1:10)
+zeronameUnit = paste0(c("C"), 1:9)
 
 pt <- pomp::parameter_trans(
   log = paste0(rep(c(
     "mu_B", "thetaI", "lambdaR", "r", "std_W", "k",
     "betaB", "foi_add", "rho", "gamma", "Iinit", "aHur", "hHur"
-  ), each = 10), 1:10),
+  ), each = 9), 1:9),
   logit = paste0(rep(c(
     "XthetaA",
     "epsilon",
-    "sigma",
-    "rd"
-  ), each = 10), 1:10)
+    "sigma"
+  ), each = 9), 1:9)
 )
 
 # These params are constant for all departements, so use regex to set all values at once.
-all_unit_params[paste0("sigma", 1:10)] <- 0.25
-all_unit_params[paste0("gamma", 1:10)] <- 182.625
-all_unit_params[paste0("rho", 1:10)] <- 1 / (365 * 8) * 365.25
-all_unit_params[paste0("cases_ext", 1:10)] <- 1
+all_unit_params[paste0("sigma", 1:9)] <- 0.25
+all_unit_params[paste0("gamma", 1:9)] <- 182.625
+all_unit_params[paste0("rho", 1:9)] <- 1 / (365 * 8) * 365.25
+all_unit_params[paste0("cases_ext", 1:9)] <- 1
 
-all_unit_params[paste0("mu", 1:10)] <- 0.01586625546
-all_unit_params[paste0("alpha", 1:10)] <- 1.461
-all_unit_params[paste0("mu_B", 1:10)] <- 133.19716102404308
-all_unit_params[paste0("XthetaA", 1:10)] <- 0.0436160721505241
-all_unit_params[paste0("thetaI", 1:10)] <- 3.4476623459780395e-4
-all_unit_params[paste0("lambdaR", 1:10)] <- 0.2774237712085347
-all_unit_params[paste0("r", 1:10)] <- 0.31360358752214235
-all_unit_params[paste0('rd', 1:10)] <- 0
-all_unit_params[paste0("std_W", 1:10)] <- 0.008172280355938182
-all_unit_params[paste0("epsilon", 1:10)] <- 0.9750270707877388
-all_unit_params[paste0("k", 1:10)] <- 101.2215999283583
-all_unit_params[paste0("aHur", 1:10)] <- 0
-all_unit_params[paste0("hHur", 1:10)] <- 0
+all_unit_params[paste0("mu", 1:9)] <- 0.01586625546
+all_unit_params[paste0("alpha", 1:9)] <- 1.461
+all_unit_params[paste0("mu_B", 1:9)] <- 133.19716102404308
+all_unit_params[paste0("XthetaA", 1:9)] <- 0.0436160721505241
+all_unit_params[paste0("thetaI", 1:9)] <- 3.4476623459780395e-4
+all_unit_params[paste0("lambdaR", 1:9)] <- 0.2774237712085347
+all_unit_params[paste0("r", 1:9)] <- 0.31360358752214235
+all_unit_params[paste0("std_W", 1:9)] <- 0.008172280355938182
+all_unit_params[paste0("epsilon", 1:9)] <- 0.9750270707877388
+all_unit_params[paste0("k", 1:9)] <- 101.2215999283583
+all_unit_params[paste0("aHur", 1:9)] <- 0
+all_unit_params[paste0("hHur", 1:9)] <- 0
 
 all_unit_params["aHur9"] <- 2  # Corresponds to approximately doubled transmission
 all_unit_params["aHur3"] <- 2
@@ -974,7 +940,6 @@ all_unit_params["hHur3"] <- 91
 old_params <- c()
 
 old_params["betaBArtibonite"] =   0.516191
-old_params["betaBSud_Est"] =      1.384372
 old_params["betaBNippes"] =       2.999928
 old_params["betaBNord_Est"] =     3.248645
 old_params["betaBOuest"] =        0.090937
@@ -984,7 +949,6 @@ old_params["betaBSud"] =          1.305966
 old_params["betaBNord_Ouest"] =   1.141691
 old_params["betaBGrande_Anse"] =  2.823539
 old_params["foi_addArtibonite"] =    1.530994e-06
-old_params["foi_addSud_Est"] =     6.105491e-07
 old_params["foi_addNippes"] =       3.056857e-07
 old_params["foi_addNord_Est"] =     8.209611e-07
 old_params["foi_addOuest"] =       1.070717e-06
@@ -994,61 +958,61 @@ old_params["foi_addSud"] =          1.030357e-06
 old_params["foi_addNord_Ouest"] =   5.855759e-07
 old_params["foi_addGrande_Anse"] =  8.762740e-07
 
-for (i in 1:10) {
+for (i in 1:9) {
   dp <- departements[i]
   all_unit_params[paste0("betaB", i)] <- old_params[paste0('betaB', dp)]
   all_unit_params[paste0("foi_add", i)] <- old_params[paste0('foi_add', dp)]
   all_unit_params[paste0("Iinit", i)] <- dplyr::filter(all_cases, time == min(time), departement == dp) %>% dplyr::pull(cases) / all_unit_params[paste0("H", i)]
 }
 
-Tmat_string <- "
+# Tmat_string <- "
+#
+# const double Tmat[10][10] = {
+#   {0,0.22285947,0.01115249,0.024947,0.3995651,0.05602066,0.41288394,1,0.03234575,0.0561022},
+#   {0.22285947,0,0.00583854,0.01528133,0.12671922,0.02987225,0.04001087,0.87088883,0.01810275,0.03761892},
+#   {0.01115249,0.00583854,0,0.01205762,0.00443327,0.00156021,0.00331612,0.05460723,0.08350095,0.00750476},
+#   {0.024947,0.01528133,0.01205762,0,0.00752378,0.00258358,0.00591193,0.27724925,0.10875238,0.03117695},
+#   {0.3995651,0.12671922,0.00443327,0.00752378,0,0.20636042,0.10152215,0.19151943,0.01135906,0.01603968},
+#   {0.05602066,0.02987225,0.00156021,0.00258358,0.20636042,0,0.03870617,0.06363142,0.00395216,0.00558576},
+#   {0.41288394,0.04001087,0.00331612,0.00591193,0.10152215,0.03870617,0,0.16140256,0.0086953,0.01263115},
+#   {1,0.87088883,0.05460723,0.27724925,0.19151943,0.06363142,0.16140256,0,0.21693395,0.6757271},
+#   {0.03234575,0.01810275,0.08350095,0.10875238,0.01135906,0.00395216,0.0086953,0.21693395,0,0.02780647},
+#   {0.0561022,0.03761892,0.00750476,0.03117695,0.01603968,0.00558576,0.01263115,0.6757271,0.02780647,0}
+# };"
 
-const double Tmat[10][10] = {
-  {0,0.22285947,0.01115249,0.024947,0.3995651,0.05602066,0.41288394,1,0.03234575,0.0561022},
-  {0.22285947,0,0.00583854,0.01528133,0.12671922,0.02987225,0.04001087,0.87088883,0.01810275,0.03761892},
-  {0.01115249,0.00583854,0,0.01205762,0.00443327,0.00156021,0.00331612,0.05460723,0.08350095,0.00750476},
-  {0.024947,0.01528133,0.01205762,0,0.00752378,0.00258358,0.00591193,0.27724925,0.10875238,0.03117695},
-  {0.3995651,0.12671922,0.00443327,0.00752378,0,0.20636042,0.10152215,0.19151943,0.01135906,0.01603968},
-  {0.05602066,0.02987225,0.00156021,0.00258358,0.20636042,0,0.03870617,0.06363142,0.00395216,0.00558576},
-  {0.41288394,0.04001087,0.00331612,0.00591193,0.10152215,0.03870617,0,0.16140256,0.0086953,0.01263115},
-  {1,0.87088883,0.05460723,0.27724925,0.19151943,0.06363142,0.16140256,0,0.21693395,0.6757271},
-  {0.03234575,0.01810275,0.08350095,0.10875238,0.01135906,0.00395216,0.0086953,0.21693395,0,0.02780647},
-  {0.0561022,0.03761892,0.00750476,0.03117695,0.01603968,0.00558576,0.01263115,0.6757271,0.02780647,0}
-};"
+   sirb_cholera <- spatPomp::spatPomp(
+     data = as.data.frame(all_cases),
+     units = "departement",
+     times = "time",
+     t0 = lubridate::decimal_date(as.Date("2010-10-23") - lubridate::weeks(1)),
+     unit_statenames = unit_state_names,
+     covar = as.data.frame(all_rain),
+     rprocess = euler(step.fun = final_rproc_c, delta.t = dt_years),
+     unit_accumvars = c("C"),
+     paramnames = names(all_unit_params),
+     partrans = pt,
+     # global C definitions
+     globals = Csnippet(
+       stringr::str_c(
+         sprintf("int n_cases_start = %i;",  nrow(cases_at_t_start)),
+         sprintf("double t_start = %f;",  t_start),
+         sprintf("double t_end = %f;",  t_end),
+         derivativeBacteria.c,
+         all_cases_at_t_start.string,
+         eff_v.c,
+         # Tmat_string,
+         sep = " "
+       )
+     ),
+     rinit = initializeStates,
+     dmeasure = dmeas,
+     dunit_measure = unit_dmeas,
+     rmeasure = rmeas,
+     params = all_unit_params
+   )
 
-sirb_cholera <- spatPomp::spatPomp(
-  data = as.data.frame(all_cases),
-  units = "departement",
-  times = "time",
-  t0 = lubridate::decimal_date(as.Date("2010-10-23") - lubridate::weeks(1)),
-  unit_statenames = unit_state_names,
-  covar = as.data.frame(all_rain),
-  rprocess = euler(step.fun = final_rproc_c, delta.t = dt_years),
-  unit_accumvars = c("C"),
-  paramnames = names(all_unit_params),
-  partrans = pt,
-  # global C definitions
-  globals = Csnippet(
-    stringr::str_c(
-      sprintf("int n_cases_start = %i;",  nrow(cases_at_t_start)),
-      sprintf("double t_start = %f;",  t_start),
-      sprintf("double t_end = %f;",  t_end),
-      derivativeBacteria.c,
-      all_cases_at_t_start.string,
-      eff_v.c,
-      Tmat_string,
-      sep = " "
-    )
-  ),
-  rinit = initializeStates,
-  dmeasure = dmeas,
-  dunit_measure = unit_dmeas,
-  rmeasure = rmeas,
-  params = all_unit_params
-)
+   coef(sirb_cholera) <- all_unit_params
 
-coef(sirb_cholera) <- all_unit_params
-
-return(sirb_cholera)
+   return(sirb_cholera)
 }
 
