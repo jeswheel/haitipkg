@@ -158,7 +158,6 @@ fit_haiti3_9units <- function(
 
   # Set unique upper-bounds for betaB, based on run_level_2 search results.
   unit_ub['betaB1'] <- 15
-  unit_ub['betaB10'] <- 20
   unit_ub['betaB5'] <- 15
   unit_ub['betaB7'] <- 20
   unit_ub['betaB8'] <- 8
