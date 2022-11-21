@@ -435,7 +435,7 @@ const double *cases_ext = &cases_ext1;
 double foi, foi_stoc;   // force of infection and its stochastic version
 double dw;              // extra-demographic stochasticity on foi
 double dB;              // deterministic forward time difference of bacteria in the environment
-double RK1, RK2, RK3, RK4;  // coefficients of  the Runge-Kutta method
+// double RK1, RK2, RK3, RK4;  // coefficients of  the Runge-Kutta method
 double rate[48];        // vector of all rates in model
 double dN[60];          // vector of transitions between classes during integration timestep
 double mobility;
@@ -503,25 +503,9 @@ for (int u = 0; u < U; u++) {
   previous_vacc_campaign = TRUE;
   r_v_wdn = 0;
 
-  if (u == 9) {
-     mobility = I[9] + A[9];
-     // Rprintf(\"Here!\\n\");
-  } else {
-     mobility = I[0] + I[1] + I[2] + I[3] + I[4] + I[5] + I[6] + I[7] + I[8] +
-                A[0] + A[1] + A[2] + A[3] + A[4] + A[5] + A[6] + A[7] + A[8] -
-                (I[u] + A[u]);
-  }
-
-  // mobility = Tmat[u][0] * (I[0] + A[0]) +
-  //            Tmat[u][1] * (I[1] + A[1]) +
-  //            Tmat[u][2] * (I[2] + A[2]) +
-  //            Tmat[u][3] * (I[3] + A[3]) +
-  //            Tmat[u][4] * (I[4] + A[4]) +
-  //            Tmat[u][5] * (I[5] + A[5]) +
-  //            Tmat[u][6] * (I[6] + A[6]) +
-  //            Tmat[u][7] * (I[7] + A[7]) +
-  //            Tmat[u][8] * (I[8] + A[8]) +
-  //            Tmat[u][9] * (I[9] + A[9]);
+  mobility = I[0] + I[1] + I[2] + I[3] + I[4] + I[5] + I[6] + I[7] + I[8] + I[9] +
+             A[0] + A[1] + A[2] + A[3] + A[4] + A[5] + A[6] + A[7] + A[8] + I[9] -
+             (I[u] + A[u]);
 
   // force of infection
   if (t >= 2016.754) {
@@ -666,13 +650,13 @@ for (int u = 0; u < U; u++) {
 
   // bacteria as continous state variable
   // implement Runge-Kutta integration assuming S, I, R, V* stay constant during dt
-  RK1 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
-  RK2 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
-  RK3 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
-  RK4 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
+  // RK1 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
+  // RK2 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
+  // RK3 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
+  // RK4 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
 
   // bacteria increment
-  dB = (RK1 + 2*RK2 + 2*RK3 + RK4) / 6.0;
+  dB = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
 
   // Update States
   I[u]  += dN[0] + dN[24] + dN[33] + dN[42] + dN[51] - dN[7] - dN[6] - dN[5];            // S -> I, VSd -> I, VSdd -> I, VSd_alt -> I, VSdd_alt -> I, I -> R, I-> death, I -> death
@@ -978,21 +962,6 @@ for (i in 1:10) {
   all_unit_params[paste0("foi_add", i)] <- old_params[paste0('foi_add', dp)]
   all_unit_params[paste0("Iinit", i)] <- dplyr::filter(all_cases, time == min(time), departement == dp) %>% dplyr::pull(cases) / all_unit_params[paste0("H", i)]
 }
-
-# Tmat_string <- "
-#
-# const double Tmat[10][10] = {
-#   {0,0.22285947,0.01115249,0.024947,0.3995651,0.05602066,0.41288394,1,0.03234575,0.0561022},
-#   {0.22285947,0,0.00583854,0.01528133,0.12671922,0.02987225,0.04001087,0.87088883,0.01810275,0.03761892},
-#   {0.01115249,0.00583854,0,0.01205762,0.00443327,0.00156021,0.00331612,0.05460723,0.08350095,0.00750476},
-#   {0.024947,0.01528133,0.01205762,0,0.00752378,0.00258358,0.00591193,0.27724925,0.10875238,0.03117695},
-#   {0.3995651,0.12671922,0.00443327,0.00752378,0,0.20636042,0.10152215,0.19151943,0.01135906,0.01603968},
-#   {0.05602066,0.02987225,0.00156021,0.00258358,0.20636042,0,0.03870617,0.06363142,0.00395216,0.00558576},
-#   {0.41288394,0.04001087,0.00331612,0.00591193,0.10152215,0.03870617,0,0.16140256,0.0086953,0.01263115},
-#   {1,0.87088883,0.05460723,0.27724925,0.19151943,0.06363142,0.16140256,0,0.21693395,0.6757271},
-#   {0.03234575,0.01810275,0.08350095,0.10875238,0.01135906,0.00395216,0.0086953,0.21693395,0,0.02780647},
-#   {0.0561022,0.03761892,0.00750476,0.03117695,0.01603968,0.00558576,0.01263115,0.6757271,0.02780647,0}
-# };"
 
 sirb_cholera <- spatPomp::spatPomp(
   data = as.data.frame(all_cases),
