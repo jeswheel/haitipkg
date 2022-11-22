@@ -394,14 +394,15 @@ unit_dmeasTemplate <- "
   double *epsilon = &epsilon1;
   double *cas_def = &cas_def1;
   double tol = 1e-15;
+  int unit = u - 1;
 
   if (ISNA(cases)) {
       lik = (give_log) ? 0 : 1;
   } else {
     if (t > 2018) {
-      lik = dnbinom_mu(cases, k[u], epsilon[u] * C * cas_def[u] + tol, give_log);
+      lik = dnbinom_mu(cases, k[unit], epsilon[unit] * C * cas_def[unit] + tol, give_log);
     } else {
-      lik = dnbinom_mu(cases, k[u], epsilon[u] * C + tol, give_log);
+      lik = dnbinom_mu(cases, k[unit], epsilon[unit] * C + tol, give_log);
       }
     }
 "
