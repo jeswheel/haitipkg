@@ -377,6 +377,7 @@ double *I = &I1;
 const double Iold[10] = {I[0], I[1], I[2], I[3], I[4], I[5], I[6], I[7], I[8], I[9]};
 double *A = &A1;
 const double Aold[10] = {A[0], A[1], A[2], A[3], A[4], A[5], A[6], A[7], A[8], A[9]};
+double sum_all_units;
 double *R_one = &R_one1;
 double *R_two = &R_two1;
 double *R_three = &R_three1;
@@ -499,6 +500,10 @@ rate[44] = mu1;          // natural death
 rate[47] = mu1;          // natural death
 
 // Loop through each unit (departement)
+
+sum_all_units = Iold[0] + Iold[1] + Iold[2] + Iold[3] + Iold[4] + Iold[5] + Iold[6] + Iold[7] + Iold[8] + Iold[9] +
+                Aold[0] + Aold[1] + Aold[2] + Aold[3] + Aold[4] + Aold[5] + Aold[6] + Aold[7] + Aold[8] + Aold[9];
+
 for (int u = 0; u < U; u++) {
   thetaA = thetaI[u] * XthetaA[u];
   int scenario =  cases_ext[u];
@@ -506,9 +511,7 @@ for (int u = 0; u < U; u++) {
   previous_vacc_campaign = TRUE;
   r_v_wdn = 0;
 
-  mobility = Iold[0] + Iold[1] + Iold[2] + Iold[3] + Iold[4] + Iold[5] + Iold[6] + Iold[7] + Iold[8] + Iold[9] +
-             Aold[0] + Aold[1] + Aold[2] + Aold[3] + Aold[4] + Aold[5] + Aold[6] + Aold[7] + Aold[8] + Iold[9] -
-             (Iold[u] + Aold[u]);
+  mobility = sum_all_units - (Iold[u] + Aold[u]);
 
   // force of infection
   if (t >= 2016.754) {
