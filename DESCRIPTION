@@ -1,6 +1,6 @@
 Package: haitipkg
 Title: What the Package Does (One Line, Title Case)
-Version: 0.0.2.9000
+Version: 0.0.2.9001
 Authors@R: 
     person(given = "First",
            family = "Last",

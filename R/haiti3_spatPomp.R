@@ -431,20 +431,16 @@ const double *k = &k1;
 const double *gamma = &gamma1;
 
 // Below I'm assuming that all these parameters are constants, so they don't get updated.
-// const double mu = mu1;
-// const double alpha = alpha1;
 const double *cases_ext = &cases_ext1;
-// double beta_hurricane[10];
 
 double foi, foi_stoc;   // force of infection and its stochastic version
 double dw;              // extra-demographic stochasticity on foi
 double dB;              // deterministic forward time difference of bacteria in the environment
-// double RK1, RK2, RK3, RK4;  // coefficients of  the Runge-Kutta method
 double rate[48];        // vector of all rates in model
 double dN[60];          // vector of transitions between classes during integration timestep
 double mobility;
 double p1d, pdd;
-double r_v_wdn = 0.0;   // rate of vaccination: 0 if out of time window, r_v if not
+double r_v_wdn = 0.0;       // rate of vaccination: 0 if out of time window, r_v if not
 int previous_vacc_campaign; // flag that indicate if we are on the first or second campain
 double t_eff, t_eff_alt;
 double thetaA;
@@ -458,7 +454,7 @@ rate[5] = mu1;           // natural deaths
 rate[6] = alpha1;        // cholera-induced deaths
 
 // A compartment
-rate[8] = mu1;           // natural death
+rate[8] = mu1;              // natural death
 
 // R_one
 rate[13] = mu1;             // natural death R_one -> death
@@ -470,7 +466,7 @@ rate[17] = mu1;             // natural death R_two -> death
 rate[21] = mu1;             // natural death R_three -> death
 
 // VSd
-rate[26] = mu1;          // VSd -> death
+rate[26] = mu1;             // VSd -> death
 
 // VR1d
 rate[27] = mu1;             // natural death:    VR1d -> death
@@ -485,7 +481,7 @@ rate[31] = mu1;             // natural death:    VR3d -> death
 rate[35] = mu1;             // natural death
 
 // VR1dd
-rate[36] = mu1;                // natural death:    VR1dd -> death
+rate[36] = mu1;             // natural death:    VR1dd -> death
 
 // VR2dd
 rate[38] = mu1;             // natural death:    VR2dd -> death
@@ -494,10 +490,10 @@ rate[38] = mu1;             // natural death:    VR2dd -> death
 rate[40] = mu1;             // natural death:    VR3dd -> death
 
 // VSd_alt
-rate[44] = mu1;          // natural death
+rate[44] = mu1;             // natural death
 
 // VSdd_alt
-rate[47] = mu1;          // natural death
+rate[47] = mu1;             // natural death
 
 // Loop through each unit (departement)
 
@@ -522,7 +518,7 @@ for (int u = 0; u < U; u++) {
 
   if(std_W[u] > 0.0) {
     dw = rgammawn(std_W[u], dt);   // white noise (extra-demographic stochasticity)
-    foi_stoc = foi * dw/dt;     // apply stochasticity
+    foi_stoc = foi * dw/dt;        // apply stochasticity
   } else {
     foi_stoc = foi;
   }
@@ -556,8 +552,8 @@ for (int u = 0; u < U; u++) {
   // S compartment
   rate[0] = sigma[u] * foi_stoc;         // infections
   rate[1] = (1 - sigma[u]) * foi_stoc;   // asymptomatic infections
-  rate[2] = p1d * r_v_wdn;            // S -> VSd
-  rate[3] = pdd * r_v_wdn;            // S -> VSdd
+  rate[2] = p1d * r_v_wdn;               // S -> VSd
+  rate[3] = pdd * r_v_wdn;               // S -> VSdd
 
   // I compartment
   rate[7] = gamma[u];        // I -> R
@@ -654,23 +650,15 @@ for (int u = 0; u < U; u++) {
   reulermultinom(2, VR2dd_alt[u],   &rate[29], dt, &dN[56]);
   reulermultinom(2, VR3dd_alt[u],   &rate[31], dt, &dN[58]);
 
-  // bacteria as continous state variable
-  // implement Runge-Kutta integration assuming S, I, R, V* stay constant during dt
-  // RK1 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
-  // RK2 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
-  // RK3 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
-  // RK4 = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
-
   // bacteria increment
   dB = dt * fB(I[u], A[u], B[u], mu_B[u], thetaI[u], thetaA, lambdaR[u], rain_std[u], r[u], D[u]);
 
   // Update States
   I[u]  += dN[0] + dN[24] + dN[33] + dN[42] + dN[51] - dN[7] - dN[6] - dN[5];            // S -> I, VSd -> I, VSdd -> I, VSd_alt -> I, VSdd_alt -> I, I -> R, I-> death, I -> death
   A[u]  += dN[1] + dN[25] + dN[34] + dN[43] + dN[52] - dN[9] - dN[10] - dN[11] - dN[8];  // S -> A, VSd -> A, VSdd -> A, VSd_alt -> A, VSdd_alt -> A, A -> R_one, A -> VR1d, A -> VR1dd, natural death.
-  R_one[u] += dN[7] + dN[9] - dN[12] - dN[14] - dN[15] - dN[13];                            // I-> R_one, A -> R_one, R_one -> R_two, R_one -> VR1d, R_one -> VR1dd, R_one -> death
-  R_two[u] += dN[12] - dN[16] - dN[18] - dN[19] - dN[17];                                   // R_one -> R_two, R_two -> R_three, R_two -> VR2d, R_two -> VR2dd, R_two -> death
-  R_three[u] += dN[16] - dN[20] - dN[22] - dN[23] - dN[21];                                   // R_two -> R_three, R_three -> S , R_three -> VR3d, R_three -> VR3dd, R_three -> death
-
+  R_one[u] += dN[7] + dN[9] - dN[12] - dN[14] - dN[15] - dN[13];                         // I-> R_one, A -> R_one, R_one -> R_two, R_one -> VR1d, R_one -> VR1dd, R_one -> death
+  R_two[u] += dN[12] - dN[16] - dN[18] - dN[19] - dN[17];                                // R_one -> R_two, R_two -> R_three, R_two -> VR2d, R_two -> VR2dd, R_two -> death
+  R_three[u] += dN[16] - dN[20] - dN[22] - dN[23] - dN[21];                              // R_two -> R_three, R_three -> S , R_three -> VR3d, R_three -> VR3dd, R_three -> death
 
   if (previous_vacc_campaign){
   	VSd_alt[u]    +=  dN[2];            // S -> VSd_alt
@@ -713,18 +701,17 @@ for (int u = 0; u < U; u++) {
 
   VSdd_alt[u]   +=  dN[59] - dN[51] - dN[52] - dN[53]; // VR3dd_alt -> VSdd_alt, VSdd_alt -> I, VSdd_alt -> A, VSdd_alt -> death
   VR1dd_alt[u]  += - dN[54] - dN[55];
-  VR2dd_alt[u]  +=  dN[55] - dN[56] - dN[57] ;
+  VR2dd_alt[u]  +=  dN[55] - dN[56] - dN[57];
   VR3dd_alt[u]  +=  dN[57] - dN[58] - dN[59];
 
   C[u]   +=  dN[0] + dN[24] + dN[33] + dN[42] + dN[51]; // S -> I, VSd -> I, VSdd -> I, VSd_alt -> I, VSdd_alt -> I
 
+  // Condition to ensure that B > 0
   if (dB < -B[u]) {
      B[u] = 0;
   } else {
      B[u] += dB;
   }
-
-  // B[u]   += (((dB) < -B[u]) ? (-B[u] + 1.0e-3) : (dB)); // condition to ensure B>0
 
   // susceptibles so as to match total population
   S[u] = nearbyint(H[u] - I[u] - A[u] - R_one[u] - R_two[u] - R_three[u] -
@@ -802,7 +789,7 @@ eff_v.c <- "
       else if (t_since_vacc <=  40./12) eff_v_2d =  0.424213229764494;
       else if (t_since_vacc <=  41./12) eff_v_2d =  0.412892477212831;
       else if (t_since_vacc <=  42./12) eff_v_2d =  0.401408270656362;
-      else if (t_since_vacc <=  43./12) eff_v_2d =  0.38975825007427  ;
+      else if (t_since_vacc <=  43./12) eff_v_2d =  0.38975825007427 ;
       else if (t_since_vacc <=  44./12) eff_v_2d =  0.377940021370718;
       else if (t_since_vacc <=  45./12) eff_v_2d =  0.365951155882864;
       else if (t_since_vacc <=  46./12) eff_v_2d =  0.353789189881759;
@@ -916,8 +903,8 @@ pt <- pomp::parameter_trans(
 
 # These params are constant for all departements, so use regex to set all values at once.
 all_unit_params[paste0("sigma", 1:10)] <- 0.25
-all_unit_params[paste0("gamma", 1:10)] <- 182.625
-all_unit_params[paste0("rho", 1:10)] <- 1 / (365 * 8) * 365.25
+all_unit_params[paste0("gamma", 1:10)] <- 365.25 / 5  # Convert daily rate to yearly rate
+all_unit_params[paste0("rho", 1:10)]   <- 1 / 8
 all_unit_params[paste0("cases_ext", 1:10)] <- 1
 
 all_unit_params[paste0("mu", 1:10)] <- 0.01586625546
@@ -941,22 +928,22 @@ all_unit_params["hHur3"] <- 91
 # These parameters are different for each departement, so these need to be set seperately.
 old_params <- c()
 
-old_params["betaBArtibonite"] =   0.516191
-old_params["betaBSud_Est"] =      1.384372
-old_params["betaBNippes"] =       2.999928
-old_params["betaBNord_Est"] =     3.248645
-old_params["betaBOuest"] =        0.090937
-old_params["betaBCentre"] =       1.977686
-old_params["betaBNord"] =         0.589541
-old_params["betaBSud"] =          1.305966
-old_params["betaBNord_Ouest"] =   1.141691
-old_params["betaBGrande_Anse"] =  2.823539
-old_params["foi_addArtibonite"] =    1.530994e-06
-old_params["foi_addSud_Est"] =     6.105491e-07
+old_params["betaBArtibonite"] =     0.516191
+old_params["betaBSud_Est"] =        1.384372
+old_params["betaBNippes"] =         2.999928
+old_params["betaBNord_Est"] =       3.248645
+old_params["betaBOuest"] =          0.090937
+old_params["betaBCentre"] =         1.977686
+old_params["betaBNord"] =           0.589541
+old_params["betaBSud"] =            1.305966
+old_params["betaBNord_Ouest"] =     1.141691
+old_params["betaBGrande_Anse"] =    2.823539
+old_params["foi_addArtibonite"] =   1.530994e-06
+old_params["foi_addSud_Est"] =      6.105491e-07
 old_params["foi_addNippes"] =       3.056857e-07
 old_params["foi_addNord_Est"] =     8.209611e-07
-old_params["foi_addOuest"] =       1.070717e-06
-old_params["foi_addCentre"] =      0.0000106504579266415
+old_params["foi_addOuest"] =        1.070717e-06
+old_params["foi_addCentre"] =       0.0000106504579266415
 old_params["foi_addNord"] =         5.319736e-07
 old_params["foi_addSud"] =          1.030357e-06
 old_params["foi_addNord_Ouest"] =   5.855759e-07
@@ -989,7 +976,6 @@ sirb_cholera <- spatPomp::spatPomp(
       derivativeBacteria.c,
       all_cases_at_t_start.string,
       eff_v.c,
-      # Tmat_string,
       sep = " "
     )
   ),
