@@ -37,6 +37,10 @@
 #' @param search[i] list containing parameters used to fit the model. See details.
 #' @param search_rho Boolean indicating whether or not rho should be estimated.
 #' @param search_gamma Boolean indicating whether or not gamma should be estimated.
+#' @param search_hur Boolean indicating whether or not coefficients related to
+#'    Hurricane Matthew (2016) should be perturbed in the global search.
+#' @param search_InitI Boolean indicating whether or not units with zero case
+#'    counts at time t1 should have the value \eqn{I_u(t0)} estimated.
 #' @param ncores Number of cores used to fit the model. The code is written
 #'    so that the optimal number of cores with `RUN_LEVEL = 3` is 36.
 #'
@@ -65,8 +69,10 @@ fit_coupled_haiti3 <- function(
     search3 = NULL,
     ncores = 3,
     nsearches = 1,
-    search_rho = TRUE,
-    search_gamma = TRUE
+    search_rho = FALSE,
+    search_gamma = FALSE,
+    search_hur = FALSE,
+    search_InitI = FALSE
     ) {
 
   #
@@ -174,21 +180,26 @@ fit_coupled_haiti3 <- function(
   unit_ub['foi_add6'] <- 1e-6
   unit_ub['foi_add9'] <- 1.3e-6
 
-  unit_ub['aHur3'] <- 50
-  unit_ub['aHur9'] <- 25
-  unit_ub['hHur3'] <- 120
-  unit_ub['hHur9'] <- 120
+  if (search_hur) {
+    unit_ub['aHur3'] <- 50
+    unit_ub['aHur9'] <- 25
+    unit_ub['hHur3'] <- 120
+    unit_ub['hHur9'] <- 120
 
-  unit_lb['aHur3'] <- min_val
-  unit_lb['aHur9'] <- min_val
-  unit_lb['hHur3'] <- 30
-  unit_lb['hHur9'] <- 30
+    unit_lb['aHur3'] <- 0.01
+    unit_lb['aHur9'] <- 0.01
+    unit_lb['hHur3'] <- 30
+    unit_lb['hHur9'] <- 30
+  }
 
-  unit_lb['Iinit3'] <- 0.8 / 468301  # H3
-  unit_lb['Iinit7'] <- 2.4 / 728807  # H7, there were at least 2 cases, so that should be our min.
+  if (search_InitI) {
+    unit_lb['Iinit3'] <- 0.8 / 468301  # H3
+    unit_lb['Iinit7'] <- 2.4 / 728807  # H7
 
-  unit_ub['Iinit3'] <- 15 / 468301
-  unit_ub['Iinit7'] <- 30 / 728807
+    unit_ub['Iinit3'] <- 15 / 468301
+    unit_ub['Iinit7'] <- 30 / 728807
+
+  }
 
   # Get lower bound for shared parameters (global search)
   shared_lb <- c(

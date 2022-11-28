@@ -920,10 +920,10 @@ all_unit_params[paste0("k", 1:10)] <- 101.2215999283583
 all_unit_params[paste0("aHur", 1:10)] <- 0
 all_unit_params[paste0("hHur", 1:10)] <- 0
 
-all_unit_params["aHur9"] <- 2  # Corresponds to approximately doubled transmission
-all_unit_params["aHur3"] <- 2
-all_unit_params["hHur9"] <- 91  # Corresponds to approximately one month of hurricane effect
-all_unit_params["hHur3"] <- 91
+# all_unit_params["aHur9"] <- 2  # Corresponds to approximately doubled transmission
+# all_unit_params["aHur3"] <- 2
+# all_unit_params["hHur9"] <- 91  # Corresponds to approximately one month of hurricane effect
+# all_unit_params["hHur3"] <- 91
 
 # These parameters are different for each departement, so these need to be set seperately.
 old_params <- c()
