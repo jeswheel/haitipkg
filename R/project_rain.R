@@ -34,11 +34,6 @@
 project_rain <- function(end_date = as.Date("2029-12-20"),
                          include_data = FALSE) {
 
-  # std_rain <- function(x) {
-  #   # This function simply standardizes the rain for us.
-  #   x / max(x)
-  # }
-
   departments <- c(
     'Artibonite', 'Centre', 'Grande_Anse', 'Nippes', 'Nord',
     'Nord-Est', 'Nord-Ouest', 'Ouest', 'Sud', 'Sud-Est'
@@ -100,7 +95,9 @@ project_rain <- function(end_date = as.Date("2029-12-20"),
     all_rain <- rain_prj
   }
 
-
+  # The values were determined to be the same transformation that was used on
+  # the "training" data, i.e., dividing by the maximum rainfall event in
+  # each department from Oct 2010 to Jan 2019.
   result <- all_rain %>%
     dplyr::filter(date >= as.Date("2010-10-23") - 4) %>%
     mutate(
@@ -116,12 +113,6 @@ project_rain <- function(end_date = as.Date("2029-12-20"),
       `Sud-Est` = `Sud-Est` / 225.66032,
       time = lubridate::decimal_date(date)
     )
-    # dplyr::summarize(
-    #   date = date, dplyr::across(Artibonite:`Sud-Est`, std_rain)
-    # ) %>%
-    # dplyr::mutate(
-    #   time = dateToYears(date)
-    # )
 
   colnames(result) <- c(
     "date",
@@ -137,5 +128,4 @@ project_rain <- function(end_date = as.Date("2029-12-20"),
 
   result %>% dplyr::select(time, dplyr::starts_with("rain_std")) %>%
     as.matrix()
-
 }
