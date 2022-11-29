@@ -39,7 +39,7 @@
 #' @param search_gamma Boolean indicating whether or not gamma should be estimated.
 #' @param search_hur Boolean indicating whether or not coefficients related to
 #'    Hurricane Matthew (2016) should be perturbed in the global search.
-#' @param search_InitI Boolean indicating whether or not units with zero case
+#' @param search_Iinit Boolean indicating whether or not units with zero case
 #'    counts at time t1 should have the value \eqn{I_u(t0)} estimated.
 #' @param ncores Number of cores used to fit the model. The code is written
 #'    so that the optimal number of cores with `RUN_LEVEL = 3` is 36.
@@ -72,7 +72,7 @@ fit_coupled_haiti3 <- function(
     search_rho = FALSE,
     search_gamma = FALSE,
     search_hur = FALSE,
-    search_InitI = FALSE
+    search_Iinit = FALSE
     ) {
 
   #
@@ -192,13 +192,14 @@ fit_coupled_haiti3 <- function(
     unit_lb['hHur9'] <- 30
   }
 
-  if (search_InitI) {
-    unit_lb['Iinit3'] <- 0.8 / 468301  # H3
-    unit_lb['Iinit7'] <- 2.4 / 728807  # H7
+  if (search_Iinit) {
+    unit_lb['Iinit3']  <- 0.8 / 468301  # H3
+    unit_lb['Iinit7']  <- 2.4 / 728807  # H7
+    unit_lb['Iinit10'] <- 0.8 / 632601  # H10
 
-    unit_ub['Iinit3'] <- 15 / 468301
-    unit_ub['Iinit7'] <- 30 / 728807
-
+    unit_ub['Iinit3']  <- 15 / 468301
+    unit_ub['Iinit7']  <- 30 / 728807
+    unit_ub['Iinit10'] <- 30 / 632601
   }
 
   # Get lower bound for shared parameters (global search)

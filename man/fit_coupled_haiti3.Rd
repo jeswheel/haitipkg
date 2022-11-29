@@ -15,7 +15,7 @@ fit_coupled_haiti3(
   search_rho = FALSE,
   search_gamma = FALSE,
   search_hur = FALSE,
-  search_InitI = FALSE
+  search_Iinit = FALSE
 )
 }
 \arguments{
@@ -31,7 +31,7 @@ so that the optimal number of cores with \code{RUN_LEVEL = 3} is 36.}
 \item{search_hur}{Boolean indicating whether or not coefficients related to
 Hurricane Matthew (2016) should be perturbed in the global search.}
 
-\item{search_InitI}{Boolean indicating whether or not units with zero case
+\item{search_Iinit}{Boolean indicating whether or not units with zero case
 counts at time t1 should have the value \eqn{I_u(t0)} estimated.}
 
 \item{search[i]}{list containing parameters used to fit the model. See details.}

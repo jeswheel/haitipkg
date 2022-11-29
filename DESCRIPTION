@@ -1,13 +1,21 @@
 Package: haitipkg
-Title: What the Package Does (One Line, Title Case)
-Version: 1.0.0
-Authors@R: 
-    person(given = "First",
-           family = "Last",
-           role = c("aut", "cre"),
-           email = "first.last@example.com",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
+Title: R Package for Haiti Article 
+Version: 1.0.1
+Authors@R: c(
+    person("Jesse", "Wheeler", email = "jeswheel@umich.edu", 
+    role = c("aut", "cre")),
+    person("AnnaElaine", "Rosengart", role = "aut"),
+    person("Zhuoxun", "Jiang", role = "aut"),
+    person("Edward", "Ionides", role = c("ctb", "ths")),
+    person("Lee et al (2020)", role = c("aut"), 
+    comment = "While Lee et al did not directly contribute to this package,
+    much of the code was copied from the publically available source code 
+    of their work: \"Achieving coordinated national immunity and cholera
+    elimination in Haiti through vaccination: a modelling study\"")
+    )
+Description: This package is a container for the data and functions that were 
+    used to write the article Informing policy via dynamic models: Eliminating
+    cholera in Haiti. 
 Imports: 
     dplyr,
     pomp,
@@ -16,8 +24,7 @@ Imports:
     data.table,
     foreach,
     panelPomp
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
