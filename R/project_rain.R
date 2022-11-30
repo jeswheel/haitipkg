@@ -39,7 +39,10 @@ project_rain <- function(end_date = as.Date("2029-12-20"),
     'Nord-Est', 'Nord-Ouest', 'Ouest', 'Sud', 'Sud-Est'
   )
 
-  rf <- haitiRainfall
+  rf <- haitiRainfall %>%
+    dplyr::filter(
+      date >= as.Date("2010-10-23") - lubridate::days(8)
+    )
 
   num_days <- 14
   dti <- dplyr::pull(rf[1, 'date'])
@@ -68,6 +71,18 @@ project_rain <- function(end_date = as.Date("2029-12-20"),
         day = lubridate::day(date_range[i])
       )
     )
+
+    # Ensure we are not sampling rainfall data from hurricane Matthew!
+    while (lubridate::month(pick) == 10 && lubridate::year(pick) == 2016 && lubridate::day(pick) < 14) {
+      # Pick random year, but use the same month and same day
+      pick <- as.Date(
+        ISOdate(
+          year = sample(yrs, 1),  # This is where the randomness comes from.
+          month = lubridate::month(date_range[i]),
+          day = lubridate::day(date_range[i])
+        )
+      )
+    }
 
     # After getting random day, get the 2 weeks following that day.
     pick_seq <- seq(

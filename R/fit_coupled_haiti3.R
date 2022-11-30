@@ -154,11 +154,11 @@ fit_coupled_haiti3 <- function(
 
   # Get lower bound for unit parameters (global search)
   min_val <- 1e-8
-  unit_lb <- rep(c(1, min_val, 0, 0), each = 10)
+  unit_lb <- rep(c(1, 1e-9, 0, 0), each = 10)
   names(unit_lb) <- paste0(rep(unit_specific_names[1:4], each = 10), 1:10)
 
   # Get upper bound for unit parameters (global search)
-  unit_ub <- rep(c(50, 5e-6, 0, 0), each = 10)
+  unit_ub <- rep(c(50, 1e-6, 0, 0), each = 10)
   names(unit_ub) <- paste0(rep(unit_specific_names[1:4], each = 10), 1:10)
 
   # Set unique upper-bounds for betaB, based on run_level_2 search results.
@@ -172,13 +172,11 @@ fit_coupled_haiti3 <- function(
   unit_ub['betaB7'] <- 20
   unit_ub['betaB8'] <- 5
   unit_ub['betaB9'] <- 30
-  unit_ub['foi_add10'] <- 1e-6
-  unit_ub['foi_add7'] <- 1.5e-6
-  unit_ub['foi_add3'] <- 1.1e-6
-  unit_ub['foi_add4'] <- 5e-7
-  unit_ub['foi_add5'] <- 3e-6
-  unit_ub['foi_add6'] <- 1e-6
-  unit_ub['foi_add9'] <- 1.3e-6
+  unit_ub['foi_add10'] <- 2e-7
+  unit_ub['foi_add3'] <- 2e-7
+  unit_ub['foi_add4'] <- 2e-7
+  unit_ub['foi_add6'] <- 5e-7
+  unit_ub['foi_add9'] <- 5e-7
 
   if (search_hur) {
     unit_ub['aHur3'] <- 50
