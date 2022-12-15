@@ -18,6 +18,7 @@ Description: This package is a container for the data and functions that were
     cholera in Haiti. 
 Imports: 
     dplyr,
+    tidyr,
     pomp,
     spatPomp,
     magrittr,
@@ -26,7 +27,8 @@ Imports:
     doRNG,
     foreach,
     subplex,
-    panelPomp
+    panelPomp,
+    lubridate
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
