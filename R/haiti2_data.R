@@ -15,7 +15,7 @@ haiti2_data <- function(recreate = TRUE){
 
   if (recreate) {
     path <- system.file("extdata", "haiti-data-from-2010-10-to-2019-01.csv", package = 'haitipkg')
-    haiti <- read.csv(path)
+    haiti <- utils::read.csv(path)
   } else {
     haiti <- haitiCholera
   }

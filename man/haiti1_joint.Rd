@@ -36,5 +36,10 @@ An object of class \sQuote{pomp}
 Generate a class \sQuote{pomp} object for fitting to epidemic/endemic Haiti cholera data jointly.
 }
 \examples{
-m1 <- haiti1_joint(vacscen = "id0", breakpoint = 232, rho_flag = T, tau_flag = F, sig_sq_flag = T, beta_flag = F, nu_flag = F)
+\dontrun{
+m1 <- haiti1_joint(
+  vacscen = "id0", breakpoint = 232, rho_flag = T,
+  tau_flag = F, sig_sq_flag = T, beta_flag = F, nu_flag = F
+  )
+}
 }

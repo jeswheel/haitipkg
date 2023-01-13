@@ -8,7 +8,7 @@
 #' @importFrom magrittr %>%
 #' @return A data frame
 #' @examples
-#' haiti1_agg_data()
+#' \dontrun{haiti1_agg_data()}
 #' @export
 
 haiti1_agg_data <- function(){

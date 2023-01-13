@@ -13,7 +13,7 @@
 #' @param ncores Number of cores to use for parallelization.
 #'
 #' @examples
-#' fit_m1 <- fit_haiti1()
+#' \dontrun{fit_m1 <- fit_haiti1()}
 #'
 #' @import pomp
 #' @import foreach

@@ -1,8 +1,3 @@
-library(pomp)
-library(haitipkg)
-library(dplyr)
-library(testthat)
-
 #### Build Models ##############################################################
 #### Goal: test an assortment of possible model builds/configurations
 

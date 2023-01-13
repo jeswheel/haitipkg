@@ -22,6 +22,11 @@ An object of class \sQuote{spatPomp}.
 Generate a \sQuote{spatPomp} object for fitting to Haiti cholera data. Based on
 the model developed by Laura Matrajt et al. at the University of Florida.
 }
+\details{
+Note that VR is \eqn{v_{rate}} in the manuscript. The units were calculated
+using the fact that VR multiplies the travel matrix Tmat, which has units
+in \eqn{km^{-2}}.
+}
 \examples{
 c_epidemic <- haiti2(cutoff=2014.25, region="before")
 }

@@ -8,6 +8,8 @@
 #' @param nbasis number of basis spline terms
 #' @param degree degrees of freedom for the basis splines
 #' @param settings settings for the vaccination campaign scenario
+#' @param per period of the basis spline
+#' @param data haiti cholera observations
 #' @export
 
 #### construct vaccination covariate table
@@ -23,7 +25,7 @@ covars <- function(tmin, tmax, byt = 1, nbasis = 6, degree = 6, per = 52.14, dat
   ## deployment scenario 1 (fast national): one departmental campaign every 10 weeks for all depts
   tbasis <- seq(from=tmin,to=tmax,by=byt)
   covar_tab <- data.frame(cbind(time = tbasis,
-                                pomp::periodic.bspline.basis(
+                                pomp::periodic_bspline_basis(
                                   x = tbasis,
                                   nbasis = nbasis,
                                   degree = degree,

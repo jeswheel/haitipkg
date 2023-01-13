@@ -19,6 +19,12 @@ fit_coupled_haiti3(
 )
 }
 \arguments{
+\item{search1}{list containing parameters used to fit the model. See details.}
+
+\item{search2}{list containing parameters used to fit the model. See details.}
+
+\item{search3}{list containing parameters used to fit the model. See details.}
+
 \item{ncores}{Number of cores used to fit the model. The code is written
 so that the optimal number of cores with \code{RUN_LEVEL = 3} is 36.}
 
@@ -33,8 +39,6 @@ Hurricane Matthew (2016) should be perturbed in the global search.}
 
 \item{search_Iinit}{Boolean indicating whether or not units with zero case
 counts at time t1 should have the value \eqn{I_u(t0)} estimated.}
-
-\item{search[i]}{list containing parameters used to fit the model. See details.}
 }
 \description{
 This function fits the spatPomp version of Model 3 to cholera incidence

@@ -1,6 +1,6 @@
 Package: haitipkg
 Title: R Package for Haiti Article 
-Version: 1.0.1
+Version: 2.0.0
 Authors@R: c(
     person("Jesse", "Wheeler", email = "jeswheel@umich.edu", 
     role = c("aut", "cre")),
@@ -17,10 +17,7 @@ Description: This package is a container for the data and functions that were
     used to write the article Informing policy via dynamic models: Eliminating
     cholera in Haiti. 
 Imports: 
-    dplyr,
     tidyr,
-    pomp,
-    spatPomp,
     magrittr,
     data.table,
     doParallel,
@@ -28,11 +25,23 @@ Imports:
     foreach,
     subplex,
     panelPomp,
-    lubridate
+    lubridate,
+    progress,
+    iterators,
+    purrr,
+    reshape2,
+    stringr,
+    tibble
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Depends: 
-    R (>= 2.10)
+    R (>= 2.10),
+    pomp,
+    spatPomp,
+    dplyr
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

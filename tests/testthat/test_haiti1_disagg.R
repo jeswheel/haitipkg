@@ -1,8 +1,3 @@
-library(pomp)
-library(haitipkg)
-library(dplyr)
-library(testthat)
-
 #### Build Model ###############################################################
 
 ## there is only one type: no vaccinations, 10 departments

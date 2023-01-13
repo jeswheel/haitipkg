@@ -42,9 +42,9 @@ get_h3_S_quants <- function(bpf, i) {
     dplyr::mutate(dep = as.numeric(state)) %>%
     dplyr::group_by(state) %>%
     dplyr::summarize(
-      Q025 = quantile(S, probs = 0.025),
-      Q50  = quantile(S, probs = 0.5),
-      Q975 = quantile(S, probs = 0.975)
+      Q025 = stats::quantile(S, probs = 0.025),
+      Q50  = stats::quantile(S, probs = 0.5),
+      Q975 = stats::quantile(S, probs = 0.975)
     ) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(

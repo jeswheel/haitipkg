@@ -21,10 +21,10 @@ agg_mod1_sims <- function(sims) {
     dplyr::select(date, .id, cases) %>%
     dplyr::group_by(date) %>%
     dplyr::summarise(
-      q05 = quantile(cases, 0.025, na.rm = T),
+      q05 = stats::quantile(cases, 0.025, na.rm = T),
       mean = mean(cases, na.rm = T),
-      q50 = quantile(cases, 0.5, na.rm = T),
-      q95 = quantile(cases, 0.975, na.rm = T)
+      q50 = stats::quantile(cases, 0.5, na.rm = T),
+      q95 = stats::quantile(cases, 0.975, na.rm = T)
     ) %>%
     dplyr::ungroup()
 }

@@ -60,10 +60,10 @@ agg_mod3_sims <- function(sims) {
     ) %>%
     dplyr::select(time, .id, ReportedAll) %>%
     dplyr::group_by(time) %>%
-    dplyr::summarise(q05 = quantile(ReportedAll, 0.025, na.rm = T),
+    dplyr::summarise(q05 = stats::quantile(ReportedAll, 0.025, na.rm = T),
               mean = mean(ReportedAll, na.rm = T),
-              q50 = quantile(ReportedAll, 0.5, na.rm = T),
-              q95 = quantile(ReportedAll, 0.975, na.rm = T)) %>%
+              q50 = stats::quantile(ReportedAll, 0.5, na.rm = T),
+              q95 = stats::quantile(ReportedAll, 0.975, na.rm = T)) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(date = yearsToDateTime(time)) %>%
     dplyr::mutate(date = as.Date(lubridate::round_date(date)))

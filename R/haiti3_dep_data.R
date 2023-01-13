@@ -1,4 +1,4 @@
-#' Function used to get department data for \code{\link{haiti3_dep}} model
+#' Function used to get department data for individual departments.
 #'
 #' @param departement Name of department to fit POMP model to
 #' @param start_time Time of which to start the time series. In the
@@ -81,7 +81,7 @@ haiti3_dep_data <- function(departement = 'Artibonite', start_time = '2014-03-01
     dplyr::mutate(date = as.Date(date, format = "%Y-%m-%d"),
            time = dateToYears(date))
 
-  cases_other_dept <- aggregate(cases_other_dept$cases, by=list(Category=cases_other_dept$time), FUN=sum, na.rm=TRUE, na.action=NULL) %>%
+  cases_other_dept <- stats::aggregate(cases_other_dept$cases, by=list(Category=cases_other_dept$time), FUN=sum, na.rm=TRUE, na.action=NULL) %>%
     dplyr::mutate(time = Category) %>%
     dplyr::mutate(cases = x)
 

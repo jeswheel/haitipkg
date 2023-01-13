@@ -39,7 +39,7 @@ This model was developed by Lemaitre, Joseph, et. al at the Laboratory
 of Ecohydrology, Ecole Polytechnique Federale de Lausanne (CH).
 }
 \examples{
-mod3 <- haiti3_spatPomp()
+\dontrun{mod3 <- haiti3_spatPomp()}
 }
 \seealso{
 \code{\link{haiti2}} and \code{\link{haiti1}} for other models used

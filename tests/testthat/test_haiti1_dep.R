@@ -1,8 +1,3 @@
-library(pomp)
-library(haitipkg)
-library(dplyr)
-library(testthat)
-
 #### Build Models ##############################################################
 #### Goal: test an assortment of possible model builds/configurations
 
@@ -26,7 +21,9 @@ nord_vac <- haiti1_dep(dept = "Nord", vacscen = "id5")
 #### Test 1: check that the models have the appropriate data for their dept
 test_that("check data", {
   ## get random week
-  week <- sample(1:430, 1)
+  ## (There are missing values on and after week 311, so weeks after that
+  ## may not line up with this test.)
+  week <- sample(1:310, 1)
   ## get dept data for that week
   haiti_dat <- haitiCholera[week, ]
 

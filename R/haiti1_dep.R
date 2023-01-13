@@ -3,7 +3,7 @@
 #' Generate a class \sQuote{pomp} object for fitting to epidemic/endemic Haiti cholera data.
 #' Replace " " in departement names with "_".
 #'
-#' @param departement String for which departement to use for the pomp object
+#' @param dept String for which departement to use for the pomp object
 #' @param vacscen String for what vaccination campaign to do
 #' @importFrom pomp Csnippet
 #' @return An object of class \sQuote{pomp}.
@@ -20,7 +20,7 @@ haiti1_dep <- function(dept = 'Artibonite', vacscen = 'id0') {
                     Nord_Ouest = Nord.Ouest,
                     Sud_Est = Sud.Est)
     dat <- dat %>%
-      dplyr::select(c(dept, "week"))
+      dplyr::select(c(all_of(dept), "week"))
     colnames(dat) <- c("cases", "week")
     other_cases <- haiti1_data()  %>%
       dplyr::select(-1) %>%

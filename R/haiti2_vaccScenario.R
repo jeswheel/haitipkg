@@ -9,7 +9,7 @@
 #'     \item{V4}{Countrywide vaccination over 2 years.}
 #'   }
 #'
-#' @param h2_params: a vector of parameters for the model
+#' @param h2_params a vector of parameters for the model
 #'
 #' @importFrom magrittr %>%
 #' @return List containing two objects: \describe{
@@ -18,8 +18,10 @@
 #' }
 #'
 #' @examples
+#' \dontrun{
 #' h2 <- fit_haiti2()
 #' results <- haiti2_vaccScenario(h2_params = h2$h2_params)
+#' }
 #'
 #' @export
 haiti2_vaccScenario <- function(h2_params) {

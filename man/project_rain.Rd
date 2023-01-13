@@ -7,8 +7,11 @@
 project_rain(end_date = as.Date("2029-12-20"), include_data = FALSE)
 }
 \arguments{
-\item{end_date:}{Date object representing when the projection of rainfall
+\item{end_date}{Date object representing when the projection of rainfall
 should stop.}
+
+\item{include_data}{Boolean indicating the observed data should be included
+in the result.}
 }
 \description{
 This function projects rainfall in each of the Haitian departements. The

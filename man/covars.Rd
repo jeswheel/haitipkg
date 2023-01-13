@@ -26,6 +26,10 @@ covars(
 
 \item{degree}{degrees of freedom for the basis splines}
 
+\item{per}{period of the basis spline}
+
+\item{data}{haiti cholera observations}
+
 \item{settings}{settings for the vaccination campaign scenario}
 }
 \description{

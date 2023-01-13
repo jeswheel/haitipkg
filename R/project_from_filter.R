@@ -15,15 +15,15 @@
 #' As currently implemented, the efficiency could be greatly improved for
 #' projecting models that do not have covariates.
 #'
-#' @param mod: POMP model that you would like to simulate from.
-#' @param end_states: The starting states from which to simulate. This is
+#' @param mod POMP model that you would like to simulate from.
+#' @param end_states The starting states from which to simulate. This is
 #'   designed so that these states are draws from the filtering distribution
 #'   at time $N$, but they can be any desired state from which to start the
 #'   simulation.
-#' @param covarGen: function that is used to generate covariates, if the model
+#' @param covarGen function that is used to generate covariates, if the model
 #'   needs covariates to run rprocess.
-#' @param nsims: Integer number of simulations desired.
-#' @param seed: seed for the random number generator.
+#' @param nsims Integer number of simulations desired.
+#' @param seed seed for the random number generator.
 #'
 #' @importFrom magrittr %>%
 #' @importFrom foreach %dopar%
@@ -78,7 +78,7 @@ project_from_filter <- function(mod, end_states, covarGen = NULL,
     )
   }
 
-  if (class(mod) == 'spatPomp') {  # Model 3
+  if (inherits(mod, 'spatPomp')) {  # Model 3
 
     if (is.null(covarGen)) stop("Must have covarGen for spatPomp object")
 

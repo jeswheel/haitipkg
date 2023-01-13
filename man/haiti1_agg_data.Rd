@@ -17,5 +17,5 @@ January 2019, aggregated over all departments.
 Code adapted from Model 1 Team at JHU Bloomberg School of Public Health
 }
 \examples{
-haiti1_agg_data()
+\dontrun{haiti1_agg_data()}
 }

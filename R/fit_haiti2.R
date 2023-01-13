@@ -15,7 +15,7 @@
 #' }
 #'
 #' @examples
-#' h2_fit_results <- fit_haiti2()
+#' \dontrun{h2_fit_results <- fit_haiti2()}
 #'
 #' @export
 fit_haiti2 <- function() {

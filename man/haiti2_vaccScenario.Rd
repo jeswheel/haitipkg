@@ -7,7 +7,7 @@
 haiti2_vaccScenario(h2_params)
 }
 \arguments{
-\item{h2_params:}{a vector of parameters for the model}
+\item{h2_params}{a vector of parameters for the model}
 }
 \value{
 List containing two objects: \describe{
@@ -26,7 +26,9 @@ This function projects the following vaccination scenarios under Model 2:
 }
 }
 \examples{
+\dontrun{
 h2 <- fit_haiti2()
 results <- haiti2_vaccScenario(h2_params = h2$h2_params)
+}
 
 }

@@ -131,9 +131,9 @@ get_elimProbs <- function(sims, model) {
     group_by(.id) %>%
     summarize(fiveYearIncrease = cumIncidence[time == max(time)] - cumIncidence[time == min(time)]) %>%
     ungroup() %>%
-    summarize(q025 = quantile(fiveYearIncrease, probs = 0.025),
-              q50 = quantile(fiveYearIncrease, probs = 0.5),
-              q975 = quantile(fiveYearIncrease, probs = 0.975))
+    summarize(q025 = stats::quantile(fiveYearIncrease, probs = 0.025),
+              q50 = stats::quantile(fiveYearIncrease, probs = 0.5),
+              q975 = stats::quantile(fiveYearIncrease, probs = 0.975))
 
   sims0 <- sims %>%
     group_by(.id) %>%

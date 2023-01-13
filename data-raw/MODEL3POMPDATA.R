@@ -1,4 +1,6 @@
-## code to prepare `MODEL3POMPDATA` dataset goes here
+## This file is included for legacy purposes, but none of the data in the package
+## were actually created by this file.
+
 
 library(tidyverse)
 

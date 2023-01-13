@@ -25,8 +25,10 @@
 #' rainfall, it will likely capture seasonal trends in rainfall that may affect
 #' the spread of Cholera in Haiti.
 #'
-#' @param end_date: Date object representing when the projection of rainfall
-#'  should stop.
+#' @param end_date Date object representing when the projection of rainfall
+#'    should stop.
+#' @param include_data Boolean indicating the observed data should be included
+#'    in the result.
 #'
 #' @importFrom magrittr %>%
 #' @export

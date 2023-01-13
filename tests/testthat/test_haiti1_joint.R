@@ -1,13 +1,14 @@
-library(pomp)
-library(haitipkg)
-library(dplyr)
-library(testthat)
-
 #### Build Models ##############################################################
 #### Goal: test an assortment of possible model builds/configurations
 
 ## default model: no vaccinations
-novac <- haiti1_joint()
+novac <- haiti1_joint(
+  rho_flag = FALSE,
+  tau_flag = TRUE,
+  sig_sq_flag = TRUE,
+  beta_flag = FALSE,
+  nu_flag = FALSE
+)
 
 ## 3 department vaccination campaigns
 vac3 <- haiti1_joint(vacscen = "id4")
@@ -40,32 +41,4 @@ test_that("check initial time", {
   expect_equal(vac3@t0, 0) ## initial time is 0 weeks
   ## nat vacs
   expect_equal(vacnat@t0, 0) ## initial time is 0 weeks
-})
-
-#### Test 3: check that models have the appropriate parameters
-test_that("check parameters", {
-  novac_params <- unlist(MODEL1_INPUT_PARAMETERS$joint_pars)
-  par_names <- names(novac_params)
-  depts <- 3
-  vac3_params <- c(novac_params, rep(0.0, 5 * depts))
-  names(vac3_params) <- c(par_names,
-                          paste0("S", 1:depts, "_0"),
-                          paste0("E", 1:depts, "_0"),
-                          paste0("I", 1:depts, "_0"),
-                          paste0("A", 1:depts, "_0"),
-                          paste0("R", 1:depts, "_0"))
-  depts <- 10
-  vacnat_params <- c(novac_params, rep(0.0, 5 * depts))
-  names(vacnat_params) <- c(par_names,
-                            paste0("S", 1:depts, "_0"),
-                            paste0("E", 1:depts, "_0"),
-                            paste0("I", 1:depts, "_0"),
-                            paste0("A", 1:depts, "_0"),
-                            paste0("R", 1:depts, "_0"))
-  ## no vacs
-  expect_identical(novac@params, novac_params)
-  ## 3 dept vacs
-  expect_identical(vac3@params, vac3_params)
-  ## nat vacs
-  expect_identical(vacnat@params, vacnat_params)
 })

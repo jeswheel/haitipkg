@@ -35,6 +35,6 @@ This function fits Model 1 by performing calculating a Monte-Carlo adjusted
 profile for the linear trend in transmission parameter.
 }
 \examples{
-fit_m1 <- fit_haiti1()
+\dontrun{fit_m1 <- fit_haiti1()}
 
 }

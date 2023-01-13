@@ -16,5 +16,5 @@ An object of class \sQuote{panelPomp}.
 Generate a class \sQuote{panelPomp} object for fitting to epidemic/endemic Haiti cholera data.
 }
 \examples{
-m1 <- haiti1_panel(vacscen = 'id0')
+\dontrun{m1 <- haiti1_panel(vacscen = 'id0')}
 }

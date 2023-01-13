@@ -34,7 +34,9 @@
 #' }
 #'
 #' @param nsearches integer number of searches to conduct. See details below.
-#' @param search[i] list containing parameters used to fit the model. See details.
+#' @param search1 list containing parameters used to fit the model. See details.
+#' @param search2 list containing parameters used to fit the model. See details.
+#' @param search3 list containing parameters used to fit the model. See details.
 #' @param search_rho Boolean indicating whether or not rho should be estimated.
 #' @param search_gamma Boolean indicating whether or not gamma should be estimated.
 #' @param search_hur Boolean indicating whether or not coefficients related to

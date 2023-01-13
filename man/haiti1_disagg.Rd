@@ -6,9 +6,6 @@
 \usage{
 haiti1_disagg()
 }
-\arguments{
-\item{vacscen}{ID code for vaccination scenario}
-}
 \value{
 An object of class \sQuote{pomp}
 }
@@ -16,5 +13,5 @@ An object of class \sQuote{pomp}
 Generate a class \sQuote{pomp} object for fitting to epidemic/endemic Haiti cholera data jointly with separate departments.
 }
 \examples{
-m1 <- haiti1_disagg(vacscen = "id0")
+\dontrun{m1 <- haiti1_disagg()}
 }

@@ -7,7 +7,7 @@
 #' @importFrom panelPomp panelPomp
 #' @return An object of class \sQuote{panelPomp}.
 #' @examples
-#' m1 <- haiti1_panel(vacscen = 'id0')
+#' \dontrun{m1 <- haiti1_panel(vacscen = 'id0')}
 #' @export
 
 haiti1_panel <- function(vacscen = 'id0') {

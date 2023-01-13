@@ -7,9 +7,9 @@
 haiti1_dep(dept = "Artibonite", vacscen = "id0")
 }
 \arguments{
-\item{vacscen}{String for what vaccination campaign to do}
+\item{dept}{String for which departement to use for the pomp object}
 
-\item{departement}{String for which departement to use for the pomp object}
+\item{vacscen}{String for what vaccination campaign to do}
 }
 \value{
 An object of class \sQuote{pomp}.

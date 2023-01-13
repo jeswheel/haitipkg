@@ -595,8 +595,8 @@ betaB,mu_B,XthetaA,thetaI,lambdaR,std_W,epsilon,k,cas_def,foi_add,sigma,r,gammaI
 
 MODEL1_INPUT_PARAMETERS <- yaml::read_yaml(text = model1_params_yaml)
 MODEL3_INPUT_PARAMETERS <- yaml::read_yaml(text = model3_params_yaml)
-MODEL3_VACC_SCENARIOS   <- read.csv(text = model3_vacc_scenarios_txt)
-MODEL3_PARAMS           <- read.csv(text = model3_params_text)
+MODEL3_VACC_SCENARIOS   <- utils::read.csv(text = model3_vacc_scenarios_txt)
+MODEL3_PARAMS           <- utils::read.csv(text = model3_params_text)
 
 
 usethis::use_data(

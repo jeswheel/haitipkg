@@ -2,11 +2,10 @@
 #'
 #' Generate a class \sQuote{pomp} object for fitting to epidemic/endemic Haiti cholera data jointly with separate departments.
 #'
-#' @param vacscen ID code for vaccination scenario
 #' @importFrom pomp Csnippet
 #' @return An object of class \sQuote{pomp}
 #' @examples
-#' m1 <- haiti1_disagg(vacscen = "id0")
+#' \dontrun{m1 <- haiti1_disagg()}
 #' @export
 
 haiti1_disagg <- function() {

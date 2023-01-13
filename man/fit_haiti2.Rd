@@ -22,6 +22,6 @@ function has two main parts:
 }
 }
 \examples{
-h2_fit_results <- fit_haiti2()
+\dontrun{h2_fit_results <- fit_haiti2()}
 
 }

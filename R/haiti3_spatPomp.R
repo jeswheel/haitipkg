@@ -36,7 +36,7 @@
 #' @return \code{\link[spatPomp]{spatPomp}} representation of model 3 described in \href{https://www.sciencedirect.com/science/article/pii/S2214109X20303107}{Lee, Elizabeth et. al.} and it's accompanying \href{https://ars.els-cdn.com/content/image/1-s2.0-S2214109X20303107-mmc3.pdf}{Supplemental Material}.
 #'
 #' @examples
-#' mod3 <- haiti3_spatPomp()
+#' \dontrun{mod3 <- haiti3_spatPomp()}
 #' @export
 
 haiti3_spatPomp <- function(dt_years = 1/365.25) {
@@ -114,7 +114,7 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
   }
 
   all_rain <- haitiRainfall %>%
-    dplyr::filter(date >= as.Date("2010-10-23") - lubridate::days(8) & date <= as.Date(haitipkg:::MODEL3_INPUT_PARAMETERS$t_end) + lubridate::days(8)) %>%
+    dplyr::filter(date >= as.Date("2010-10-23") - lubridate::days(8) & date <= as.Date(MODEL3_INPUT_PARAMETERS$t_end) + lubridate::days(8)) %>%
     dplyr::summarize(
       date = date, dplyr::across(Artibonite:`Sud-Est`, std_rain)
     ) %>%

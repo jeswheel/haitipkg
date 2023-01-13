@@ -7,19 +7,19 @@
 project_from_filter(mod, end_states, covarGen = NULL, nsims = 100, seed = 123)
 }
 \arguments{
-\item{mod:}{POMP model that you would like to simulate from.}
+\item{mod}{POMP model that you would like to simulate from.}
 
-\item{end_states:}{The starting states from which to simulate. This is
+\item{end_states}{The starting states from which to simulate. This is
 designed so that these states are draws from the filtering distribution
 at time $N$, but they can be any desired state from which to start the
 simulation.}
 
-\item{covarGen:}{function that is used to generate covariates, if the model
+\item{covarGen}{function that is used to generate covariates, if the model
 needs covariates to run rprocess.}
 
-\item{nsims:}{Integer number of simulations desired.}
+\item{nsims}{Integer number of simulations desired.}
 
-\item{seed:}{seed for the random number generator.}
+\item{seed}{seed for the random number generator.}
 }
 \description{
 This function simulates from a Haiti-cholera POMP model into the future
