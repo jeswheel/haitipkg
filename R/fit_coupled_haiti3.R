@@ -193,13 +193,11 @@ fit_coupled_haiti3 <- function(
   }
 
   if (search_Iinit) {
-    unit_lb['Iinit3']  <- 0.8 / 468301  # H3
-    unit_lb['Iinit7']  <- 2.4 / 728807  # H7
-    unit_lb['Iinit10'] <- 0.8 / 632601  # H10
+    unit_lb['Iinit3'] <- 0.8 / 468301  # H3
+    unit_lb['Iinit4'] <- 0.8 / 342525  # H4
 
-    unit_ub['Iinit3']  <- 15 / 468301
-    unit_ub['Iinit7']  <- 30 / 728807
-    unit_ub['Iinit10'] <- 30 / 632601
+    unit_ub['Iinit3']  <- 40 / 468301
+    unit_ub['Iinit4']  <- 40 / 342525
   }
 
   # Get lower bound for shared parameters (global search)

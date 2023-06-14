@@ -275,38 +275,43 @@ haiti3_spatPomp <- function(dt_years = 1/365.25, start_date = "2010-11-20") {
   for (int u = 0; u < U; u++) {
     thetaA = thetaI[u] * XthetaA[u];
 
+    Rprintf(\"u = %i\\n\", u);    // Added to print the value of u
+
     if (cases_at_t_start[u][n_cases_start - 2][1] == 0) {  // If cases < 1, we assume that it's posible that we are initially under-reporting, so we allow for more cases to be asymptomatic than normal.
        I[u] = nearbyint(H[u] * Iinit[u]);  // estimated number of symptomatic individuals
     } else {
        I[u] = nearbyint((365 * cases_at_t_start[u][n_cases_start - 2][1])/(7 * epsilon[u] * (mu1 + alpha1 + gamma[u])));
     }
 
-    // I[u] = nearbyint((365 * cases_at_t_start[u][n_cases_start - 2][1])/(7 * epsilon[u] * (mu1 + alpha1 + gamma[u])));
     A[u] = nearbyint((1 - sigma[u]) * I[u] / sigma[u]);
 
     R_temp = 0;
-    B_temp = 0;
-    I_temp = 0;
-    A_temp = 0;
+    // B_temp = 0;
+    // I_temp = 0;
+    // A_temp = 0;
 
     for (int i = 0; i < n_cases_start - 1; i++) {
 
-      I_temp = nearbyint((365 * cases_at_t_start[u][i][1])/(7 * epsilon[u] * (mu1 + alpha1 + gamma[u])));
-      A_temp = nearbyint((1 - sigma[u]) * I[u] / sigma[u]);
+      // I_temp = nearbyint((365 * cases_at_t_start[u][i][1])/(7 * epsilon[u] * (mu1 + alpha1 + gamma[u])));
+      // A_temp = nearbyint((1 - sigma[u]) * I[u] / sigma[u]);
 
-      dB = (7 / 365.25) * fB(I_temp, A_temp, B_temp, mu_B[u], thetaI[u], thetaA, lambdaR[u], 0.0298, r[u], D[u]);  // 0.0298 is average rainfall
+      // dB = (7 / 365.25) * fB(I_temp, A_temp, B_temp, mu_B[u], thetaI[u], thetaA, lambdaR[u], 0.00238, r[u], D[u]);  // 0.0298 is median rainfall
 
-      if (dB < -B_temp) {
-        B_temp = 0;
-      } else {
-        B_temp += dB;
-      }
+      // Rprintf(\"dB = %f\\n\", dB);
+
+      // if (dB < -B_temp) {
+      //   B_temp = 0;
+      // } else {
+      //   B_temp += dB;
+      // }
 
       R_temp += nearbyint(cases_at_t_start[u][i][1] / (epsilon[u] * sigma[u]));  // Sum all previous cases, included unreported and asymptomatic
     }
 
-    if (B_temp == 0) {
-      B_temp = 0.00001;  // Add a little bacteria if 0, otherwise outbreak can't happen.
+    B_temp = (I[u] * thetaI[u]/mu_B[u] + A[u] * thetaI[u] * XthetaA[u]/mu_B[u]) * D[u] * (1 + lambdaR[u] * pow(0.002376, r[u])) / 365.25;
+
+    if (B_temp <= 0) {
+      B_temp = 0.000001;  // Add a little bacteria if 0, otherwise outbreak can't happen.
     }
 
     R_one[u] = nearbyint((R_temp - (I[u] + A[u])) / 3);  // subract current infections, make 1/3 in each of the R recovered compartments.
@@ -317,8 +322,8 @@ haiti3_spatPomp <- function(dt_years = 1/365.25, start_date = "2010-11-20") {
     R_three[u] = R_one[u];
 
     S[u]   = nearbyint(H[u] - A[u] - I[u] - R_one[u] - R_two[u] - R_three[u]);
-    // B[u]   = (I[u] * thetaI[u]/mu_B[u] + A[u] * thetaI[u] * XthetaA[u]/mu_B[u]) * D[u] * (1 + lambdaR[u] * pow(rain_std[u], r[u]));
     B[u]   = B_temp;
+    // B[u]   = Binit[u];
     C[u]   = 0;
     VSd[u] = 0;
     VR1d[u] = 0;
@@ -985,18 +990,22 @@ old_params["foi_addSud"] =          1.030357e-06
 old_params["foi_addNord_Ouest"] =   5.855759e-07
 old_params["foi_addGrande_Anse"] =  8.762740e-07
 
+t0 <- lubridate::decimal_date(ymd(start_date) - lubridate::weeks(1))
+
 for (i in 1:10) {
   dp <- departements[i]
   all_unit_params[paste0("betaB", i)] <- old_params[paste0('betaB', dp)]
   all_unit_params[paste0("foi_add", i)] <- old_params[paste0('foi_add', dp)]
-  all_unit_params[paste0("Iinit", i)] <- dplyr::filter(all_cases, time == min(time), departement == dp) %>% dplyr::pull(cases) / all_unit_params[paste0("H", i)]
+  all_unit_params[paste0("Iinit", i)] <- dplyr::filter(
+    all_cases, time == t0, departement == dp
+    ) %>% dplyr::pull(cases) / all_unit_params[paste0("H", i)]
 }
 
 sirb_cholera <- spatPomp::spatPomp(
-  data = as.data.frame(all_cases),
+  data = as.data.frame(dplyr::filter(all_cases, time >= lubridate::decimal_date(ymd(start_date)))),
   units = "departement",
   times = "time",
-  t0 = lubridate::decimal_date(as.Date("2010-10-23") - lubridate::weeks(1)),
+  t0 = t0,
   unit_statenames = unit_state_names,
   covar = as.data.frame(all_rain),
   rprocess = euler(step.fun = final_rproc_c, delta.t = dt_years),
