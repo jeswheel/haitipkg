@@ -1,6 +1,6 @@
 Package: haitipkg
 Title: R Package for Haiti Article 
-Version: 2.0.0
+Version: 2.1.0
 Authors@R: c(
     person("Jesse", "Wheeler", email = "jeswheel@umich.edu", 
     role = c("aut", "cre")),
@@ -40,7 +40,7 @@ RoxygenNote: 7.2.3
 Depends: 
     R (>= 2.10),
     pomp,
-    spatPomp,
+    spatPomp (>= 0.30.1.0),
     dplyr
 Suggests: 
     testthat (>= 3.0.0)

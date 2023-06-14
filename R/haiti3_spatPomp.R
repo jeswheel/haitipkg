@@ -25,7 +25,9 @@
 #'    of Ecohydrology, Ecole Polytechnique Federale de Lausanne (CH).
 #'
 #'
-#' @param dt_years step size, in years, for the euler approximation.
+#' @param dt_years step size, in years, for the Euler approximation.
+#' @param start_date Date of the first observation that will be modeled. All
+#'   prior observations are used to initialize the latent states.
 #' @importFrom magrittr %>%
 #' @importFrom foreach %do%
 #' @importFrom foreach foreach
@@ -39,7 +41,7 @@
 #' \dontrun{mod3 <- haiti3_spatPomp()}
 #' @export
 
-haiti3_spatPomp <- function(dt_years = 1/365.25) {
+haiti3_spatPomp <- function(dt_years = 1/365.25, start_date = "2010-11-20") {
 
   # Create vector of departement names
   departements = c(
@@ -81,7 +83,7 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
   names(all_unit_params) <- all_unit_params_names
 
   # Load the input parameters
-  t_start <- lubridate::decimal_date(as.Date("2010-10-23"))
+  t_start <- lubridate::decimal_date(as.Date(start_date))
   t_end   <- lubridate::decimal_date(as.Date(MODEL3_INPUT_PARAMETERS$t_end))
 
   # haitiCholera is a saved data.frame in the package
@@ -115,7 +117,7 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
 
   all_rain <- haitiRainfall %>%
     dplyr::filter(date >= as.Date("2010-10-23") - lubridate::days(8) & date <= as.Date(MODEL3_INPUT_PARAMETERS$t_end) + lubridate::days(8)) %>%
-    dplyr::summarize(
+    dplyr::mutate(
       date = date, dplyr::across(Artibonite:`Sud-Est`, std_rain)
     ) %>%
     dplyr::mutate(
@@ -190,7 +192,7 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
     all_cases_at_t_start.string <- paste0(all_cases_at_t_start.string, cases_at_t_start.string)
   }
 
-  MODEL3_INPUT_PARAMETERS <- MODEL3_INPUT_PARAMETERS
+  # MODEL3_INPUT_PARAMETERS <- MODEL3_INPUT_PARAMETERS
 
   populations <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS["population"]))
   densities <- unlist(purrr::flatten(MODEL3_INPUT_PARAMETERS["density"]))
@@ -253,10 +255,8 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
   double *totInc = &totInc1;
   const double *thetaI = &thetaI1;
   const double *XthetaA = &XthetaA1;
-  // const double mu = mu1;
   const double *sigma = &sigma1;
   const double *epsilon = &epsilon1;
-  // const double alpha = &alpha1;
   const double *gamma = &gamma1;
   const double *Iinit = &Iinit1;
   const double *r = &r1;
@@ -265,25 +265,60 @@ haiti3_spatPomp <- function(dt_years = 1/365.25) {
   const double *D = &D1;
   const double *lambdaR = &lambdaR1;
   const double *rain_std = &rain_std1;
+  double thetaA;
+  double B_temp;
+  double dB;
+  int R_temp;
+  int I_temp;
+  int A_temp;
 
   for (int u = 0; u < U; u++) {
+    thetaA = thetaI[u] * XthetaA[u];
 
-    if (cases_at_t_start[u][0][1] <= 10) {  // If cases < 10, we assume that it's posible that we are initially under-reporting, so we allow for more cases to be asymptomatic than normal.
-       I[u] = nearbyint(H[u] * Iinit[u]);  // estimated number of asymptomatic individuals
+    if (cases_at_t_start[u][n_cases_start - 2][1] == 0) {  // If cases < 1, we assume that it's posible that we are initially under-reporting, so we allow for more cases to be asymptomatic than normal.
+       I[u] = nearbyint(H[u] * Iinit[u]);  // estimated number of symptomatic individuals
     } else {
-       I[u] = nearbyint((365 * cases_at_t_start[u][0][1])/(7 * epsilon[u] * (mu1 + alpha1 + gamma[u])));  // Steady state
+       I[u] = nearbyint((365 * cases_at_t_start[u][n_cases_start - 2][1])/(7 * epsilon[u] * (mu1 + alpha1 + gamma[u])));
     }
 
+    // I[u] = nearbyint((365 * cases_at_t_start[u][n_cases_start - 2][1])/(7 * epsilon[u] * (mu1 + alpha1 + gamma[u])));
     A[u] = nearbyint((1 - sigma[u]) * I[u] / sigma[u]);
 
-    R_one[u] = nearbyint((cases_at_t_start[u][0][1] / (epsilon[u] * sigma[u]) - (I[u] + A[u])) / 3);
+    R_temp = 0;
+    B_temp = 0;
+    I_temp = 0;
+    A_temp = 0;
+
+    for (int i = 0; i < n_cases_start - 1; i++) {
+
+      I_temp = nearbyint((365 * cases_at_t_start[u][i][1])/(7 * epsilon[u] * (mu1 + alpha1 + gamma[u])));
+      A_temp = nearbyint((1 - sigma[u]) * I[u] / sigma[u]);
+
+      dB = (7 / 365.25) * fB(I_temp, A_temp, B_temp, mu_B[u], thetaI[u], thetaA, lambdaR[u], 0.0298, r[u], D[u]);  // 0.0298 is average rainfall
+
+      if (dB < -B_temp) {
+        B_temp = 0;
+      } else {
+        B_temp += dB;
+      }
+
+      R_temp += nearbyint(cases_at_t_start[u][i][1] / (epsilon[u] * sigma[u]));  // Sum all previous cases, included unreported and asymptomatic
+    }
+
+    if (B_temp == 0) {
+      B_temp = 0.00001;  // Add a little bacteria if 0, otherwise outbreak can't happen.
+    }
+
+    R_one[u] = nearbyint((R_temp - (I[u] + A[u])) / 3);  // subract current infections, make 1/3 in each of the R recovered compartments.
+
     if (R_one[u] < 0) R_one[u] = 0;
 
     R_two[u] = R_one[u];
     R_three[u] = R_one[u];
 
     S[u]   = nearbyint(H[u] - A[u] - I[u] - R_one[u] - R_two[u] - R_three[u]);
-    B[u]   = (I[u] * thetaI[u]/mu_B[u] + A[u] * thetaI[u] * XthetaA[u]/mu_B[u]) * D[u] * (1 + lambdaR[u] * pow(rain_std[u], r[u]));
+    // B[u]   = (I[u] * thetaI[u]/mu_B[u] + A[u] * thetaI[u] * XthetaA[u]/mu_B[u]) * D[u] * (1 + lambdaR[u] * pow(rain_std[u], r[u]));
+    B[u]   = B_temp;
     C[u]   = 0;
     VSd[u] = 0;
     VR1d[u] = 0;
@@ -354,12 +389,13 @@ unit_dmeasTemplate <- "
   double *k = &k1;
   double *epsilon = &epsilon1;
   double tol = 1e-15;
-  int unit = u - 1;
+
+  // Rprintf(\"u = %i\\n\", u);    // Added to print the value of u
 
   if (ISNA(cases)) {
      lik = (give_log) ? 0 : 1;
   } else {
-     lik = dnbinom_mu(cases, k[unit], epsilon[unit] * C + tol, give_log);
+     lik = dnbinom_mu(cases, k[u], epsilon[u] * C + tol, give_log);
   }
 "
 

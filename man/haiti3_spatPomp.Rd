@@ -4,10 +4,13 @@
 \alias{haiti3_spatPomp}
 \title{Build pomp object for model 3.}
 \usage{
-haiti3_spatPomp(dt_years = 1/365.25)
+haiti3_spatPomp(dt_years = 1/365.25, start_date = "2010-11-20")
 }
 \arguments{
-\item{dt_years}{step size, in years, for the euler approximation.}
+\item{dt_years}{step size, in years, for the Euler approximation.}
+
+\item{start_date}{Date of the first observation that will be modeled. All
+prior observations are used to initialize the latent states.}
 }
 \value{
 \code{\link[spatPomp]{spatPomp}} representation of model 3 described in \href{https://www.sciencedirect.com/science/article/pii/S2214109X20303107}{Lee, Elizabeth et. al.} and it's accompanying \href{https://ars.els-cdn.com/content/image/1-s2.0-S2214109X20303107-mmc3.pdf}{Supplemental Material}.
