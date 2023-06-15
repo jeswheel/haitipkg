@@ -116,7 +116,7 @@ lee3_spatPomp <- function(dt_years = 0.2/365.25, start_date = "2014-03-01") {
   }
 
   all_rain <- haitiRainfall %>%
-    dplyr::summarize(
+    dplyr::mutate(
       date = date, dplyr::across(Artibonite:`Sud-Est`, std_rain)
     ) %>%
     dplyr::mutate(

@@ -990,7 +990,7 @@ old_params["foi_addSud"] =          1.030357e-06
 old_params["foi_addNord_Ouest"] =   5.855759e-07
 old_params["foi_addGrande_Anse"] =  8.762740e-07
 
-t0 <- lubridate::decimal_date(ymd(start_date) - lubridate::weeks(1))
+t0 <- lubridate::decimal_date(lubridate::ymd(start_date) - lubridate::weeks(1))
 
 for (i in 1:10) {
   dp <- departements[i]
@@ -1002,7 +1002,7 @@ for (i in 1:10) {
 }
 
 sirb_cholera <- spatPomp::spatPomp(
-  data = as.data.frame(dplyr::filter(all_cases, time >= lubridate::decimal_date(ymd(start_date)))),
+  data = as.data.frame(dplyr::filter(all_cases, time >= lubridate::decimal_date(lubridate::ymd(start_date)))),
   units = "departement",
   times = "time",
   t0 = t0,
