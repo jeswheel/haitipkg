@@ -265,7 +265,6 @@ haiti3_spatPomp <- function(dt_years = 1/365.25, start_date = "2010-11-20") {
   const double *D = &D1;
   const double *lambdaR = &lambdaR1;
   const double *rain_std = &rain_std1;
-  double thetaA;
   double B_temp;
   double dB;
   int R_temp;
@@ -273,9 +272,6 @@ haiti3_spatPomp <- function(dt_years = 1/365.25, start_date = "2010-11-20") {
   int A_temp;
 
   for (int u = 0; u < U; u++) {
-    thetaA = thetaI[u] * XthetaA[u];
-
-    Rprintf(\"u = %i\\n\", u);    // Added to print the value of u
 
     if (cases_at_t_start[u][n_cases_start - 2][1] == 0) {  // If cases < 1, we assume that it's posible that we are initially under-reporting, so we allow for more cases to be asymptomatic than normal.
        I[u] = nearbyint(H[u] * Iinit[u]);  // estimated number of symptomatic individuals
@@ -286,25 +282,8 @@ haiti3_spatPomp <- function(dt_years = 1/365.25, start_date = "2010-11-20") {
     A[u] = nearbyint((1 - sigma[u]) * I[u] / sigma[u]);
 
     R_temp = 0;
-    // B_temp = 0;
-    // I_temp = 0;
-    // A_temp = 0;
 
     for (int i = 0; i < n_cases_start - 1; i++) {
-
-      // I_temp = nearbyint((365 * cases_at_t_start[u][i][1])/(7 * epsilon[u] * (mu1 + alpha1 + gamma[u])));
-      // A_temp = nearbyint((1 - sigma[u]) * I[u] / sigma[u]);
-
-      // dB = (7 / 365.25) * fB(I_temp, A_temp, B_temp, mu_B[u], thetaI[u], thetaA, lambdaR[u], 0.00238, r[u], D[u]);  // 0.0298 is median rainfall
-
-      // Rprintf(\"dB = %f\\n\", dB);
-
-      // if (dB < -B_temp) {
-      //   B_temp = 0;
-      // } else {
-      //   B_temp += dB;
-      // }
-
       R_temp += nearbyint(cases_at_t_start[u][i][1] / (epsilon[u] * sigma[u]));  // Sum all previous cases, included unreported and asymptomatic
     }
 
