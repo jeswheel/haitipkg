@@ -87,7 +87,7 @@ project_from_filter <- function(mod, end_states, covarGen = NULL,
     # Get the observed rainfall first
     covar_data <- haitiRainfall %>%
       dplyr::filter(date >= as.Date("2010-10-23") - 7) %>%
-      dplyr::summarize(
+      dplyr::mutate(
         date = date, dplyr::across(Artibonite:`Sud-Est`, std_rain)
       ) %>%
       dplyr::mutate(
