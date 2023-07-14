@@ -269,7 +269,7 @@ fit_haiti3 <- function(
   gc()
 
   doParallel::registerDoParallel(ncores)
-  registerDoRNG(2198635)
+  doRNG::registerDoRNG(2198635)
 
   t_global <- system.time(
     foreach(
@@ -448,7 +448,7 @@ fit_haiti3 <- function(
   #    pname, top_unit_p_id, top_unit_ps, u, best_unit_parm_id)
   rm(params)
 
-  registerDoRNG(327498615)
+  doRNG::registerDoRNG(327498615)
 
   t_ibpf_local <- system.time(
     foreach(
@@ -614,7 +614,7 @@ fit_haiti3 <- function(
   # )
   all_params <- params
 
-  registerDoRNG(327498615)
+  doRNG::registerDoRNG(327498615)
 
   t_ibpf_local <- system.time(
     foreach(
