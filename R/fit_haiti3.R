@@ -54,7 +54,7 @@
 #' @importFrom magrittr %>%
 #'
 #' @export
-fit_coupled_haiti3 <- function(
+fit_haiti3 <- function(
     search1 = list(
       NBPF = 5,
       NP = 50,

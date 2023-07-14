@@ -25,8 +25,6 @@
 fit_haiti1 <- function(
     NP = 50, NMIF = 3, NUM_TREND = 3, NPROF = 3,
     NREPS_EVAL = 3, NP_EVAL = 50, ncores = 3
-    # rho_flag = TRUE, tau_flag = TRUE, sig_sq_flag = TRUE,
-    # beta_flag = FALSE, nu_flag = FALSE
 ) {
 
   doParallel::registerDoParallel(ncores)
@@ -86,7 +84,7 @@ fit_haiti1 <- function(
   fixed_params <- coef(mod_1)[!names(coef(mod_1)) %in% c(colnames(guesses), "S_0")]
 
   # Set rw.sd
-  rw_sd <- rw.sd(
+  rw_sd1 <- rw_sd(
     beta1 = .02,
     beta2 = .02,
     beta3 = .02,
@@ -122,14 +120,14 @@ fit_haiti1 <- function(
       Np = NP,
       Nmif = NMIF,
       cooling.fraction.50 = 0.5,  # Cooling set so that we will reach smaller rw.sd at the end than the end of the unit3 search.
-      rw.sd = rw_sd
+      rw.sd = rw_sd1
     ) -> m2
   } -> MIF2_search
 
   # Just removing everything so that there is no issue with renaming stuff,
   # and so that we are being a bit more memory efficient.
   rm(NMIF, NP, lower, fixed_params, min_param_val,
-     upper, rw_sd, bounds)
+     upper, rw_sd1, bounds)
   gc()
 
   # pfilter the results -----------------------------------------------------
@@ -152,8 +150,8 @@ fit_haiti1 <- function(
 
   lls <- as.data.frame(t(apply(ll_matrix, 1, logmeanexp, se = TRUE)))
   results <- as.data.frame(t(sapply(MIF2_search, coef)))
-  results$ll <- lls$V1
-  results$ll.se <- lls$se
+  results$ll <- lls |> dplyr::pull(1)
+  results$ll.se <- lls |> dplyr::pull(2)
 
   # See model1/haiti1_VaccinationScenarios.Rmd for further processing
   results
