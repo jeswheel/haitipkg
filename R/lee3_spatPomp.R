@@ -101,7 +101,6 @@ lee3_spatPomp <- function(dt_years = 0.2/365.25, start_date = "2014-03-01") {
       time = lubridate::decimal_date(date)
     ) |>
     tidyr::pivot_longer(
-      data = .,
       cols = 2:11,
       names_to = "departement",
       values_to = "cases"
@@ -137,7 +136,6 @@ lee3_spatPomp <- function(dt_years = 0.2/365.25, start_date = "2014-03-01") {
 
   all_rain <- all_rain |>
     tidyr::pivot_longer(
-      data = .,
       cols = 2:11,
       names_to = "departement",
       values_to = "rain_std",
@@ -160,14 +158,15 @@ lee3_spatPomp <- function(dt_years = 0.2/365.25, start_date = "2014-03-01") {
 
     # Loop through each of the rows in the remaining data, and write the row
     # as an array in C.
-    cases_at_t_start.string <- foreach::foreach(
+    tmp <- foreach::foreach(
       r = iterators::iter(cases_at_t_start, by = "row"),
       .combine = c
     ) %do% {
       sprintf("{%f, %f}", r$time, r$cases)
     } |>
-      stringr::str_c(collapse = ", \n") |>
-      paste0(" {", ., '}')  # Wrap all rows in {}, so single object for each dep
+      stringr::str_c(collapse = ", \n")
+
+    cases_at_t_start.string <- paste0(" {", tmp, '}')  # Wrap all rows in {}, so single object for each dep
 
     # special cases for starting the array, ending it, or just in the middle.
     if (i == 1) {  # Start

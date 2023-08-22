@@ -140,7 +140,6 @@ project_from_filter <- function(mod, end_states, covarGen = NULL,
       future_covar <- covar_matrix[((i-1)*N_future_covar + 1):(i*N_future_covar), ]
       covar_df <- as.data.frame(rbind(covar_data, future_covar)) |>
         tidyr::pivot_longer(
-          data = .,
           cols = 2:11,
           names_to = "departement",
           values_to = "rain_std",
@@ -156,7 +155,6 @@ project_from_filter <- function(mod, end_states, covarGen = NULL,
           covar = as.data.frame(covar_df)
         ) |>
         pomp::rprocess(
-          .,
           x0 = end_states[, sample(ncol(end_states), size = 1)],
           t0 = max(mod@times),
           times = new_times,
@@ -168,7 +166,6 @@ project_from_filter <- function(mod, end_states, covarGen = NULL,
           covar = as.data.frame(covar_df)
         ) |>
         rmeasure(
-          object = .,
           x = proc_sim,
           times = new_times,
           params = mod@params
@@ -223,7 +220,6 @@ project_from_filter <- function(mod, end_states, covarGen = NULL,
 
     proc_sim <- mod |>
       pomp::rprocess(
-        .,
         x0 = x_filter,
         t0 = max(mod@times),
         times = new_times,
@@ -232,7 +228,6 @@ project_from_filter <- function(mod, end_states, covarGen = NULL,
 
     measures <- mod |>
       rmeasure(
-        object = .,
         x = proc_sim,
         times = new_times,
         params = mod@params

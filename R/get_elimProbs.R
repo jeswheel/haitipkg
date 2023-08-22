@@ -42,7 +42,6 @@ get_elimProbs <- function(sims, model) {
 
     sims <- sims %>%
       tidyr::pivot_wider(
-        data = .,
         id_cols = c(time, .id),
         names_from = unitname,
         values_from = c(cases, totInc)

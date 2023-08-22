@@ -390,7 +390,6 @@ fit_haiti3 <- function(
 
   # best_unit_parm_id <- pfilterLikes |>
   #   tidyr::pivot_longer(  # Convert unit likelihood columns into variables
-  #     data = .,
   #     cols = -which,
   #     values_to = "loglik",
   #     names_to = "unit",
@@ -521,9 +520,8 @@ fit_haiti3 <- function(
   ibpf_logLik <- pfilterLikes |>
     dplyr::group_by(which) |>
     dplyr::summarise(starting_set = dplyr::first(starting_set)) |>
-    dplyr::left_join(
-      x = ibpf_logLik_temp,
-      y = .,
+    dplyr::right_join(
+      y = ibpf_logLik_temp,
       by = "which"
     ) |>
     dplyr::select(which, starting_set, logLik, se)
@@ -578,7 +576,6 @@ fit_haiti3 <- function(
 
   # best_unit_parm_id <- pfilterLikes |>
   #   tidyr::pivot_longer(  # Convert unit likelihood columns into variables
-  #     data = .,
   #     cols = -which,
   #     values_to = "loglik",
   #     names_to = "unit",
@@ -688,9 +685,8 @@ fit_haiti3 <- function(
   ibpf_logLik <- pfilterLikes |>
     dplyr::group_by(which) |>
     dplyr::summarise(starting_set = dplyr::first(starting_set)) |>
-    dplyr::left_join(
-      x = ibpf_logLik_temp,
-      y = .,
+    dplyr::right_join(
+      y = ibpf_logLik_temp,
       by = "which"
     ) |>
     dplyr::select(which, starting_set, logLik, se)

@@ -46,7 +46,6 @@ agg_mod3_sims <- function(sims) {
 
   sims |>
     tidyr::pivot_wider(  # Move rows to columns for department results
-      data = .,
       id_cols = c(time, .id),
       names_from = unitname,
       values_from = c(cases, totInc)
