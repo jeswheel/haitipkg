@@ -7,7 +7,7 @@
 #' @format The dataset contains 426 rows and 12 columns:
 #' \describe{
 #'    \item{date_saturday}{Date stored as year, month, day.}
-#'    \item{report}{TODO: probably remove this column.}
+#'    \item{report}{Unused Column}
 #'    \item{Artibonite}{Reported weekly cases of Cholera in Artibonite.}
 #'    ...
 #' }

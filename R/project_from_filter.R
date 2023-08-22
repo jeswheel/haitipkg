@@ -25,8 +25,7 @@
 #' @param nsims Integer number of simulations desired.
 #' @param seed seed for the random number generator.
 #'
-#' @importFrom magrittr %>%
-#' @importFrom foreach %dopar%
+#' @importFrom foreach %do%
 #' @import progress
 #' @export
 
@@ -85,11 +84,11 @@ project_from_filter <- function(mod, end_states, covarGen = NULL,
     N_future_covar <- nrow(covarGen(include_data = FALSE))
 
     # Get the observed rainfall first
-    covar_data <- haitiRainfall %>%
-      dplyr::filter(date >= as.Date("2010-10-23") - 7) %>%
+    covar_data <- haitiRainfall |>
+      dplyr::filter(date >= as.Date("2010-10-23") - 7) |>
       dplyr::mutate(
         date = date, dplyr::across(Artibonite:`Sud-Est`, std_rain)
-      ) %>%
+      ) |>
       dplyr::mutate(
         time = dateToYears(date)
       )
@@ -106,7 +105,7 @@ project_from_filter <- function(mod, end_states, covarGen = NULL,
       'time'
     )
 
-    covar_data <- covar_data %>% dplyr::select(time, dplyr::starts_with("rain_std")) %>%
+    covar_data <- covar_data |> dplyr::select(time, dplyr::starts_with("rain_std")) |>
       as.matrix()
 
     pb_covar <- progress_bar$new(format = "Creating Covariates: [:bar] :percent [:elapsedfull]",
@@ -139,23 +138,23 @@ project_from_filter <- function(mod, end_states, covarGen = NULL,
       pb_sims$tick()
 
       future_covar <- covar_matrix[((i-1)*N_future_covar + 1):(i*N_future_covar), ]
-      covar_df <- as.data.frame(rbind(covar_data, future_covar)) %>%
+      covar_df <- as.data.frame(rbind(covar_data, future_covar)) |>
         tidyr::pivot_longer(
           data = .,
           cols = 2:11,
           names_to = "departement",
           values_to = "rain_std",
           names_prefix = "rain_std"
-        ) %>%
-        dplyr::arrange(time, departement) %>%
+        ) |>
+        dplyr::arrange(time, departement) |>
         dplyr::mutate(
           departement = gsub('-', '_', departement)
         )
 
-      proc_sim <- mod %>%
+      proc_sim <- mod |>
         spatPomp::spatPomp(
           covar = as.data.frame(covar_df)
-        ) %>%
+        ) |>
         pomp::rprocess(
           .,
           x0 = end_states[, sample(ncol(end_states), size = 1)],
@@ -164,17 +163,17 @@ project_from_filter <- function(mod, end_states, covarGen = NULL,
           params = mod@params
         )
 
-      measures <- mod %>%
+      measures <- mod |>
         spatPomp::spatPomp(
           covar = as.data.frame(covar_df)
-        ) %>%
+        ) |>
         rmeasure(
           object = .,
           x = proc_sim,
           times = new_times,
           params = mod@params
-        ) %>%
-        drop() %>% t() %>% as.data.frame()
+        ) |>
+        drop() |> t() |> as.data.frame()
 
 
       # One of the dimensions in the array is empty, so we drop it. After, the
@@ -197,24 +196,24 @@ project_from_filter <- function(mod, end_states, covarGen = NULL,
         gsub("[[:digit:]]+$", "", statename)
       }
 
-      results %>%
-        dplyr::select(time, .id, dplyr::everything()) %>%
+      results |>
+        dplyr::select(time, .id, dplyr::everything()) |>
         tidyr::pivot_longer(
           cols = -c(time, .id),
           names_to = 'stateobs',
           values_to = 'val'
-        ) %>%
+        ) |>
         dplyr::mutate(
           ui = get_unit_index_from_statename(stateobs),
           unit = unit_names(mod)[as.integer(ui)]
-        ) %>%
+        ) |>
         dplyr::select(
           time, .id, unit, stateobs, val
-        ) %>%
-        dplyr::arrange(.id, time, unit, stateobs) %>%
-        dplyr::mutate(stateobstype = get_state_obs_type_from_statename(stateobs)) %>%
-        dplyr::select(-stateobs) %>%
-        tidyr::pivot_wider(names_from = stateobstype, values_from = 'val') %>%
+        ) |>
+        dplyr::arrange(.id, time, unit, stateobs) |>
+        dplyr::mutate(stateobstype = get_state_obs_type_from_statename(stateobs)) |>
+        dplyr::select(-stateobs) |>
+        tidyr::pivot_wider(names_from = stateobstype, values_from = 'val') |>
         dplyr::rename(unitname = unit)
     }
   } else {  # Model 1
@@ -222,7 +221,7 @@ project_from_filter <- function(mod, end_states, covarGen = NULL,
     sample_numbers <- sample(ncol(end_states), size = nsims, replace = TRUE)
     x_filter <- end_states[, sample_numbers]
 
-    proc_sim <- mod %>%
+    proc_sim <- mod |>
       pomp::rprocess(
         .,
         x0 = x_filter,
@@ -231,7 +230,7 @@ project_from_filter <- function(mod, end_states, covarGen = NULL,
         params = mod@params
       )
 
-    measures <- mod %>%
+    measures <- mod |>
       rmeasure(
         object = .,
         x = proc_sim,
@@ -270,7 +269,7 @@ project_from_filter <- function(mod, end_states, covarGen = NULL,
     )
     gc()
 
-    results %>%
+    results |>
       dplyr::select(mod@timename, .id, dplyr::everything())
   }
 

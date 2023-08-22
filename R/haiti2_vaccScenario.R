@@ -11,7 +11,6 @@
 #'
 #' @param h2_params a vector of parameters for the model
 #'
-#' @importFrom magrittr %>%
 #' @return List containing two objects: \describe{
 #'   \item{tot_inc}{Vector estimating the total cholera incidence from Feb 2019-Feb 2024 for each scenario.}
 #'   \item{all_trajs}{data.frame containing trajectories for each of the vaccination scenarios.}
@@ -80,7 +79,7 @@ haiti2_vaccScenario <- function(h2_params) {
     params = V0_params,
     times = time_forecast,
     format = "data.frame"
-  ) %>%
+  ) |>
     dplyr::filter(
      year >= max(h2@times)
     )
@@ -96,7 +95,7 @@ haiti2_vaccScenario <- function(h2_params) {
     params = V1_params,
     times = time_forecast,
     format = "data.frame"
-  ) %>%
+  ) |>
     dplyr::filter(
       year >= max(h2@times)
     )
@@ -112,7 +111,7 @@ haiti2_vaccScenario <- function(h2_params) {
     params = V2_params,
     times = time_forecast,
     format = "data.frame"
-  ) %>%
+  ) |>
     dplyr::filter(
       year >= max(h2@times)
     )
@@ -128,7 +127,7 @@ haiti2_vaccScenario <- function(h2_params) {
     params = V3_params,
     times = time_forecast,
     format = "data.frame"
-  ) %>%
+  ) |>
     dplyr::filter(
       year >= max(h2@times)
     )
@@ -144,7 +143,7 @@ haiti2_vaccScenario <- function(h2_params) {
     params = V4_params,
     times = time_forecast,
     format = "data.frame"
-  ) %>%
+  ) |>
     dplyr::filter(
       year >= max(h2@times)
     )
@@ -161,8 +160,8 @@ haiti2_vaccScenario <- function(h2_params) {
     V2_traj[, c('scenario', 'year', 'Itotal', 'Atotal', 'totInc', 'ReportedCases')],
     V3_traj[, c('scenario', 'year', 'Itotal', 'Atotal', 'totInc', 'ReportedCases')],
     V4_traj[, c('scenario', 'year', 'Itotal', 'Atotal', 'totInc', 'ReportedCases')]
-  ) %>%
-    as.data.frame() %>%  # Convert to data.frame
+  ) |>
+    as.data.frame() |>  # Convert to data.frame
     dplyr::mutate(
       date = lubridate::date_decimal(year),
       date = lubridate::round_date(date, unit = 'day')  # Convert to type Date

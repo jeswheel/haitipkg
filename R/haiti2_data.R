@@ -5,7 +5,6 @@
 #'
 #' @param recreate a boolean indicating whether or not we want to recreate the results from lee20.
 #'
-#' @importFrom magrittr %>%
 #' @return Data frame
 #' @examples
 #' haiti2_data()
@@ -20,12 +19,12 @@ haiti2_data <- function(recreate = TRUE){
     haiti <- haitiCholera
   }
 
-  haiti <- haiti %>% dplyr::select(-report)
+  haiti <- haiti |> dplyr::select(-report)
 
   dates <- c("2017-04-22","2018-01-27","2018-09-22","2018-12-01")
   r <- rbind(rep(NA,10),rep(NA,10),rep(NA,10),rep(NA,10))
 
-  final <- cbind(dates,r) %>% as.data.frame()
+  final <- cbind(dates,r) |> as.data.frame()
   colnames(final) <- colnames(haiti)
 
   final <- rbind(haiti, final)

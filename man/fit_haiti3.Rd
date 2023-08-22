@@ -74,4 +74,11 @@ testing purposes.}
 matrix containing likelihood estimates for each unit. This is a large
 matrix, so it is primarily saved for debugging and testing purposes.}
 }
+
+It is assumed that a parallel backend compatable with the foreach and
+doRNG packages has been registered prior to calling this function
+}
+\examples{
+\dontrun{fit_m3 <- fit_haiti3()}
+
 }

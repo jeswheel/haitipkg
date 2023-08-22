@@ -55,8 +55,8 @@ VaccinationScenario3 <- function(
   # Create a list that has a value for each of the departements.
   t_vacc_start <- list()  # When vaccination starts
   t_vacc_end <- list()  # When vaccination ends
-  p1d_reg <- list()  # TODO: I think this is percent of the vaccinations that are only one dose. Verify.
-  r_v_year <- list()  # TODO: I think this is annual vaccination rate. Verify.
+  p1d_reg <- list()  # percent of the vaccinations that are only one dose.
+  r_v_year <- list()  # annual vaccination rate.
 
   # 20% completely unvaccinated, 10% one-dose only, 70% two doses
   t_init <- as.Date(

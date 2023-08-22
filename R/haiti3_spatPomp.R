@@ -28,7 +28,6 @@
 #' @param dt_years step size, in years, for the Euler approximation.
 #' @param start_date Date of the first observation that will be modeled. All
 #'   prior observations are used to initialize the latent states.
-#' @importFrom magrittr %>%
 #' @importFrom foreach %do%
 #' @importFrom foreach foreach
 #' @import pomp
@@ -87,27 +86,27 @@ haiti3_spatPomp <- function(dt_years = 1/365.25, start_date = "2010-11-20") {
   t_end   <- lubridate::decimal_date(as.Date(MODEL3_INPUT_PARAMETERS$t_end))
 
   # haitiCholera is a saved data.frame in the package
-  MODEL3_CASES <- haitiCholera %>%
+  MODEL3_CASES <- haitiCholera |>
     dplyr::rename(
       date = date_saturday, Grande_Anse = Grand.Anse,
       Nord_Est = Nord.Est, Nord_Ouest = Nord.Ouest,
       Sud_Est = Sud.Est
-    ) %>%
-    dplyr::mutate(date = as.Date(date)) %>%
+    ) |>
+    dplyr::mutate(date = as.Date(date)) |>
     dplyr::select(-report)
 
-  all_cases <- MODEL3_CASES %>%
+  all_cases <- MODEL3_CASES |>
     dplyr::mutate(
       date = as.Date(date, format = '%Y-%m-%d'),
       time = lubridate::decimal_date(date)
-    ) %>%
+    ) |>
     tidyr::pivot_longer(
       data = .,
       cols = 2:11,
       names_to = "departement",
       values_to = "cases"
-    ) %>%
-    dplyr::arrange(departement, time) %>%
+    ) |>
+    dplyr::arrange(departement, time) |>
     dplyr::select(-date)
 
   std_rain <- function(x) {
@@ -115,11 +114,11 @@ haiti3_spatPomp <- function(dt_years = 1/365.25, start_date = "2010-11-20") {
     x / max(x)
   }
 
-  all_rain <- haitiRainfall %>%
-    dplyr::filter(date >= as.Date("2010-10-23") - lubridate::days(8) & date <= as.Date(MODEL3_INPUT_PARAMETERS$t_end) + lubridate::days(8)) %>%
+  all_rain <- haitiRainfall |>
+    dplyr::filter(date >= as.Date("2010-10-23") - lubridate::days(8) & date <= as.Date(MODEL3_INPUT_PARAMETERS$t_end) + lubridate::days(8)) |>
     dplyr::mutate(
       date = date, dplyr::across(Artibonite:`Sud-Est`, std_rain)
-    ) %>%
+    ) |>
     dplyr::mutate(
       time2 = lubridate::decimal_date(date)
     )
@@ -136,15 +135,15 @@ haiti3_spatPomp <- function(dt_years = 1/365.25, start_date = "2010-11-20") {
     'time'
   )
 
-  all_rain <- all_rain %>%
+  all_rain <- all_rain |>
     tidyr::pivot_longer(
       data = .,
       cols = 2:11,
       names_to = "departement",
       values_to = "rain_std",
       names_prefix = "rain_std"
-    ) %>%
-    dplyr::arrange(departement, time) %>%
+    ) |>
+    dplyr::arrange(departement, time) |>
     dplyr::select(-date)
 
 
@@ -153,11 +152,11 @@ haiti3_spatPomp <- function(dt_years = 1/365.25, start_date = "2010-11-20") {
 
     # Select the departement
     dp <- departements[i]
-    dep_cases <- all_cases %>%
+    dep_cases <- all_cases |>
       dplyr::filter(departement == dp)
 
     # Look at all observations prior to t_start
-    cases_at_t_start <- dep_cases %>% dplyr::filter(time <= t_start)
+    cases_at_t_start <- dep_cases |> dplyr::filter(time <= t_start)
 
     # Loop through each of the rows in the remaining data, and write the row
     # as an array in C.
@@ -166,8 +165,8 @@ haiti3_spatPomp <- function(dt_years = 1/365.25, start_date = "2010-11-20") {
       .combine = c
     ) %do% {
       sprintf("{%f, %f}", r$time, r$cases)
-    } %>%
-      stringr::str_c(collapse = ", \n") %>%
+    } |>
+      stringr::str_c(collapse = ", \n") |>
       paste0(" {", ., '}')  # Wrap all rows in {}, so single object for each dep
 
     # special cases for starting the array, ending it, or just in the middle.
@@ -977,7 +976,7 @@ for (i in 1:10) {
   all_unit_params[paste0("foi_add", i)] <- old_params[paste0('foi_add', dp)]
   all_unit_params[paste0("Iinit", i)] <- dplyr::filter(
     all_cases, time == t0, departement == dp
-    ) %>% dplyr::pull(cases) / all_unit_params[paste0("H", i)]
+    ) |> dplyr::pull(cases) / all_unit_params[paste0("H", i)]
 }
 
 sirb_cholera <- spatPomp::spatPomp(

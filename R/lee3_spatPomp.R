@@ -27,7 +27,6 @@
 #'
 #' @param dt_years step size, in years, for the euler approximation.
 #' @param start_date the start date of the model.
-#' @importFrom magrittr %>%
 #' @importFrom foreach %do%
 #' @importFrom foreach foreach
 #' @import pomp
@@ -87,27 +86,27 @@ lee3_spatPomp <- function(dt_years = 0.2/365.25, start_date = "2014-03-01") {
   all_matrix_cases_at_t_start.string <- ""
 
   # haitiCholera is a saved data.frame in the package
-  MODEL3_CASES <- haitiCholera %>%
+  MODEL3_CASES <- haitiCholera |>
     dplyr::rename(
       date = date_saturday, Grande_Anse = Grand.Anse,
       Nord_Est = Nord.Est, Nord_Ouest = Nord.Ouest,
       Sud_Est = Sud.Est
-    ) %>%
-    dplyr::mutate(date = as.Date(date)) %>%
+    ) |>
+    dplyr::mutate(date = as.Date(date)) |>
     dplyr::select(-report)
 
-  all_cases <- MODEL3_CASES %>%
+  all_cases <- MODEL3_CASES |>
     dplyr::mutate(
       date = as.Date(date, format = '%Y-%m-%d'),
       time = lubridate::decimal_date(date)
-    ) %>%
+    ) |>
     tidyr::pivot_longer(
       data = .,
       cols = 2:11,
       names_to = "departement",
       values_to = "cases"
-    ) %>%
-    dplyr::arrange(departement, time) %>%
+    ) |>
+    dplyr::arrange(departement, time) |>
     dplyr::select(-date)
 
   std_rain <- function(x) {
@@ -115,13 +114,13 @@ lee3_spatPomp <- function(dt_years = 0.2/365.25, start_date = "2014-03-01") {
     x / max(x)
   }
 
-  all_rain <- haitiRainfall %>%
+  all_rain <- haitiRainfall |>
     dplyr::mutate(
       date = date, dplyr::across(Artibonite:`Sud-Est`, std_rain)
-    ) %>%
+    ) |>
     dplyr::mutate(
       time2 = lubridate::decimal_date(date)
-    ) %>%
+    ) |>
     dplyr::filter(time2 > t_start - 0.01 & time2 < (t_end + 0.01))
 
   colnames(all_rain) <- c(
@@ -136,15 +135,15 @@ lee3_spatPomp <- function(dt_years = 0.2/365.25, start_date = "2014-03-01") {
     'time'
   )
 
-  all_rain <- all_rain %>%
+  all_rain <- all_rain |>
     tidyr::pivot_longer(
       data = .,
       cols = 2:11,
       names_to = "departement",
       values_to = "rain_std",
       names_prefix = "rain_std"
-    ) %>%
-    dplyr::arrange(departement, time) %>%
+    ) |>
+    dplyr::arrange(departement, time) |>
     dplyr::select(-date)
 
 
@@ -153,11 +152,11 @@ lee3_spatPomp <- function(dt_years = 0.2/365.25, start_date = "2014-03-01") {
 
     # Select the departement
     dp <- departements[i]
-    dep_cases <- all_cases %>%
+    dep_cases <- all_cases |>
       dplyr::filter(departement == dp)
 
     # Look at all observations prior to t_start
-    cases_at_t_start <- dep_cases %>% dplyr::filter(time <= t_start)
+    cases_at_t_start <- dep_cases |> dplyr::filter(time <= t_start)
 
     # Loop through each of the rows in the remaining data, and write the row
     # as an array in C.
@@ -166,8 +165,8 @@ lee3_spatPomp <- function(dt_years = 0.2/365.25, start_date = "2014-03-01") {
       .combine = c
     ) %do% {
       sprintf("{%f, %f}", r$time, r$cases)
-    } %>%
-      stringr::str_c(collapse = ", \n") %>%
+    } |>
+      stringr::str_c(collapse = ", \n") |>
       paste0(" {", ., '}')  # Wrap all rows in {}, so single object for each dep
 
     # special cases for starting the array, ending it, or just in the middle.
@@ -309,7 +308,7 @@ lee3_spatPomp <- function(dt_years = 0.2/365.25, start_date = "2014-03-01") {
     }
 
     S[u]   = nearbyint(H[u] - A[u] - I[u] - R_one[u] - R_two[u] - R_three[u]);
-    B[u]   = (I[u] * thetaI[u]/mu_B[u] + A[u] * thetaA/mu_B[u]) * D[u] * (1 + lambdaR[u] * pow(0.024, r[u])); // TODO custom initial conditions equivalent to the 'forcing' in the continous model
+    B[u]   = (I[u] * thetaI[u]/mu_B[u] + A[u] * thetaA/mu_B[u]) * D[u] * (1 + lambdaR[u] * pow(0.024, r[u]));
     C[u]   = 0;
     VSd[u] = 0;
     VR1d[u] = 0;
@@ -993,8 +992,8 @@ for (i in 1:10) {
   all_unit_params[paste0("foi_add", i)] <- old_params[paste0('foi_add', dp)]
 }
 
-all_cases <- all_cases %>%
-  dplyr::filter(time > t_start & time < (t_end + 0.01)) %>%
+all_cases <- all_cases |>
+  dplyr::filter(time > t_start & time < (t_end + 0.01)) |>
   as.data.frame()
 
 sirb_cholera <- spatPomp::spatPomp(

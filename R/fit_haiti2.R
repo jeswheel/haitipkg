@@ -7,7 +7,6 @@
 #'     \item Fit our joint version of the model.
 #'   }
 #'
-#' @importFrom magrittr %>%
 #' @return List containing four objects: \describe{
 #'   \item{h2_params}{A numerical vector containing the parameters to the epidemic period.}
 #'   \item{leeFit_ll}{numeric containing the likelihood of the Lee et al (2020a) model.}

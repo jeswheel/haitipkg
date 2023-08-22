@@ -11,7 +11,6 @@
 #'    fit the Ouest model earlier, or fit the remaining departement models
 #'    at 2017-06-01
 #'
-#' @importFrom magrittr %>%
 #' @importFrom foreach %do%
 #' @importFrom foreach foreach
 
@@ -41,52 +40,52 @@ haiti3_dep_data <- function(departement = 'Artibonite', start_time = '2014-03-01
 
 
   # haitiCholera is a saved data.frame in the package
-  MODEL3_CASES <- haitiCholera %>%
+  MODEL3_CASES <- haitiCholera |>
     dplyr::rename(
       date = date_saturday, Grande_Anse = Grand.Anse,
       `Nord-Est` = Nord.Est, `Nord-Ouest` = Nord.Ouest,
       `Sud-Est` = Sud.Est
-    ) %>%
-    dplyr::mutate(date = as.Date(date)) %>%
+    ) |>
+    dplyr::mutate(date = as.Date(date)) |>
     dplyr::select(-report)
 
-  cases <- MODEL3_CASES %>%
-    tidyr::gather(dep, cases, -date) %>%
-    dplyr::filter(dep == departement) %>%
+  cases <- MODEL3_CASES |>
+    tidyr::gather(dep, cases, -date) |>
+    dplyr::filter(dep == departement) |>
     dplyr::mutate(date = as.Date(date, format = "%Y-%m-%d"),
                   time = dateToYears(date))
 
   case_dates <- with(
-    cases %>%
+    cases |>
       dplyr::filter(time > t_start - 0.01 & time < (t_end + 0.01)),
     seq.Date(min(date), max(date), by = "1 week")
   )
 
-  missing_dates <- setdiff(case_dates, cases$date) %>% as.Date(origin = as.Date("1970-01-01"))
+  missing_dates <- setdiff(case_dates, cases$date) |> as.Date(origin = as.Date("1970-01-01"))
 
-  rain <- haitiRainfall  %>%
-    tidyr::gather(dep, rain, -date) %>%
-    dplyr::group_by(dep) %>%
-    dplyr::ungroup() %>%
-    dplyr::filter(dep == departement) %>%
+  rain <- haitiRainfall  |>
+    tidyr::gather(dep, rain, -date) |>
+    dplyr::group_by(dep) |>
+    dplyr::ungroup() |>
+    dplyr::filter(dep == departement) |>
     dplyr::mutate(date = as.Date(date, format = "%Y-%m-%d"),
-           time = dateToYears(date)) %>%
-    dplyr::filter(time > t_start - 0.01 & time < (t_end + 0.01)) %>%
+           time = dateToYears(date)) |>
+    dplyr::filter(time > t_start - 0.01 & time < (t_end + 0.01)) |>
     dplyr::mutate(max_rain = max(rain), rain_std = rain/max_rain)
 
 
-  cases_other_dept <- MODEL3_CASES %>%
-    tidyr::gather(dep, cases, -date) %>%
-    dplyr::filter(dep != departement) %>%
+  cases_other_dept <- MODEL3_CASES |>
+    tidyr::gather(dep, cases, -date) |>
+    dplyr::filter(dep != departement) |>
     dplyr::mutate(date = as.Date(date, format = "%Y-%m-%d"),
            time = dateToYears(date))
 
-  cases_other_dept <- stats::aggregate(cases_other_dept$cases, by=list(Category=cases_other_dept$time), FUN=sum, na.rm=TRUE, na.action=NULL) %>%
-    dplyr::mutate(time = Category) %>%
+  cases_other_dept <- stats::aggregate(cases_other_dept$cases, by=list(Category=cases_other_dept$time), FUN=sum, na.rm=TRUE, na.action=NULL) |>
+    dplyr::mutate(time = Category) |>
     dplyr::mutate(cases = x)
 
-  cases_covar <- cases_other_dept %>%
-    dplyr::select(time, cases) %>%
+  cases_covar <- cases_other_dept |>
+    dplyr::select(time, cases) |>
     dplyr::rename(cases_other = cases)
 
   ret <- list()

@@ -383,7 +383,7 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
       else {vacc[0]=0; vacc[1]=0;}
 
       // expected force of infection
-      foi = Beta*(I[u]+IOD[u]+ITD[u]) + redb*Beta*(A[u]+AOD[u]+ATD[u]); //  TODO: Need to add under 5 vaccinated?
+      foi = Beta*(I[u]+IOD[u]+ITD[u]) + redb*Beta*(A[u]+AOD[u]+ATD[u]);
 
       // water effect
       foi += 0.5*(1 + AlphaS*cos(2*pi*t/ps + phase))*(BetaW*W[u])/(Sat+W[u]);

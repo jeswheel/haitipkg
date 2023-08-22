@@ -33,6 +33,9 @@
 #'    matrix, so it is primarily saved for debugging and testing purposes.}
 #' }
 #'
+#' It is assumed that a parallel backend compatable with the foreach and
+#' doRNG packages has been registered prior to calling this function
+#'
 #' @param nsearches integer number of searches to conduct. See details below.
 #' @param search1 list containing parameters used to fit the model. See details.
 #' @param search2 list containing parameters used to fit the model. See details.
@@ -47,11 +50,11 @@
 #'    so that the optimal number of cores with `RUN_LEVEL = 3` is 36.
 #'
 #' @import foreach
-#' @import doParallel
 #' @import doRNG
 #' @import spatPomp
 #'
-#' @importFrom magrittr %>%
+#' @examples
+#' \dontrun{fit_m3 <- fit_haiti3()}
 #'
 #' @export
 fit_haiti3 <- function(
@@ -268,7 +271,9 @@ fit_haiti3 <- function(
      est_param_names)
   gc()
 
-  doParallel::registerDoParallel(ncores)
+  # It is assumed that a parallel backend has been registered prior to calling
+  # this function.
+  # doParallel::registerDoParallel(ncores)
   doRNG::registerDoRNG(2198635)
 
   t_global <- system.time(
@@ -329,8 +334,8 @@ fit_haiti3 <- function(
   pfilterLikes$ll <- rowSums(likMat)  # Faster
 
   # Group by model parameter set.
-  ibpf_logLik <- pfilterLikes %>%
-    dplyr::group_by(which) %>%
+  ibpf_logLik <- pfilterLikes |>
+    dplyr::group_by(which) |>
     dplyr::summarize(logLik = logmeanexp(ll),
               se = logmeanexp(ll, se = TRUE)[2])
 
@@ -383,21 +388,21 @@ fit_haiti3 <- function(
   # pfilterLikes <- as.data.frame(search1_results$likMat)
   # pfilterLikes$which <- rep(1:search1$NREPS, each = search1$NREPS_EVAL)
 
-  # best_unit_parm_id <- pfilterLikes %>%
+  # best_unit_parm_id <- pfilterLikes |>
   #   tidyr::pivot_longer(  # Convert unit likelihood columns into variables
   #     data = .,
   #     cols = -which,
   #     values_to = "loglik",
   #     names_to = "unit",
   #     names_prefix = "V"
-  #   ) %>%
-  #   dplyr::group_by(which, unit) %>%  # Which indicates parameter set
+  #   ) |>
+  #   dplyr::group_by(which, unit) |>  # Which indicates parameter set
   #   dplyr::summarize(logLik = logmeanexp(loglik), # Within each parameter set and unit, estimate the log-likelihood for the unit
-  #                    se = logmeanexp(loglik, se = TRUE)[2]) %>%
-  #   dplyr::mutate(unit = as.integer(unit)) %>%
-  #   dplyr::group_by(unit) %>%
-  #   dplyr::arrange(-logLik) %>%  # Within each unit, arrange so best parameter sets and likelihood are first
-  #   dplyr::slice_head(n = search2$TOP_N) %>%  # Only interested in the top TOP_N
+  #                    se = logmeanexp(loglik, se = TRUE)[2]) |>
+  #   dplyr::mutate(unit = as.integer(unit)) |>
+  #   dplyr::group_by(unit) |>
+  #   dplyr::arrange(-logLik) |>  # Within each unit, arrange so best parameter sets and likelihood are first
+  #   dplyr::slice_head(n = search2$TOP_N) |>  # Only interested in the top TOP_N
   #   dplyr::arrange(unit, -logLik)
 
   # For each top-parameter set, we are going to loop through and change the
@@ -412,7 +417,7 @@ fit_haiti3 <- function(
   #     for (u in 1:10) {
   #
   #       # For unit u, which indicates the parameter set with the pth best log-likelihood.
-  #       top_unit_p_id <- best_unit_parm_id[best_unit_parm_id$unit == u, 'which'][p, ] %>% as.numeric()
+  #       top_unit_p_id <- best_unit_parm_id[best_unit_parm_id$unit == u, 'which'][p, ] |> as.numeric()
   #
   #       # Do the same for params_shared_average, so the unit-specific parameters
   #       # for the two datasets are the same.
@@ -427,8 +432,8 @@ fit_haiti3 <- function(
   #   for (pname in shared_param_names) {
   #
   #     # Get the id's for the top pth parameter set for each unit (length=10)
-  #     top_unit_ps <- best_unit_parm_id %>%
-  #       dplyr::slice(p) %>%
+  #     top_unit_ps <- best_unit_parm_id |>
+  #       dplyr::slice(p) |>
   #       dplyr::pull(which)
   #
   #     # Set shared parameters to average of the top pth parameter set for each unit.
@@ -508,19 +513,19 @@ fit_haiti3 <- function(
   pfilterLikes$ll <- rowSums(likMat)
 
   # Group by model parameter set.
-  ibpf_logLik_temp <- pfilterLikes %>%
-    dplyr::group_by(which) %>%
+  ibpf_logLik_temp <- pfilterLikes |>
+    dplyr::group_by(which) |>
     dplyr::summarize(logLik = logmeanexp(ll),
                      se = logmeanexp(ll, se = TRUE)[2])
 
-  ibpf_logLik <- pfilterLikes %>%
-    dplyr::group_by(which) %>%
-    dplyr::summarise(starting_set = dplyr::first(starting_set)) %>%
+  ibpf_logLik <- pfilterLikes |>
+    dplyr::group_by(which) |>
+    dplyr::summarise(starting_set = dplyr::first(starting_set)) |>
     dplyr::left_join(
       x = ibpf_logLik_temp,
       y = .,
       by = "which"
-    ) %>%
+    ) |>
     dplyr::select(which, starting_set, logLik, se)
 
   # ibpf_logLik$init_method <- (ibpf_logLik$which - 1) %/% (search2$TOP_N * search2$NREPS) + 1
@@ -571,21 +576,21 @@ fit_haiti3 <- function(
   # pfilterLikes <- as.data.frame(search2_results$likMat)
   # pfilterLikes$which <- rep(1:search2$NREPS, each = search2$NREPS_EVAL)
 
-  # best_unit_parm_id <- pfilterLikes %>%
+  # best_unit_parm_id <- pfilterLikes |>
   #   tidyr::pivot_longer(  # Convert unit likelihood columns into variables
   #     data = .,
   #     cols = -which,
   #     values_to = "loglik",
   #     names_to = "unit",
   #     names_prefix = "V"
-  #   ) %>%
-  #   dplyr::group_by(which, unit) %>%  # Which indicates parameter set
+  #   ) |>
+  #   dplyr::group_by(which, unit) |>  # Which indicates parameter set
   #   dplyr::summarize(logLik = logmeanexp(loglik), # Within each parameter set and unit, estimate the log-likelihood for the unit
-  #                    se = logmeanexp(loglik, se = TRUE)[2]) %>%
-  #   dplyr::mutate(unit = as.integer(unit)) %>%
-  #   dplyr::group_by(unit) %>%
-  #   dplyr::arrange(-logLik) %>%  # Within each unit, arrange so best parameter sets and likelihood are first
-  #   dplyr::slice_head(n = search3$TOP_N) %>%  # Only interested in the top TOP_N
+  #                    se = logmeanexp(loglik, se = TRUE)[2]) |>
+  #   dplyr::mutate(unit = as.integer(unit)) |>
+  #   dplyr::group_by(unit) |>
+  #   dplyr::arrange(-logLik) |>  # Within each unit, arrange so best parameter sets and likelihood are first
+  #   dplyr::slice_head(n = search3$TOP_N) |>  # Only interested in the top TOP_N
   #   dplyr::arrange(unit, -logLik)
 
   # For each top-parameter set, we are going to loop through and change the
@@ -600,7 +605,7 @@ fit_haiti3 <- function(
   #     for (u in 1:10) {
   #
   #       # For unit u, which indicates the parameter set with the pth best log-likelihood.
-  #       top_unit_p_id <- best_unit_parm_id[best_unit_parm_id$unit == u, 'which'][p, ] %>% as.numeric()
+  #       top_unit_p_id <- best_unit_parm_id[best_unit_parm_id$unit == u, 'which'][p, ] |> as.numeric()
   #
   #       # set search3$NREPS rows to the best unit parameter for unit u
   #       params_unit_best[((search3$NREPS * (p-1)) + 1):(search3$NREPS * p), paste0(pname, u)] <- search2_results$params[top_unit_p_id, paste0(pname, u)]
@@ -675,19 +680,19 @@ fit_haiti3 <- function(
   pfilterLikes$ll <- rowSums(likMat)
 
   # Group by model parameter set.
-  ibpf_logLik_temp <- pfilterLikes %>%
-    dplyr::group_by(which) %>%
+  ibpf_logLik_temp <- pfilterLikes |>
+    dplyr::group_by(which) |>
     dplyr::summarize(logLik = logmeanexp(ll),
                      se = logmeanexp(ll, se = TRUE)[2])
 
-  ibpf_logLik <- pfilterLikes %>%
-    dplyr::group_by(which) %>%
-    dplyr::summarise(starting_set = dplyr::first(starting_set)) %>%
+  ibpf_logLik <- pfilterLikes |>
+    dplyr::group_by(which) |>
+    dplyr::summarise(starting_set = dplyr::first(starting_set)) |>
     dplyr::left_join(
       x = ibpf_logLik_temp,
       y = .,
       by = "which"
-    ) %>%
+    ) |>
     dplyr::select(which, starting_set, logLik, se)
 
   # ibpf_logLik$init_method <- (ibpf_logLik$which - 1) %/% (search3$TOP_N * search3$NREPS) + 1

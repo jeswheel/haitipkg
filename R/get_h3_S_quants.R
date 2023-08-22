@@ -9,7 +9,6 @@
 #' @return A data.frame containing quantiles of the susceptible compartment at
 #'    time t_i.
 #'
-#' @importFrom magrittr %>%
 #' @export
 
 get_h3_S_quants <- function(bpf, i) {
@@ -18,7 +17,7 @@ get_h3_S_quants <- function(bpf, i) {
   ),
   ]
 
-  new_states <- as.data.frame(t(states)) %>%
+  new_states <- as.data.frame(t(states)) |>
     dplyr::transmute(
       S_1  = S1  + VSd1  + VSdd1  + VSd_alt1  + VSdd_alt1,
       S_2  = S2  + VSd2  + VSdd2  + VSd_alt2  + VSdd_alt2,
@@ -38,21 +37,21 @@ get_h3_S_quants <- function(bpf, i) {
     names_to = 'state',
     values_to = 'S',
     names_prefix = "S_"
-  ) %>%
-    dplyr::mutate(dep = as.numeric(state)) %>%
-    dplyr::group_by(state) %>%
+  ) |>
+    dplyr::mutate(dep = as.numeric(state)) |>
+    dplyr::group_by(state) |>
     dplyr::summarize(
       Q025 = stats::quantile(S, probs = 0.025),
       Q50  = stats::quantile(S, probs = 0.5),
       Q975 = stats::quantile(S, probs = 0.975)
-    ) %>%
-    dplyr::ungroup() %>%
+    ) |>
+    dplyr::ungroup() |>
     dplyr::mutate(
       Q025 = Q025 / bpf@params[paste0("H", state)],
       Q50  = Q50  / bpf@params[paste0("H", state)],
       Q975 = Q975 / bpf@params[paste0("H", state)],
       dep = unit_names(bpf)[as.numeric(state)],
       time = bpf@times[i]
-    ) %>%
+    ) |>
     dplyr::select(time, dep, Q025, Q50, Q975)
 }

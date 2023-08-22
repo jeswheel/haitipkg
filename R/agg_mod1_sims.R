@@ -12,19 +12,18 @@
 #'   \item{q95: }{97.5 percentile of reported cholera cases}
 #' }
 #'
-#' @importFrom magrittr %>%
 #' @export
 agg_mod1_sims <- function(sims) {
 
-  sims %>%
-    dplyr::mutate(date = lubridate::ymd("2010-10-16") + lubridate::weeks(week)) %>%
-    dplyr::select(date, .id, cases) %>%
-    dplyr::group_by(date) %>%
+  sims |>
+    dplyr::mutate(date = lubridate::ymd("2010-10-16") + lubridate::weeks(week)) |>
+    dplyr::select(date, .id, cases) |>
+    dplyr::group_by(date) |>
     dplyr::summarise(
       q05 = stats::quantile(cases, 0.025, na.rm = T),
       mean = mean(cases, na.rm = T),
       q50 = stats::quantile(cases, 0.5, na.rm = T),
       q95 = stats::quantile(cases, 0.975, na.rm = T)
-    ) %>%
+    ) |>
     dplyr::ungroup()
 }

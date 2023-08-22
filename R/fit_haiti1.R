@@ -1,7 +1,9 @@
 #' Fit Model 1
 #'
 #' This function fits Model 1 by performing calculating a Monte-Carlo adjusted
-#' profile for the linear trend in transmission parameter.
+#' profile for the linear trend in transmission parameter. It is assumed that
+#' a parallel backend compatable with the foreach and doRNG packages has been
+#' registered prior to calling this function
 #'
 #' @param NP Number of particles to use for the Iterated Filter
 #' @param NMIF Number of MIF iterations
@@ -19,15 +21,15 @@
 #' @import foreach
 #' @import doRNG
 #'
-#' @importFrom magrittr %>%
-#'
 #' @export
 fit_haiti1 <- function(
     NP = 50, NMIF = 3, NUM_TREND = 3, NPROF = 3,
     NREPS_EVAL = 3, NP_EVAL = 50, ncores = 3
 ) {
 
-  doParallel::registerDoParallel(ncores)
+  # We assume that the parallel backend is registered outside of this function
+  # doParallel::registerDoParallel(ncores)
+
   set.seed(636813)
 
   # Load the model, allow breakpoint in rho, tau, and sig_sq, but not beta or nu

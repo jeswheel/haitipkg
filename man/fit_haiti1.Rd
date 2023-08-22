@@ -32,7 +32,9 @@ likelihood.}
 }
 \description{
 This function fits Model 1 by performing calculating a Monte-Carlo adjusted
-profile for the linear trend in transmission parameter.
+profile for the linear trend in transmission parameter. It is assumed that
+a parallel backend compatable with the foreach and doRNG packages has been
+registered prior to calling this function
 }
 \examples{
 \dontrun{fit_m1 <- fit_haiti1()}

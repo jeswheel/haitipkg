@@ -30,7 +30,6 @@
 #' @param include_data Boolean indicating the observed data should be included
 #'    in the result.
 #'
-#' @importFrom magrittr %>%
 #' @export
 
 project_rain <- function(end_date = as.Date("2029-12-20"),
@@ -41,7 +40,7 @@ project_rain <- function(end_date = as.Date("2029-12-20"),
     'Nord-Est', 'Nord-Ouest', 'Ouest', 'Sud', 'Sud-Est'
   )
 
-  rf <- haitiRainfall %>%
+  rf <- haitiRainfall |>
     dplyr::filter(
       date >= as.Date("2010-10-23") - lubridate::days(8)
     )
@@ -115,8 +114,8 @@ project_rain <- function(end_date = as.Date("2029-12-20"),
   # The values were determined to be the same transformation that was used on
   # the "training" data, i.e., dividing by the maximum rainfall event in
   # each department from Oct 2010 to Jan 2019.
-  result <- all_rain %>%
-    dplyr::filter(date >= as.Date("2010-10-23") - 4) %>%
+  result <- all_rain |>
+    dplyr::filter(date >= as.Date("2010-10-23") - 4) |>
     mutate(
       Artibonite = Artibonite / 121.71200,
       Centre = Centre / 105.10750,
@@ -143,6 +142,6 @@ project_rain <- function(end_date = as.Date("2029-12-20"),
     'time'
   )
 
-  result %>% dplyr::select(time, dplyr::starts_with("rain_std")) %>%
+  result |> dplyr::select(time, dplyr::starts_with("rain_std")) |>
     as.matrix()
 }
