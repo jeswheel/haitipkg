@@ -18,9 +18,7 @@ Description: This package is a container for the data and functions that were
     cholera in Haiti. 
 Imports: 
     tidyr,
-    magrittr,
     data.table,
-    doParallel,
     doRNG,
     foreach,
     subplex,
