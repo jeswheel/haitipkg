@@ -15,7 +15,8 @@ fit_haiti3(
   search_rho = FALSE,
   search_gamma = FALSE,
   search_hur = FALSE,
-  search_Iinit = FALSE
+  search_Iinit = FALSE,
+  start_date = "2010-11-20"
 )
 }
 \arguments{
@@ -39,6 +40,10 @@ Hurricane Matthew (2016) should be perturbed in the global search.}
 
 \item{search_Iinit}{Boolean indicating whether or not units with zero case
 counts at time t1 should have the value \eqn{I_u(t0)} estimated.}
+
+\item{start_date}{The starting date for the model. All of the data starts
+at "2010-10-23", but the data is suspect until "2010-11-20". See supplement
+for more detail.}
 }
 \description{
 This function fits the spatPomp version of Model 3 to cholera incidence

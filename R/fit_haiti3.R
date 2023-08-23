@@ -48,6 +48,9 @@
 #'    counts at time t1 should have the value \eqn{I_u(t0)} estimated.
 #' @param ncores Number of cores used to fit the model. The code is written
 #'    so that the optimal number of cores with `RUN_LEVEL = 3` is 36.
+#' @param start_date The starting date for the model. All of the data starts
+#'    at "2010-10-23", but the data is suspect until "2010-11-20". See supplement
+#'    for more detail.
 #'
 #' @import foreach
 #' @import doRNG
@@ -77,7 +80,8 @@ fit_haiti3 <- function(
     search_rho = FALSE,
     search_gamma = FALSE,
     search_hur = FALSE,
-    search_Iinit = FALSE
+    search_Iinit = FALSE,
+    start_date = "2010-11-20"
     ) {
 
   #
@@ -111,7 +115,7 @@ fit_haiti3 <- function(
   }
 
   # Create the model that will be fit to cholera incidence data
-  h3_spat <- haiti3_spatPomp()
+  h3_spat <- haiti3_spatPomp(start_date = start_date)
 
   # Create a list to save all of the results.
   results <- list()
