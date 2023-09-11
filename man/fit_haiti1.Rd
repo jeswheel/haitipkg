@@ -10,8 +10,7 @@ fit_haiti1(
   NUM_TREND = 3,
   NPROF = 3,
   NREPS_EVAL = 3,
-  NP_EVAL = 50,
-  ncores = 3
+  NP_EVAL = 50
 )
 }
 \arguments{
@@ -27,8 +26,6 @@ fit_haiti1(
 likelihood.}
 
 \item{NP_EVAL}{Number of particles used for likelihood evaluation.}
-
-\item{ncores}{Number of cores to use for parallelization.}
 }
 \description{
 This function fits Model 1 by performing calculating a Monte-Carlo adjusted

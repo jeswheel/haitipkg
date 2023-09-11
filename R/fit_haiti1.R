@@ -12,7 +12,6 @@
 #' @param NREPS_EVAL Number of particle filter replications to evaluate the
 #'        likelihood.
 #' @param NP_EVAL Number of particles used for likelihood evaluation.
-#' @param ncores Number of cores to use for parallelization.
 #'
 #' @examples
 #' \dontrun{fit_m1 <- fit_haiti1()}
@@ -24,7 +23,7 @@
 #' @export
 fit_haiti1 <- function(
     NP = 50, NMIF = 3, NUM_TREND = 3, NPROF = 3,
-    NREPS_EVAL = 3, NP_EVAL = 50, ncores = 3
+    NREPS_EVAL = 3, NP_EVAL = 50
 ) {
 
   # We assume that the parallel backend is registered outside of this function

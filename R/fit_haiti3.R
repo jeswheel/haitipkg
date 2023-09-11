@@ -46,8 +46,6 @@
 #'    Hurricane Matthew (2016) should be perturbed in the global search.
 #' @param search_Iinit Boolean indicating whether or not units with zero case
 #'    counts at time t1 should have the value \eqn{I_u(t0)} estimated.
-#' @param ncores Number of cores used to fit the model. The code is written
-#'    so that the optimal number of cores with `RUN_LEVEL = 3` is 36.
 #' @param start_date The starting date for the model. All of the data starts
 #'    at "2010-10-23", but the data is suspect until "2010-11-20". See supplement
 #'    for more detail.
@@ -75,7 +73,6 @@ fit_haiti3 <- function(
     ),
     search2 = NULL,
     search3 = NULL,
-    ncores = 3,
     nsearches = 1,
     search_rho = FALSE,
     search_gamma = FALSE,

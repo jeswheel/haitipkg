@@ -10,7 +10,6 @@ fit_haiti3(
     FALSE),
   search2 = NULL,
   search3 = NULL,
-  ncores = 3,
   nsearches = 1,
   search_rho = FALSE,
   search_gamma = FALSE,
@@ -25,9 +24,6 @@ fit_haiti3(
 \item{search2}{list containing parameters used to fit the model. See details.}
 
 \item{search3}{list containing parameters used to fit the model. See details.}
-
-\item{ncores}{Number of cores used to fit the model. The code is written
-so that the optimal number of cores with \code{RUN_LEVEL = 3} is 36.}
 
 \item{nsearches}{integer number of searches to conduct. See details below.}
 
