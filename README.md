@@ -6,6 +6,6 @@ This package contains the data and functions used to create the associated resea
 
 ## TODO: 
 
-- [ ] Update with newest version of SpatPomp (I think the unit numbering needs to be fixed. 
-- [ ] Update with newest version of tidyverse (haiti3_spatPomp uses a deprecated function).  
+- [x] Update with newest version of SpatPomp (I think the unit numbering needs to be fixed. 
+- [x] Update with newest version of tidyverse (haiti3_spatPomp uses a deprecated function).  
 
