@@ -1,11 +1,21 @@
-# TODO: Before actually running anything, create a "lab-log" of all of the things that we tried, that way
+#' Profiling haiti3
+#'
+#' TODO: Before actually running anything, create a "lab-log" of all of the things that we tried, that way
 # if we used "banked" results, it will be possible to completely recreate these banked results. To start,
 # keep track of the haitipkg version number and commit hash of the original submission (we will probably use those banked results), as well as the commit hash for the submission. Then figure out a way to track everything that we
 # submit to great lakes (at least everything that we might use, I'm guessing a few low RUN_LEVELS will be
 # conducted to smooth out issues before running a big job).
-
-# TODO: Document.
-fit_haiti3 <- function(
+#'
+#' @param search1 search params
+#' @param search2 search params
+#' @param prof_parameter variable to profile
+#' @param prof_values values of profile variable
+#' @param nprof number of profile searches
+#' @param start_date start date for model.
+#'
+#' @return The best stuff.
+#' @export
+profile_haiti3 <- function(
   # TODO: change search list defaults.
   search1 = list(
       NBPF = 5,

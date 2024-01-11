@@ -5,21 +5,18 @@
 \title{Fit Haiti3}
 \usage{
 fit_haiti3(
-  search1 = list(NBPF = 5, NP = 50, SPAT_REGRESSION = 0.5, NREPS = 6, NP_EVAL = 100,
-    NREPS_EVAL = 6, RW_SD = NULL, COOLING = 0.5, KEEP_TRACES = FALSE, KEEP_LIK_MAT =
-    FALSE),
-  search2 = list(NBPF = 5, NP = 50, SPAT_REGRESSION = 0.5, NREPS = 6, NP_EVAL = 100,
-    NREPS_EVAL = 6, RW_SD = NULL, COOLING = 0.5, KEEP_TRACES = FALSE, KEEP_LIK_MAT =
-    FALSE),
-  prof_parameter,
-  prof_values,
-  nprof,
+  start_params,
+  NBPF = 5,
+  NP = 50,
+  SPAT_REGRESSION = 0.05,
+  NP_EVAL = 100,
+  NREPS_EVAL = 6,
+  RW_SD = NULL,
+  COOLING = 0.5,
   start_date = "2010-11-20"
 )
 }
 \arguments{
-\item{start_date}{Starting date used for Haiti 3.}
-
 \item{start_params}{a numeric vector of parameters for Haiti 3 model.}
 
 \item{NBPF}{number of BPF iterations to use for the IBPF algorithms.}
@@ -36,6 +33,8 @@ IBPF algorithm.}
 \item{RW_SD}{Random Walk SD for the IBPF algorithm.}
 
 \item{COOLING}{Cooling for the IBPF algorithm}
+
+\item{start_date}{Starting date used for Haiti 3.}
 }
 \value{
 a numeric vector containing the BPF likelihood estimate of the
