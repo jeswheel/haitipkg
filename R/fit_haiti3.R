@@ -21,11 +21,12 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{fit_m1 <- fit_haiti1()}
 fit_haiti3 <- function(
     start_params,
     NBPF = 5,
     NP = 50,
-    SPAT_REGRESSION = 0.5,
+    SPAT_REGRESSION = 0.05,
     NP_EVAL = 100,
     NREPS_EVAL = 6,
     RW_SD = NULL,

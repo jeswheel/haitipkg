@@ -47,3 +47,6 @@ A simple function that takes as input starting parameters, as well as
 hyperparameters to the IBPF algorithm and fits haiti3 using the given
 starting parameters.
 }
+\examples{
+\dontrun{fit_m1 <- fit_haiti1()}
+}
