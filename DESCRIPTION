@@ -1,6 +1,6 @@
 Package: haitipkg
 Title: R Package for Haiti Article 
-Version: 2.2.3
+Version: 3.0.0.9000
 Authors@R: c(
     person("Jesse", "Wheeler", email = "jeswheel@umich.edu", 
     role = c("aut", "cre")),
