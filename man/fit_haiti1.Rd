@@ -2,38 +2,33 @@
 % Please edit documentation in R/fit_haiti1.R
 \name{fit_haiti1}
 \alias{fit_haiti1}
-\title{Fit Model 1}
+\title{Fit Haiti 1}
 \usage{
-fit_haiti1(
-  NP = 50,
-  NMIF = 3,
-  NUM_TREND = 3,
-  NPROF = 3,
-  NREPS_EVAL = 3,
-  NP_EVAL = 50
-)
+fit_haiti1(start_params, NMIF, NP, NP_EVAL, NREPS_EVAL, RW_SD, COOLING = 0.5)
 }
 \arguments{
-\item{NP}{Number of particles to use for the Iterated Filter}
+\item{start_params}{A numeric vector of parameters for Model 1.}
 
-\item{NMIF}{Number of MIF iterations}
+\item{NMIF}{Integer number of IF2 iterations.}
 
-\item{NUM_TREND}{Number of points on profile to try for the trend parameter.}
+\item{NP}{Integer number of particles for the IF2 algorithm.}
 
-\item{NPROF}{Number of global search for each value of the trend parameter.}
+\item{NP_EVAL}{Integer number of particles to use in the particle filter
+that is used to estimate the log-likelihood of the fitted model.}
 
-\item{NREPS_EVAL}{Number of particle filter replications to evaluate the
-likelihood.}
+\item{NREPS_EVAL}{Number of repeated likelihood evaluations.}
 
-\item{NP_EVAL}{Number of particles used for likelihood evaluation.}
+\item{RW_SD}{Random walk standard deviations for the IF2 algorithm.}
+
+\item{COOLING}{Cooling rate for the IF2 algorithm.}
+}
+\value{
+A numeric vector containing the log-likelihood estimate of the model
+parameters, an estimate of the standard error of the estimated likelihood,
+and the parameter vector resulting from the IF2 algorithm.
 }
 \description{
-This function fits Model 1 by performing calculating a Monte-Carlo adjusted
-profile for the linear trend in transmission parameter. It is assumed that
-a parallel backend compatable with the foreach and doRNG packages has been
-registered prior to calling this function
-}
-\examples{
-\dontrun{fit_m1 <- fit_haiti1()}
-
+This simple function takes as input starting values for Model 1 parameters,
+as well as hyperparameters to the IF2 algorithm and fits Model 1 using these
+input values.
 }
