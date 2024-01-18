@@ -274,7 +274,7 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
         lik += 0;
       } else {
         m = log(Rho*C[u] + 1);
-        lik += dnorm(log(cases[u] + 1),m,v,1);
+        lik += dnorm(log(cases[u] + 1),m,v,1) - log(cases[u] + 1);
       }
     }
     if(!give_log) lik = exp(lik);
