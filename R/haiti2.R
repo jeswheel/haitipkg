@@ -518,7 +518,7 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
   cholera_partrans <- pomp::parameter_trans(
     log=c("sigma","gammaE","gamma","Omega1","Omega2","AlphaS",
           "Delta","ps","Sat","sigmaSE","VR","WR","Psi",
-          "Mu","Beta","BetaW","v"),
+          "Mu","Beta","BetaW","v", paste0("InitInfected", 1:10)),
     logit=c("k","VE1","VE2","Rho","f", "redb", "redmu")
   )
 
