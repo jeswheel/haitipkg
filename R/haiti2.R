@@ -125,8 +125,13 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
     int u;
 
     for (u = 0; u < U; u++) {
-      S[u] = pop[u] - InitInfected[u];
-      I[u] = InitInfected[u];
+      if(InitInfected[u] >= pop[u]) {
+        S[u] = 0;
+        I[u] = pop[u];
+      } else {
+        S[u] = pop[u] - nearbyint(InitInfected[u]);
+        I[u] = nearbyint(InitInfected[u]);
+      }
       E[u] = 0;
       A[u] = 0;
       R[u] = 0;
