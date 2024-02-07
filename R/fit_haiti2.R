@@ -10,13 +10,16 @@
 #'    must match the necessary parameters in the obj_fun argument.
 #' @param obj_fun The objective function to maximize, obtained as the output
 #'    of [pomp::traj_objfun] of an instance of Model 2.
+#' @param ... Additional arguments to be passed into the [subplex::subplex]
+#'    function.
 #'
 #' @return A vector containing the estimated parameters and the corresponding
 #'    likelihood value.
 #' @export
-fit_haiti2 <- function(initialization, obj_fun) {
+fit_haiti2 <- function(initialization, obj_fun, ...) {
   h2_fit <- subplex::subplex(
     par = initialization,
-    fn = obj_fun
+    fn = obj_fun,
+    ...
   )
 }

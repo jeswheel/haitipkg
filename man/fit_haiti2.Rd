@@ -4,7 +4,7 @@
 \alias{fit_haiti2}
 \title{Fit Haiti 2}
 \usage{
-fit_haiti2(initialization, obj_fun)
+fit_haiti2(initialization, obj_fun, ...)
 }
 \arguments{
 \item{initialization}{A vector of parameter values that will be used as
@@ -13,6 +13,9 @@ must match the necessary parameters in the obj_fun argument.}
 
 \item{obj_fun}{The objective function to maximize, obtained as the output
 of \link[pomp:traj_match]{pomp::traj_objfun} of an instance of Model 2.}
+
+\item{...}{Additional arguments to be passed into the \link[subplex:subplex]{subplex::subplex}
+function.}
 }
 \value{
 A vector containing the estimated parameters and the corresponding
