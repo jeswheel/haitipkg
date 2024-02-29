@@ -125,8 +125,13 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
     int u;
 
     for (u = 0; u < U; u++) {
-      S[u] = pop[u] - InitInfected[u];
-      I[u] = InitInfected[u];
+      if(InitInfected[u] >= pop[u]) {
+        S[u] = 0;
+        I[u] = pop[u];
+      } else {
+        S[u] = pop[u] - nearbyint(InitInfected[u]);
+        I[u] = nearbyint(InitInfected[u]);
+      }
       E[u] = 0;
       A[u] = 0;
       R[u] = 0;
@@ -274,7 +279,7 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
         lik += 0;
       } else {
         m = log(Rho*C[u] + 1);
-        lik += dnorm(log(cases[u] + 1),m,v,1);
+        lik += dnorm(log(cases[u] + 1),m,v,1) - log(cases[u] + 1);
       }
     }
     if(!give_log) lik = exp(lik);
@@ -518,7 +523,7 @@ haiti2 <- function(cutoff=2014.161, region="before", measure="linear"){
   cholera_partrans <- pomp::parameter_trans(
     log=c("sigma","gammaE","gamma","Omega1","Omega2","AlphaS",
           "Delta","ps","Sat","sigmaSE","VR","WR","Psi",
-          "Mu","Beta","BetaW","v"),
+          "Mu","Beta","BetaW","v", paste0("InitInfected", 1:10)),
     logit=c("k","VE1","VE2","Rho","f", "redb", "redmu")
   )
 

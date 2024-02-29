@@ -2,26 +2,28 @@
 % Please edit documentation in R/fit_haiti2.R
 \name{fit_haiti2}
 \alias{fit_haiti2}
-\title{Fit model 2}
+\title{Fit Haiti 2}
 \usage{
-fit_haiti2()
+fit_haiti2(initialization, obj_fun, ...)
+}
+\arguments{
+\item{initialization}{A vector of parameter values that will be used as
+the initialization in order to perform optimization. This initialization
+must match the necessary parameters in the obj_fun argument.}
+
+\item{obj_fun}{The objective function to maximize, obtained as the output
+of \link[pomp:traj_match]{pomp::traj_objfun} of an instance of Model 2.}
+
+\item{...}{Additional arguments to be passed into the \link[subplex:subplex]{subplex::subplex}
+function.}
 }
 \value{
-List containing four objects: \describe{
-\item{h2_params}{A numerical vector containing the parameters to the epidemic period.}
-\item{leeFit_ll}{numeric containing the likelihood of the Lee et al (2020a) model.}
-\item{leeFit_n_params}{numeric containing the number of parameters fit by Lee et al (2020a).}
-}
+A vector containing the estimated parameters and the corresponding
+likelihood value.
 }
 \description{
-This function fits the parameters to cholera incidence data in Haiti. This
-function has two main parts:
-\enumerate{
-\item Fit Lee et al (2018) version of the model, to obtain model likelihoods.
-\item Fit our joint version of the model.
-}
-}
-\examples{
-\dontrun{h2_fit_results <- fit_haiti2()}
-
+This simple function takes as input an objective function to minimize and
+parameter initializations, and returns the corresponding maximum likelihood
+estimate. Note that for this function to work properly, the objective
+function needs to be created using \link[pomp:traj_match]{pomp::traj_objfun}.
 }
